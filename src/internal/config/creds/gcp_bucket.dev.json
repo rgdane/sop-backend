@@ -1,0 +1,13 @@
+{
+    "type": "service_account",
+    "project_id": "jalan-kerja-dev",
+    "private_key_id": "eac3be6ead0099520c7a58a50540343ea7490199",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCvbIsNmMa3dgEN\nvgRcaVsLb4Lfde6BQQZh0obMeQVxnLaXHbxNmHuPyG/h2Vqy815KrDoqtjHtBWCX\nsMUcFo+c1wDsko7HFUqc/1ej0EP8z2DnuH6eaqh7OLUhVUwVqunKWUy8lsZof76h\n4ObeNoOVE0pATC0GiN9Tp2P9JvmFiAfyo6DYWYCkgsrA2pVaxFrMFVEUg6pkAdP/\nxOeLSTXXTZA5XP2jrRMTxTY6CFRCxLLkAOxILLeJqN7hR91EdF523+VFPJ4IUabz\nItg1ontwlBTneUM5n+fZQNtXsEkih55u9Gpiv5Xg2P3+0dGIWN/L9xgqTjrRvB+N\ntNRInD6LAgMBAAECggEAVjwE9Tejg/9B0FgW+7ic1XfJPYFTL/3fncnoku5xEyMH\nDS1Eal6pawqMmVkIQYzqTsnwRBvRWiM5EwiGNOMQUPjOTv1Sq6IXTislkXUpXscw\n62gh8k0bKou7Wrn8D3C3wc15MAHsYeVeOGR/CUCCGY/kgcwQnDQ/mHdia0k0AwQF\ntizxw4+4rqC94mRzFsS7raolEFOjcsIhT2yENV3S2QcAzYEeEPJBkaFPycoF5Er9\nxJg8gnWlbcBDn1GIv9PcfyysVse60XTrAsXK768f5lOOeFUxnmItUQoiLVSg/w9g\nMAGJrr2CRRi4T9AAaLyhvpudcxqVOPMSeFu5bNaGUQKBgQDgepQfBW+sOVpBAIMG\nXY9dWZpCCzDs8AkjU0wZm6zaoX41F46eTZraQ3ddGBjDdT4jlOSojiTUmyI8NQbb\nT5+fc3hRgBSulOTaKeah7NSbvirhGjlTSiVTXxcz7ka9NbBTmlO+ltJRRktlvTF9\nvMrPi+danUHiIgrKuuGR6ybmkQKBgQDIDpKxKuLmEYFppsS0Sn1TNzocwHl1uyg+\nbR4vOgfwT4Vu+EOLCTp+S+eh47bbGgRdOif49oMqUEl2WyU7JH/o1ontv+9NPinY\nXsPeWwAnKWwPhipV9eixgtMS8MgwCpKmljRDVUevJmgwRYiI1p6nxnECh9C8MVxu\nLjekTlI5WwKBgHZIgOY7shVY/zLDN0dSY2m3/i2Qwg4HiXkgujfALPvjHqKRMChA\nEjmyVSIrwVi03bJYEYizpbqVqBt7gYpsUVruuFaRm9RGRrSiYZGvPnR2ZxfH/q7h\noftlXs+RXZrzwF69MiV6SYZj+PS6FWsA4Qkt2hGITZ//ehpLEPMXqp7RAoGAXmOJ\n0K9kWJp/zaJSgqH2mXGgKHqjk+mW5kVDjZK6tiY+1YmrDIlxIK+dfSNcXenbj0Tm\nIS/l2OwCjSYZ3dqtwuSeNR9uv6oJwj2L+nhDDTcc9gIeLWqVvFL2VaRnP0ttv810\noSQ2aywa0lOsRKvGNXCKV2BPGsvLSWzi8dHGN6sCgYAJvLqrg+oAtcxUASljAsG0\nFYCk5o2u8ZZ4JSYnj5AWfuMSrI/HOUwu9W5cWo7r/vMlZMUvdW1FDP4kKZjdkgpy\nBnEmet6cVC1q5guki9jOMhR6FAhGfA7eJHpohUNipWPUXXM5+3JoV8yuo3JVrYXx\nYZ8AuXnzj+Ak/Q2VWB5/hw==\n-----END PRIVATE KEY-----\n",
+    "client_email": "bucket-dev@jalan-kerja-dev.iam.gserviceaccount.com",
+    "client_id": "109453237296264042867",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bucket-dev%40jalan-kerja-dev.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+  }
