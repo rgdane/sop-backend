@@ -5,10 +5,7 @@ func Setup() {
 
 	InitLogger()
 	InitPostgres()
-	InitFirebaseApp()
-	InitStorage()
 	InitNeo4j()
-	InitOmniChannel()
 
 	runMigrate()
 	InitFiber()

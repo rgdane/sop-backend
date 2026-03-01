@@ -22,22 +22,6 @@ func InitNeo4j() {
 	config.Logger.Info("✅ Neo4j initialized")
 }
 
-func InitStorage() {
-	if err := config.GCPBucketApp(nil); err != nil {
-		config.Logger.Fatalf("❌ Failed to initialize GCP bucket: %v", err)
-		return
-	}
-	config.Logger.Info("✅ GCP bucket initialized")
-}
-
-func InitFirebaseApp() {
-	if err := config.FirebaseApp(); err != nil {
-		config.Logger.Fatalf("❌ Failed to initialize Firebase app: %v", err)
-		return
-	}
-	config.Logger.Info("✅ Firebase app initialized")
-}
-
 func InitPostgres() {
 	if err := config.PostgresApp(); err != nil {
 		config.Logger.Fatalf("❌ Failed to initialize Postgres: %v", err)
@@ -55,9 +39,4 @@ func InitFiber() {
 		config.Logger.Fatalf("❌ Failed to start Fiber: %v", err)
 		return
 	}
-}
-
-func InitOmniChannel() {
-	config.InitOmniChannelClient()
-	config.Logger.Info("✅ OmniChannel initialized")
 }
