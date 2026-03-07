@@ -131,7 +131,7 @@ func (s *userService) GetAllUsers(filter dto.UserFilterDto) ([]models.User, erro
 	}
 
 	if filter.Preload {
-		repo = repo.WithPreloads("HasRoles", "HasSquads", "HasTitle", "HasBacklogItems", "HasBacklogItems.HasStatus", "HasDivisions")
+		repo = repo.WithPreloads("HasRoles", "HasTitle", "HasDivisions")
 	}
 	if filter.Limit != 0 {
 		repo = repo.WithLimit(int(filter.Limit))
@@ -163,7 +163,7 @@ func (s *userService) GetAllUsers(filter dto.UserFilterDto) ([]models.User, erro
 func (s *userService) GetUserByID(id int64, filter dto.UserFilterDto) (*models.User, error) {
 	repo := s.repo
 	if filter.Preload {
-		repo = repo.WithPreloads("HasRoles", "HasSquads", "HasTitle", "HasBacklogItems", "HasBacklogItems.HasStatus", "HasDivisions")
+		repo = repo.WithPreloads("HasRoles", "HasTitle", "HasDivisions")
 	}
 	data, err := repo.FindUserByID(id)
 	if err != nil {

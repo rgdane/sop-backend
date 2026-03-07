@@ -14,14 +14,6 @@ func Migrate() {
 		log.Fatalf("Failed to create sequences: %v", err)
 	}
 
-	if err := SetupEnumUp(db); err != nil {
-		log.Fatalf("Failed to setup enums: %v", err)
-	}
-
-	if err := DropShiftViews(db); err != nil {
-		log.Printf("Warning: Failed to drop shift views: %v", err)
-	}
-
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.Department{},
