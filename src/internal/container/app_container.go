@@ -25,6 +25,7 @@ func NewAppContainer() *AppContainer {
 	return &AppContainer{
 		AuthHandler:               InitAuthContainer(),
 		DivisionHandler:           InitDivisionContainer(),
+		DepartmentHandler:         InitDepartmentContainer(),
 		LevelHandler:              InitLevelContainer(),
 		PermissionHandler:         InitPermissionContainer(),
 		PositionHandler:           InitPositionContainer(),

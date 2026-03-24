@@ -288,6 +288,12 @@ func (s *sopJobService) loadDynamicReference(sopJob *models.SopJob) error {
 func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.SopJob) error {
 	graph := builder.NewGraphRepository()
 
+	// 1. Amankan dari nil pointer dereference untuk SOP Name
+	sopName := ""
+	if data.HasSop != nil {
+		sopName = data.HasSop.Name
+	}
+
 	params := map[string]any{
 		"jobId":       data.ID,
 		"jobName":     data.Name,
@@ -302,7 +308,7 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 		"flowchartId": data.FlowchartID,
 		"nextIndex":   data.NextIndex,
 		"prevIndex":   data.PrevIndex,
-		"sopName":     data.HasSop.Name,
+		"sopName":     sopName, // Gunakan variabel yang sudah aman
 		"isPublished": data.IsPublished,
 		"isHide":      data.IsHide,
 	}
@@ -310,12 +316,12 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 	// 🔹 Merge Job node
 	if err := graph.
 		WithMerge("(j:Job {id: $jobId})").
-		WithSet(`j.name = $jobName, j.alias = $alias, j.type = $type, 
-		j.code = $code, j.description = $description, 
-		j.title_id = $titleId, j.sop_id = $sopId, 
-		j.reference_id = $referenceId, j.index = $index, 
-		j.flowchart_id = $flowchartId, j.is_hide = $isHide,
-		j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
+		WithSet(`j.name = $jobName, j.alias = $alias, j.type = $type,
+        j.code = $code, j.description = $description,
+        j.title_id = $titleId, j.sop_id = $sopId,
+        j.reference_id = $referenceId, j.index = $index,
+        j.flowchart_id = $flowchartId, j.is_hide = $isHide,
+        j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
 		WithParams(params).
 		RunWrite(); err != nil {
 		return fmt.Errorf("failed to merge Job node: %w", err)
@@ -340,25 +346,56 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 		return fmt.Errorf("failed to create HAS_JOB relationship: %w", err)
 	}
 
-	// 🔹 Optional Relationship (Job)-[:HAS_SOP]->(Parent SOP)
-	if input.ReferenceID != nil && *input.Type == "sop" {
-		var parentSop models.Sop
-		_ = s.GetDB().Select("name").First(&parentSop, *input.ReferenceID).Error
+	// 🔹 Optional Relationship (Job)-[:HAS_REFERENCE]->(Parent SOP/SPK)
+	if input.ReferenceID != nil && input.Type != nil {
+		var parentName string
+		var nodeLabel string
 
-		parentParams := map[string]any{
-			"jobId":      data.ID,
-			"parentId":   *input.ReferenceID,
-			"parentName": parentSop.Name,
+		// 1. Cek tipe referensi untuk query GORM dan penentuan Label Graph
+		switch *input.Type {
+		case "sop":
+			var parentSop models.Sop
+			if err := s.GetDB().Select("name").First(&parentSop, *input.ReferenceID).Error; err != nil {
+				return fmt.Errorf("failed to find parent SOP with ID %v: %w", *input.ReferenceID, err)
+			}
+			parentName = parentSop.Name
+			nodeLabel = "SOP" // Label untuk Neo4j
+
+		case "spk":
+			var parentSpk models.Spk // Asumsi model kamu bernama models.Spk
+			if err := s.GetDB().Select("name").First(&parentSpk, *input.ReferenceID).Error; err != nil {
+				return fmt.Errorf("failed to find parent SPK with ID %v: %w", *input.ReferenceID, err)
+			}
+			parentName = parentSpk.Name
+			nodeLabel = "SPK" // Label untuk Neo4j
+
+		default:
+			// Jika tipenya bukan sop atau spk (misal instruksi kerja yg belum diimplementasi)
+			// Kita abaikan saja pembuatan relasi referensinya untuk saat ini
+			nodeLabel = ""
 		}
 
-		if err := graph.
-			WithMatch("(j:Job {id: $jobId})").
-			WithMerge("(p:SOP {id: $parentId})").
-			WithSet("p.name = $parentName", nil).
-			WithMerge("(j)-[:HAS_REFERENCE]->(p)").
-			WithParams(parentParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE relationship: %w", err)
+		// 2. Eksekusi query Graph jika nodeLabel valid
+		if nodeLabel != "" {
+			parentParams := map[string]any{
+				"jobId":      data.ID,
+				"parentId":   *input.ReferenceID,
+				"parentName": parentName,
+			}
+
+			// Karena Label Cypher tidak bisa pakai parameter, kita gunakan fmt.Sprintf.
+			// Ini aman dari Cypher Injection karena nilai nodeLabel di-hardcode dari dalam switch-case.
+			mergeNodeQuery := fmt.Sprintf("(p:%s {id: $parentId})", nodeLabel)
+
+			if err := graph.
+				WithMatch("(j:Job {id: $jobId})").
+				WithMerge(mergeNodeQuery).
+				WithSet("p.name = $parentName", nil).
+				WithMerge("(j)-[:HAS_REFERENCE]->(p)").
+				WithParams(parentParams).
+				RunWrite(); err != nil {
+				return fmt.Errorf("failed to create HAS_REFERENCE relationship for %s: %w", nodeLabel, err)
+			}
 		}
 	}
 

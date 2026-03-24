@@ -21,7 +21,7 @@ type Sop struct {
 
 	// Relations
 	// HasParentJob *SopJob   `gorm:"foreignKey:ParentJobID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"parent_job"`
-	HasTitles    []Title    `gorm:"many2many:sop_titles;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_titles"`
+	// HasTitles    []Title    `gorm:"many2many:sop_titles;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_titles"`
 	HasJobs      []SopJob   `gorm:"foreignKey:SopID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_jobs"`
 	HasDivisions []Division `gorm:"many2many:sop_divisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_divisions"`
 }

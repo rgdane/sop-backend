@@ -10,7 +10,6 @@ type CreateSopDto struct {
 	Name         string  `json:"name" binding:"required"`
 	Description  *string `json:"description" binding:"required"`
 	Code         string  `json:"code" binding:"required"`
-	HasTitles    []int64 `json:"has_titles"`
 	HasDivisions []int64 `json:"has_divisions"`
 	ParentJobID  *int64  `json:"parent_job_id"`
 }
@@ -20,7 +19,6 @@ type UpdateSopDto struct {
 	Name         *string    `json:"name" binding:"required"`
 	Description  *string    `json:"description" binding:"required"`
 	Code         *string    `json:"code" binding:"required"`
-	HasTitles    *[]int64   `json:"has_titles"`
 	HasDivisions *[]int64   `json:"has_divisions"`
 	DeletedAt    *time.Time `json:"deleted_at"`
 	ParentJobID  *int64     `json:"parent_job_id"`

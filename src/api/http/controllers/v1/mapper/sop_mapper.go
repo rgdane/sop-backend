@@ -10,11 +10,6 @@ func CreateSopDtoToModel(dto *dto.CreateSopDto) (*models.Sop, error) {
 		return nil, nil
 	}
 
-	var titles []models.Title
-	for _, id := range dto.HasTitles {
-		titles = append(titles, models.Title{ID: id})
-	}
-
 	var divisions []models.Division
 	for _, id := range dto.HasDivisions {
 		divisions = append(divisions, models.Division{ID: id})
@@ -24,7 +19,6 @@ func CreateSopDtoToModel(dto *dto.CreateSopDto) (*models.Sop, error) {
 		Name:         dto.Name,
 		Description:  dto.Description,
 		Code:         dto.Code,
-		HasTitles:    titles,
 		HasDivisions: divisions,
 		ParentJobID:  dto.ParentJobID,
 	}
@@ -55,13 +49,7 @@ func UpdateSopDtoToModel(dto *dto.UpdateSopDto) (
 		}
 		associations["HasDivisions"] = divisions
 	}
-	if dto.HasTitles != nil {
-		var titles []models.Title
-		for _, id := range *dto.HasTitles {
-			titles = append(titles, models.Title{ID: id})
-		}
-		associations["HasTitles"] = titles
-	}
+	
 	payload["deleted_at"] = dto.DeletedAt
 	if dto.ParentJobID != nil {
 		payload["parent_job_id"] = dto.ParentJobID

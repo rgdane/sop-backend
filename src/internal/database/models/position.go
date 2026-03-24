@@ -9,7 +9,7 @@ import (
 
 type Position struct {
 	ID         int64          `gorm:"primaryKey;autoIncrement:false;type:bigint;default:nextval('positions_seq'::regclass)" json:"id"`
-	Name       string         `gorm:"column:name;size:255;not null;unique:uni_positions_name" json:"name"`
+	Name       string         `gorm:"column:name;size:255;not null;" json:"name"`
 	Code       string         `gorm:"column:code;size:50;unique:uni_positions_code;index:idx_positions_code" json:"code"`
 	Color      string         `gorm:"column:color;size:20" json:"color"`
 	DivisionID int64          `gorm:"column:division_id;index:idx_positions_division_id" json:"division_id"`
