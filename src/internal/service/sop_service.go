@@ -367,56 +367,137 @@ func (s *sopService) insertGraphSop(data *models.Sop) error {
 		}
 	}
 
+	if len(data.HasDivisions) > 0 {
+		// 1. Kumpulkan semua ID divisi ke dalam satu slice
+		divisionIDs := make([]int64, 0, len(data.HasDivisions))
+		for _, division := range data.HasDivisions {
+			divisionIDs = append(divisionIDs, division.ID)
+		}
+
+		// 2. Siapkan parameter untuk batch query
+		params := map[string]any{
+			"sopId":       data.ID,
+			"divisionIds": divisionIDs,
+		}
+
+		// 3. Eksekusi SATU kali query menggunakan UNWIND
+		if err := graph.
+			WithMatch("(s:SOP {id: $sopId})").
+			WithUnwind("$divisionIds", "divId").
+			WithMatch("(d:Division {id: divId})").
+			WithMerge("(s)-[:HAS_DIVISION]->(d)"). // Hapus alias 'r' jika tidak digunakan untuk SET properti relasi
+			WithParams(params).
+			RunWrite(); err != nil {
+			// Pesan error diperbaiki agar lebih akurat (relationship, bukan node)
+			return fmt.Errorf("failed to create HAS_DIVISION relationships for SOP %d: %w", data.ID, err)
+		}
+	}
+
 	return nil
 }
 
 func (s *sopService) updateGraphSop(data *models.Sop) error {
-	graph := builder.NewGraphRepository()
+    // ==========================================
+    // 1. UPDATE NODE PROPERTIES
+    // ==========================================
+    graph := builder.NewGraphRepository()
 
-	params := map[string]any{
-		"name":        data.Name,
-		"code":        data.Code,
-		"description": helper.ToJSONString(data.Description),
-		"id":          data.ID,
-		"parentJobId": data.ParentJobID,
-	}
+    params := map[string]any{
+        "name":        data.Name,
+        "code":        data.Code,
+        "description": helper.ToJSONString(data.Description),
+        "id":          data.ID,
+        "parentJobId": data.ParentJobID,
+    }
 
-	if err := graph.
-		WithMatch("(s:SOP {id: $id})").
-		WithSet("s.name = $name, s.code = $code, s.description = $description, s.parent_job_id = $parentJobId", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update SOP graph with id %d: %w", data.ID, err)
-	}
+    if err := graph.
+        WithMatch("(s:SOP {id: $id})").
+        WithSet("s.name = $name, s.code = $code, s.description = $description, s.parent_job_id = $parentJobId", nil).
+        WithParams(params).
+        RunWrite(); err != nil {
+        return fmt.Errorf("failed to update SOP graph properties with id %d: %w", data.ID, err)
+    }
 
-	return nil
+    // ==========================================
+    // 2. BONGKAR PASANG RELASI (SYNC ASSOCIATIONS)
+    // ==========================================
+    // Hanya lakukan sinkronisasi jika data.HasDivisions dikirim (tidak nil)
+    if data.HasDivisions != nil {
+        
+        // --- A. BONGKAR (Hapus Relasi Lama) ---
+        deleteGraph := builder.NewGraphRepository()
+        if err := deleteGraph.
+            WithMatch("(s:SOP {id: $sopId})-[r:HAS_DIVISION]->()").
+            WithDelete("r").
+            WithParams(map[string]any{"sopId": data.ID}).
+            RunWrite(); err != nil {
+            return fmt.Errorf("failed to delete old HAS_DIVISION relationships for SOP %d: %w", data.ID, err)
+        }
+
+        // --- B. PASANG (Buat Relasi Baru Jika Ada) ---
+        if len(data.HasDivisions) > 0 {
+            insertGraph := builder.NewGraphRepository()
+
+            // Kumpulkan ID divisi
+            divisionIDs := make([]int64, 0, len(data.HasDivisions))
+            for _, div := range data.HasDivisions {
+                divisionIDs = append(divisionIDs, div.ID)
+            }
+
+            // Eksekusi pembuatan relasi menggunakan UNWIND agar cepat
+            if err := insertGraph.
+                WithMatch("(s:SOP {id: $sopId})").
+                WithUnwind("$divisionIds", "divId").
+                WithMatch("(d:Division {id: divId})").
+                WithMerge("(s)-[:HAS_DIVISION]->(d)").
+                WithParams(map[string]any{
+                    "sopId":       data.ID,
+                    "divisionIds": divisionIDs,
+                }).
+                RunWrite(); err != nil {
+                return fmt.Errorf("failed to recreate HAS_DIVISION relationships for SOP %d: %w", data.ID, err)
+            }
+        }
+    }
+
+    return nil
 }
 
 func (s *sopService) deleteGraphSop(id int64) error {
 	graph := builder.NewGraphRepository()
+
 	params := map[string]interface{}{
 		"docId":     id,
-		"deletedAt": time.Now().Unix(), // atau gunakan format timestamp yang sesuai
+		// Kita kembalikan ke RFC3339Nano agar format string konsisten dengan insert/update di node lain
+		"deletedAt": time.Now().Format(time.RFC3339Nano), 
 	}
+
 	if err := graph.
 		WithMatch("(s:SOP {id: $docId})").
+		// 1. Tangkap dan hapus relasi ke Division (Hard delete untuk relasinya saja)
+		WithOptionalMatch("(s)-[r:HAS_DIVISION]->(:Division)").
+		WithDelete("r").
+		// Gunakan DISTINCT agar s tidak terduplikasi jika relasi HAS_DIVISION ada banyak
+		WithWith("DISTINCT s").
+		// 2. Lakukan APOC traversal untuk child nodes (Job, Step, dll), TAPI abaikan node Division
 		WithCall(`
 			apoc.path.expandConfig(s, {
 				relationshipFilter: ">",
+				labelFilter: "-Division", // <-- Kunci Utama: Node Division kebal dari traversal ini
 				minLevel: 0,
 				maxLevel: -1
 			})
 		`).
 		WithYield("path").
-		WithWith("s, collect(DISTINCT path) AS paths").
-		WithUnwind("paths", "p").
-		WithUnwind("nodes(p)", "n").
+		// Unwind langsung dari nodes(path) lebih efisien dari collect()
+		WithUnwind("nodes(path)", "n").
 		WithWith("DISTINCT n").
 		WithSet("n.deleted_at = $deletedAt", nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete SOP graph with id %d: %w", id, err)
+		return fmt.Errorf("failed to soft delete SOP graph with id %d: %w", id, err)
 	}
+
 	return nil
 }
 
