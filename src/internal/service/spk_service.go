@@ -5,9 +5,9 @@ import (
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
-	"jk-api/pkg/errors/gorm_err"
-	"jk-api/internal/shared/helper"
 	"jk-api/internal/repository/sql"
+	"jk-api/internal/shared/helper"
+	"jk-api/pkg/errors/gorm_err"
 	"jk-api/pkg/neo4j/builder"
 	"time"
 
@@ -215,8 +215,6 @@ func (s *spkService) BulkDeleteSpks(ids []int64) error {
 func (s *spkService) insertGraphSpk(data *models.Spk) error {
 	graph := builder.NewGraphRepository()
 
-	// Create SPK node (not Document) with properties from SQL
-	// Convert description JSON map to string for Neo4j
 	docParam := map[string]interface{}{
 		"id":          data.ID,
 		"name":        data.Name,
@@ -226,10 +224,33 @@ func (s *spkService) insertGraphSpk(data *models.Spk) error {
 
 	if err := graph.
 		WithMerge("(s:SPK {id: $id})").
-		WithSet("s.name = $name, s.code = $code, s.description = $description", docParam).
+		WithSet("s.name = $name, s.code = $code, s.description = $description", nil).
 		WithParams(docParam).
 		RunWrite(); err != nil {
 		return fmt.Errorf("failed to create SPK node: %w", err)
+	}
+
+	// --- B. PASANG (Buat Relasi Baru Jika Ada) ---
+	if len(data.HasTitles) > 0 {
+		insertGraph := builder.NewGraphRepository()
+
+		titleIDs := make([]int64, 0, len(data.HasTitles))
+		for _, title := range data.HasTitles {
+			titleIDs = append(titleIDs, title.ID)
+		}
+
+		if err := insertGraph.
+			WithMatch("(s:SPK {id: $spkId})").
+			WithUnwind("$titleIds", "titleId").
+			WithMatch("(t:Title {id: titleId})").
+			WithMerge("(s)-[:HAS_TITLE]->(t)").
+			WithParams(map[string]any{
+				"spkId":    data.ID,
+				"titleIds": titleIDs,
+			}).
+			RunWrite(); err != nil {
+			return fmt.Errorf("failed to recreate HAS_TITLE relationships for SPK %d: %w", data.ID, err)
+		}
 	}
 
 	return nil
@@ -237,9 +258,11 @@ func (s *spkService) insertGraphSpk(data *models.Spk) error {
 
 // updateGraphSpk updates SPK node in Neo4j
 func (s *spkService) updateGraphSpk(data *models.Spk) error {
+	// ==========================================
+	// 1. UPDATE NODE PROPERTIES
+	// ==========================================
 	graph := builder.NewGraphRepository()
 
-	// Update SPK node properties in Neo4j
 	docParam := map[string]interface{}{
 		"id":          data.ID,
 		"name":        data.Name,
@@ -249,10 +272,50 @@ func (s *spkService) updateGraphSpk(data *models.Spk) error {
 
 	if err := graph.
 		WithMatch("(s:SPK {id: $id})").
-		WithSet("s.name = $name, s.code = $code, s.description = $description", docParam).
+		WithSet("s.name = $name, s.code = $code, s.description = $description", nil).
 		WithParams(docParam).
 		RunWrite(); err != nil {
 		return fmt.Errorf("failed to update SPK node: %w", err)
+	}
+
+	// ==========================================
+	// 2. BONGKAR PASANG RELASI HAS_TITLE
+	// ==========================================
+	// Asumsi struct SPK memiliki field HasTitles. Sesuaikan jika namanya berbeda!
+	if data.HasTitles != nil {
+
+		// --- A. BONGKAR (Hapus Relasi Lama) ---
+		deleteGraph := builder.NewGraphRepository()
+		if err := deleteGraph.
+			WithMatch("(s:SPK {id: $spkId})-[r:HAS_TITLE]->()").
+			WithDelete("r").
+			WithParams(map[string]any{"spkId": data.ID}).
+			RunWrite(); err != nil {
+			return fmt.Errorf("failed to delete old HAS_TITLE relationships for SPK %d: %w", data.ID, err)
+		}
+
+		// --- B. PASANG (Buat Relasi Baru Jika Ada) ---
+		if len(data.HasTitles) > 0 {
+			insertGraph := builder.NewGraphRepository()
+
+			titleIDs := make([]int64, 0, len(data.HasTitles))
+			for _, title := range data.HasTitles {
+				titleIDs = append(titleIDs, title.ID)
+			}
+
+			if err := insertGraph.
+				WithMatch("(s:SPK {id: $spkId})").
+				WithUnwind("$titleIds", "titleId").
+				WithMatch("(t:Title {id: titleId})").
+				WithMerge("(s)-[:HAS_TITLE]->(t)").
+				WithParams(map[string]any{
+					"spkId":    data.ID,
+					"titleIds": titleIDs,
+				}).
+				RunWrite(); err != nil {
+				return fmt.Errorf("failed to recreate HAS_TITLE relationships for SPK %d: %w", data.ID, err)
+			}
+		}
 	}
 
 	return nil
@@ -266,18 +329,34 @@ func (s *spkService) deleteGraphSpk(data *models.Spk) error {
 func (s *spkService) deleteGraphSpkByID(spkId int64) error {
 	graph := builder.NewGraphRepository()
 
-	// Delete SPK node and all children (Jobs) recursively
 	params := map[string]interface{}{
-		"spkId": spkId,
+		"spkId":     spkId,
+		"deletedAt": time.Now().Format(time.RFC3339Nano),
 	}
 
 	if err := graph.
 		WithMatch("(s:SPK {id: $spkId})").
-		WithOptionalMatch("(s)-[*]->(child)").
-		WithDetachDelete("s, child").
+		// 1. Putus (Hard Delete) relasi ke Title terlebih dahulu
+		WithOptionalMatch("(s)-[r:HAS_TITLE]->(:Title)").
+		WithDelete("r").
+		// Pastikan di-distinct jika relasi HAS_TITLE lebih dari satu
+		WithWith("DISTINCT s").
+		// 2. APOC traversal untuk merambat ke child node SPK (misal: Job/Step)
+		WithCall(`
+			apoc.path.expandConfig(s, {
+				relationshipFilter: ">",
+				labelFilter: "-Title", // <-- Kunci: Lindungi Node Title dari efek berantai
+				minLevel: 0,
+				maxLevel: -1
+			})
+		`).
+		WithYield("path").
+		WithUnwind("nodes(path)", "n").
+		WithWith("DISTINCT n").
+		WithSet("n.deleted_at = $deletedAt", nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete SPK graph with id %d: %w", spkId, err)
+		return fmt.Errorf("failed to soft delete SPK graph with id %d: %w", spkId, err)
 	}
 
 	return nil
