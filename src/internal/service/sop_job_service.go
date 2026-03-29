@@ -286,9 +286,6 @@ func (s *sopJobService) loadDynamicReference(sopJob *models.SopJob) error {
 }
 
 func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.SopJob) error {
-	graph := builder.NewGraphRepository()
-
-	// 1. Amankan dari nil pointer dereference untuk SOP Name
 	sopName := ""
 	if data.HasSop != nil {
 		sopName = data.HasSop.Name
@@ -308,50 +305,34 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 		"flowchartId": data.FlowchartID,
 		"nextIndex":   data.NextIndex,
 		"prevIndex":   data.PrevIndex,
-		"sopName":     sopName, // Gunakan variabel yang sudah aman
+		"sopName":     sopName,
 		"isPublished": data.IsPublished,
 		"isHide":      data.IsHide,
 	}
 
-	// 🔹 Merge Job node
-	if err := graph.
+	// 🔹 1. Merge Job node & SOP Node, lalu buat HAS_JOB (Bisa digabung 1 Query)
+	insertJobGraph := builder.NewGraphRepository()
+	if err := insertJobGraph.
 		WithMerge("(j:Job {id: $jobId})").
 		WithSet(`j.name = $jobName, j.alias = $alias, j.type = $type,
-        j.code = $code, j.description = $description,
-        j.title_id = $titleId, j.sop_id = $sopId,
-        j.reference_id = $referenceId, j.index = $index,
-        j.flowchart_id = $flowchartId, j.is_hide = $isHide,
-        j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to merge Job node: %w", err)
-	}
-
-	// 🔹 Merge SOP node
-	if err := graph.
+		j.code = $code, j.description = $description,
+		j.title_id = $titleId, j.sop_id = $sopId,
+		j.reference_id = $referenceId, j.index = $index,
+		j.flowchart_id = $flowchartId, j.is_hide = $isHide,
+		j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
 		WithMerge("(s:SOP {id: $sopId})").
 		WithSet("s.name = $sopName", nil).
+		WithMerge("(s)-[:HAS_JOB]->(j)"). // Gunakan MERGE agar tidak duplicate relasi
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to merge SOP node: %w", err)
+		return fmt.Errorf("failed to insert Job and create HAS_JOB relationship: %w", err)
 	}
 
-	// 🔹 Relationship (SOP)-[:HAS_JOB]->(Job)
-	if err := graph.
-		WithMatch("(j:Job {id: $jobId})").
-		WithMatch("(s:SOP {id: $sopId})").
-		WithRelate("s", "HAS_JOB", "j", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to create HAS_JOB relationship: %w", err)
-	}
-
-	// 🔹 Optional Relationship (Job)-[:HAS_REFERENCE]->(Parent SOP/SPK)
+	// 🔹 2. Optional Relationship (Job)-[:HAS_REFERENCE]->(Parent SOP/SPK)
 	if input.ReferenceID != nil && input.Type != nil {
 		var parentName string
 		var nodeLabel string
 
-		// 1. Cek tipe referensi untuk query GORM dan penentuan Label Graph
 		switch *input.Type {
 		case "sop":
 			var parentSop models.Sop
@@ -359,23 +340,19 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 				return fmt.Errorf("failed to find parent SOP with ID %v: %w", *input.ReferenceID, err)
 			}
 			parentName = parentSop.Name
-			nodeLabel = "SOP" // Label untuk Neo4j
+			nodeLabel = "SOP"
 
 		case "spk":
-			var parentSpk models.Spk // Asumsi model kamu bernama models.Spk
+			var parentSpk models.Spk 
 			if err := s.GetDB().Select("name").First(&parentSpk, *input.ReferenceID).Error; err != nil {
 				return fmt.Errorf("failed to find parent SPK with ID %v: %w", *input.ReferenceID, err)
 			}
 			parentName = parentSpk.Name
-			nodeLabel = "SPK" // Label untuk Neo4j
-
+			nodeLabel = "SPK"
 		default:
-			// Jika tipenya bukan sop atau spk (misal instruksi kerja yg belum diimplementasi)
-			// Kita abaikan saja pembuatan relasi referensinya untuk saat ini
 			nodeLabel = ""
 		}
 
-		// 2. Eksekusi query Graph jika nodeLabel valid
 		if nodeLabel != "" {
 			parentParams := map[string]any{
 				"jobId":      data.ID,
@@ -383,11 +360,11 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 				"parentName": parentName,
 			}
 
-			// Karena Label Cypher tidak bisa pakai parameter, kita gunakan fmt.Sprintf.
-			// Ini aman dari Cypher Injection karena nilai nodeLabel di-hardcode dari dalam switch-case.
+			// Inisialisasi ulang builder untuk query referensi
+			refGraph := builder.NewGraphRepository()
 			mergeNodeQuery := fmt.Sprintf("(p:%s {id: $parentId})", nodeLabel)
 
-			if err := graph.
+			if err := refGraph.
 				WithMatch("(j:Job {id: $jobId})").
 				WithMerge(mergeNodeQuery).
 				WithSet("p.name = $parentName", nil).
@@ -403,8 +380,6 @@ func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.Sop
 }
 
 func (s *sopJobService) updateGraphSopJob(data *models.SopJob) error {
-	graph := builder.NewGraphRepository()
-
 	params := map[string]any{
 		"id":          data.ID,
 		"name":        data.Name,
@@ -423,7 +398,9 @@ func (s *sopJobService) updateGraphSopJob(data *models.SopJob) error {
 		"isHide":      data.IsHide,
 	}
 
-	if err := graph.
+	// 🔹 1. Update Properties
+	updateGraph := builder.NewGraphRepository()
+	if err := updateGraph.
 		WithMatch("(j:Job {id: $id})").
 		WithSet(`j.name = $name, j.alias = $alias, j.type = $type, 
 		j.code = $code, j.description = $description, 
@@ -433,67 +410,55 @@ func (s *sopJobService) updateGraphSopJob(data *models.SopJob) error {
 		j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update Job graph with id %d: %w", data.ID, err)
+		return fmt.Errorf("failed to update Job graph properties: %w", err)
 	}
 
-	deleteRefParam := map[string]any{
-		"jobId": data.ID,
-	}
-
-	if err := graph.
-		WithMatch("()-[r:HAS_JOB]->(j:Job {id: $jobId})").
-		WithDelete("r").
-		WithParams(deleteRefParam).
+	// 🔹 2. Hapus Relasi Lama (HAS_JOB dari SOP & HAS_REFERENCE)
+	// Kita bisa gabung query delete ini menggunakan OPTIONAL MATCH
+	deleteGraph := builder.NewGraphRepository()
+	if err := deleteGraph.
+		WithMatch("(j:Job {id: $jobId})").
+		WithOptionalMatch("()-[r1:HAS_JOB]->(j)").
+		WithOptionalMatch("(j)-[r2:HAS_REFERENCE]->()").
+		WithDelete("r1, r2").
+		WithParams(map[string]any{"jobId": data.ID}).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update: %w", err)
-	}
-	if err := graph.
-		WithMatch("(j:Job {id: $jobId})-[r:HAS_REFERENCE]->()").
-		WithDelete("r").
-		WithParams(deleteRefParam).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update: %w", err)
+		return fmt.Errorf("failed to delete old relations: %w", err)
 	}
 
+	// 🔹 3. Buat Relasi HAS_JOB yang baru
 	if data.SopID != 0 {
-		refParam := map[string]any{
-			"jobId": data.ID,
-			"sopId": data.SopID,
-		}
-
-		if err := graph.
+		jobRelGraph := builder.NewGraphRepository()
+		if err := jobRelGraph.
 			WithMatch("(j:Job {id: $jobId})").
 			WithMatch("(sop:SOP {id: $sopId})").
 			WithMerge("(sop)-[:HAS_JOB]->(j)").
-			WithParams(refParam).
+			WithParams(map[string]any{"jobId": data.ID, "sopId": data.SopID}).
 			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_JOB relation to SOP: %w", err)
+			return fmt.Errorf("failed to recreate HAS_JOB relation: %w", err)
 		}
 	}
 
+	// 🔹 4. Buat Relasi HAS_REFERENCE yang baru
 	if data.ReferenceID != nil && data.Type != nil {
-		refParam := map[string]any{
-			"jobId": data.ID,
-			"refId": data.ReferenceID,
+		refGraph := builder.NewGraphRepository()
+		
+		var label string
+		if *data.Type == "sop" {
+			label = "SOP"
+		} else if *data.Type == "spk" {
+			label = "SPK"
 		}
 
-		if *data.Type == "sop" {
-			if err := graph.
+		if label != "" {
+			mergeQuery := fmt.Sprintf("(j)-[:HAS_REFERENCE]->(p:%s {id: $refId})", label)
+			if err := refGraph.
 				WithMatch("(j:Job {id: $jobId})").
-				WithMatch("(sop:SOP {id: $refId})").
-				WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-				WithParams(refParam).
+				WithMatch(fmt.Sprintf("(p:%s {id: $refId})", label)).
+				WithMerge(mergeQuery).
+				WithParams(map[string]any{"jobId": data.ID, "refId": *data.ReferenceID}).
 				RunWrite(); err != nil {
-				return fmt.Errorf("failed to create HAS_REFERENCE relation to SOP: %w", err)
-			}
-		} else if *data.Type == "spk" {
-			if err := graph.
-				WithMatch("(j:Job {id: $jobId})").
-				WithMatch("(spk:SPK {id: $refId})").
-				WithMerge("(j)-[:HAS_REFERENCE]->(spk)").
-				WithParams(refParam).
-				RunWrite(); err != nil {
-				return fmt.Errorf("failed to create HAS_REFERENCE relation to SPK: %w", err)
+				return fmt.Errorf("failed to recreate HAS_REFERENCE relation to %s: %w", label, err)
 			}
 		}
 	}
@@ -505,31 +470,35 @@ func (s *sopJobService) deleteGraphSopJob(id int64) error {
 	graph := builder.NewGraphRepository()
 	params := map[string]any{
 		"docId":     id,
-		"deletedAt": time.Now().Unix(), // atau gunakan format timestamp yang sesuai
+		"deletedAt": time.Now().Format(time.RFC3339Nano), 
 	}
-	data, err := graph.
+
+	// Kita gunakan RunWrite(), tidak perlu RunWriteWithReturn() jika tidak mereturn data ke caller
+	if err := graph.
 		WithMatch("(j:Job {id: $docId})").
+		// Putuskan relasi referensi ke luar secara fisik agar bersih
+		WithOptionalMatch("(j)-[r:HAS_REFERENCE]->()").
+		WithDelete("r").
+		WithWith("DISTINCT j").
+		// APOC: Soft delete Job ini dan semua child-nya (seperti Step), 
+		// TAPI jangan sampai merusak node SOP atau SPK
 		WithCall(`
 			apoc.path.expandConfig(j, {
 				relationshipFilter: ">",
+				labelFilter: "-SOP|-SPK", // <-- SANGAT PENTING: Lindungi parent/reference node
 				minLevel: 0,
 				maxLevel: -1
 			})
 		`).
 		WithYield("path").
-		WithWith("j, collect(DISTINCT path) AS paths").
-		WithUnwind("paths", "p").
-		WithUnwind("nodes(p)", "n").
+		WithUnwind("nodes(path)", "n").
 		WithWith("DISTINCT n").
 		WithSet("n.deleted_at = $deletedAt", nil).
 		WithParams(params).
-		RunWriteWithReturn()
-
-	if err != nil {
-		return fmt.Errorf("failed to delete SOP graph with id %d: %w", id, err)
+		RunWrite(); err != nil {
+		return fmt.Errorf("failed to soft delete Job graph with id %d: %w", id, err)
 	}
 
-	fmt.Println("deleted data:", data)
 	return nil
 }
 

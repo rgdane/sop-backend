@@ -208,10 +208,6 @@ func (s *spkJobService) ReorderSpkJob(spkJobID int64, newIndex int, spkID int64)
 
 // insertGraphSpkJob creates Job node in Neo4j and relates to SPK node
 func (s *spkJobService) insertGraphSpkJob(data *models.SpkJob) error {
-	graph := builder.NewGraphRepository()
-
-	// Create Job node and relate to parent SPK node with properties from SQL
-	// Convert description JSON to string for Neo4j
 	jobParam := map[string]interface{}{
 		"spkId":       data.SpkID,
 		"id":          data.ID,
@@ -219,54 +215,63 @@ func (s *spkJobService) insertGraphSpkJob(data *models.SpkJob) error {
 		"description": helper.ToJSONString(data.Description),
 		"index":       data.Index,
 		"sopId":       data.SopID,
+		// Asumsi ada ikId jika menggunakan Instruksi Kerja
+		// "ikId":        data.IkID, 
 		"titleId":     data.TitleID,
 		"flowchartId": data.FlowchartID,
 		"nextIndex":   data.NextIndex,
 		"prevIndex":   data.PrevIndex,
 	}
 
-	// Match parent SPK node and create Job node with HAS_JOB relation
-	if err := graph.
+	// 🔹 1. Create Job node & Relasi dari SPK
+	insertGraph := builder.NewGraphRepository()
+	if err := insertGraph.
 		WithMatch("(s:SPK {id: $spkId})").
 		WithMerge("(s)-[:HAS_JOB]->(j:Job {id: $id})").
 		WithSet(`j.name = $name, 
 			j.description = $description, 
 			j.index = $index,
-			j.sopId = $sopId,
-			j.titleId = $titleId,
-			j.flowchartId = $flowchartId,
-			j.nextIndex = $nextIndex,
-			j.prevIndex = $prevIndex`, jobParam).
+			j.sop_id = $sopId,
+			j.title_id = $titleId,
+			j.flowchart_id = $flowchartId,
+			j.next_index = $nextIndex,
+			j.prev_index = $prevIndex`, nil).
 		WithParams(jobParam).
 		RunWrite(); err != nil {
 		return fmt.Errorf("failed to create SPK Job node: %w", err)
 	}
 
-	// If sopId is not null, create HAS_REFERENCE relation to SOP
+	// 🔹 2. Create HAS_REFERENCE Relation (Hanya SOP atau IK)
 	if data.SopID != nil && *data.SopID != 0 {
-		refParam := map[string]interface{}{
-			"jobId": data.ID,
-			"sopId": *data.SopID,
-		}
-
-		if err := graph.
-			WithMatch("(j:Job {id: $jobId})").
+		refGraph := builder.NewGraphRepository()
+		if err := refGraph.
+			WithMatch("(j:Job {id: $id})").
 			WithMatch("(sop:SOP {id: $sopId})").
 			WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-			WithParams(refParam).
+			WithParams(map[string]any{"id": data.ID, "sopId": *data.SopID}).
 			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE relation to SOP: %w", err)
+			return fmt.Errorf("failed to create HAS_REFERENCE to SOP: %w", err)
+		}
+	} 
+    // ELSE IF untuk Instruksi Kerja (IK) - Uncomment & sesuaikan jika ada di modelmu
+    /* else if data.IkID != nil && *data.IkID != 0 {
+		ikGraph := builder.NewGraphRepository()
+		if err := ikGraph.
+			WithMatch("(j:Job {id: $id})").
+			WithMatch("(ik:IK {id: $ikId})"). // Pastikan Label Instruksi Kerja di Neo4j
+			WithMerge("(j)-[:HAS_REFERENCE]->(ik)").
+			WithParams(map[string]any{"id": data.ID, "ikId": *data.IkID}).
+			RunWrite(); err != nil {
+			return fmt.Errorf("failed to create HAS_REFERENCE to IK: %w", err)
 		}
 	}
+    */
 
 	return nil
 }
 
 // updateGraphSpkJob updates Job node in Neo4j
 func (s *spkJobService) updateGraphSpkJob(data *models.SpkJob) error {
-	graph := builder.NewGraphRepository()
-
-	// Update Job node properties in Neo4j
 	jobParam := map[string]interface{}{
 		"id":          data.ID,
 		"name":        data.Name,
@@ -279,50 +284,46 @@ func (s *spkJobService) updateGraphSpkJob(data *models.SpkJob) error {
 		"prevIndex":   data.PrevIndex,
 	}
 
-	if err := graph.
+	// 🔹 1. Update Properties
+	updateGraph := builder.NewGraphRepository()
+	if err := updateGraph.
 		WithMatch("(j:Job {id: $id})").
 		WithSet(`j.name = $name, 
 			j.description = $description, 
 			j.index = $index,
-			j.sopId = $sopId,
-			j.titleId = $titleId,
-			j.flowchartId = $flowchartId,
-			j.nextIndex = $nextIndex,
-			j.prevIndex = $prevIndex`, jobParam).
+			j.sop_id = $sopId,
+			j.title_id = $titleId,
+			j.flowchart_id = $flowchartId,
+			j.next_index = $nextIndex,
+			j.prev_index = $prevIndex`, nil).
 		WithParams(jobParam).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update SPK Job node: %w", err)
+		return fmt.Errorf("failed to update SPK Job node properties: %w", err)
 	}
 
-	// Delete existing HAS_REFERENCE relation first
-	deleteRefParam := map[string]interface{}{
-		"jobId": data.ID,
-	}
-
-	if err := graph.
+	// 🔹 2. Hapus Relasi HAS_REFERENCE yang lama
+	deleteRefGraph := builder.NewGraphRepository()
+	if err := deleteRefGraph.
 		WithMatch("(j:Job {id: $jobId})-[r:HAS_REFERENCE]->()").
 		WithDelete("r").
-		WithParams(deleteRefParam).
+		WithParams(map[string]any{"jobId": data.ID}).
 		RunWrite(); err != nil {
-		// Ignore error if no relation exists
+		return fmt.Errorf("failed to delete old reference: %w", err)
 	}
 
-	// If sopId is not null, create HAS_REFERENCE relation to SOP
+	// 🔹 3. Buat ulang Relasi HAS_REFERENCE (SOP atau IK)
 	if data.SopID != nil && *data.SopID != 0 {
-		refParam := map[string]interface{}{
-			"jobId": data.ID,
-			"sopId": *data.SopID,
-		}
-
-		if err := graph.
+		refGraph := builder.NewGraphRepository()
+		if err := refGraph.
 			WithMatch("(j:Job {id: $jobId})").
 			WithMatch("(sop:SOP {id: $sopId})").
 			WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-			WithParams(refParam).
+			WithParams(map[string]any{"jobId": data.ID, "sopId": *data.SopID}).
 			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE relation to SOP: %w", err)
+			return fmt.Errorf("failed to recreate HAS_REFERENCE to SOP: %w", err)
 		}
 	}
+    // Jika ada logika IK, tambahkan blok Else-If serupa dengan Insert di sini.
 
 	return nil
 }
@@ -335,18 +336,33 @@ func (s *spkJobService) deleteGraphSpkJob(data *models.SpkJob) error {
 func (s *spkJobService) deleteGraphSpkJobByID(jobId int64) error {
 	graph := builder.NewGraphRepository()
 
-	// Delete Job node and all its children recursively
 	params := map[string]interface{}{
-		"jobId": jobId,
+		"jobId":     jobId,
+		"deletedAt": time.Now().Format(time.RFC3339Nano), // Konsisten RFC3339Nano
 	}
 
 	if err := graph.
 		WithMatch("(j:Job {id: $jobId})").
-		WithOptionalMatch("(j)-[*]->(child)").
-		WithDetachDelete("j, child").
+		// 1. Putuskan referensi ke luar (Hard delete hanya relasinya)
+		WithOptionalMatch("(j)-[r:HAS_REFERENCE]->()").
+		WithDelete("r").
+		WithWith("DISTINCT j").
+		// 2. APOC Traversal Soft Delete
+		WithCall(`
+			apoc.path.expandConfig(j, {
+				relationshipFilter: ">",
+				labelFilter: "-SPK|-SOP|-IK", // <-- SUPER PENTING: Lindungi Node SPK, SOP, dan IK
+				minLevel: 0,
+				maxLevel: -1
+			})
+		`).
+		WithYield("path").
+		WithUnwind("nodes(path)", "n").
+		WithWith("DISTINCT n").
+		WithSet("n.deleted_at = $deletedAt", nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete SPK Job graph with id %d: %w", jobId, err)
+		return fmt.Errorf("failed to soft delete SPK Job graph with id %d: %w", jobId, err)
 	}
 
 	return nil
