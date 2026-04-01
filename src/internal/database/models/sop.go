@@ -20,8 +20,6 @@ type Sop struct {
 	ParentJobID *int64         `gorm:"column:parent_job_id;index:idx_sops_parent_job_id" json:"parent_job_id"`
 
 	// Relations
-	// HasParentJob *SopJob   `gorm:"foreignKey:ParentJobID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"parent_job"`
-	// HasTitles    []Title    `gorm:"many2many:sop_titles;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_titles"`
 	HasJobs      []SopJob   `gorm:"foreignKey:SopID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_jobs"`
 	HasDivisions []Division `gorm:"many2many:sop_divisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_divisions"`
 }
@@ -58,21 +56,12 @@ func (l *Sop) GenerateSopCode(tx *gorm.DB, divisionID int64, excludeID int64) st
 		return ""
 	}
 
-	// Ambil Department
-	var department Department
-	if err := tx.Model(&Department{}).Where("id = ?", division.DepartmentID).First(&department).Error; err != nil {
-		return ""
-	}
-
-	if department.Code == nil || *department.Code == "" {
-		return ""
-	}
 	if division.Code == "" {
 		return ""
 	}
 
 	// Prefix: DEPT.DIV.
-	prefix := fmt.Sprintf("%s.%s.", *department.Code, division.Code)
+	prefix := fmt.Sprintf("%s.%s.", division.Code)
 
 	// Ambil semua code yang match prefix
 	query := tx.Model(&Sop{}).Select("code").Where("code LIKE ? AND deleted_at IS NULL", prefix+"%")

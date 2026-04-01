@@ -18,11 +18,8 @@ func Setup(app *fiber.App, c *container.AppContainer) {
 	})
 
 	AuthRoutes(api, c)
-	DepartmentRoutes(api, c)
 	DivisionRoutes(api, c)
-	LevelRoutes(api, c)
 	PermissionRoutes(api, c)
-	PositionRoutes(api, c)
 	RoleRoutes(api, c)
 	SopJobRoutes(api, c)
 	SopRoutes(api, c)
@@ -31,5 +28,4 @@ func Setup(app *fiber.App, c *container.AppContainer) {
 	TitleRoutes(api, c)
 	UserRoutes(api, c)
 	GraphRoutes(api, c)
-	DatabaseNodeRoutes(api, c)
 }

@@ -15,7 +15,6 @@ func CreateDivisionDtoToModel(dto *dto.CreateDivisionDto) (*models.Division, err
 	data := &models.Division{
 		Code:         dto.Code,
 		Name:         dto.Name,
-		DepartmentID: dto.DepartmentID,
 	}
 
 	return data, nil
@@ -30,9 +29,6 @@ func UpdateDivisionDtoToModel(dto *dto.UpdateDivisionDto) (map[string]interface{
 
 	if dto.Name != nil {
 		updates["name"] = *dto.Name
-	}
-	if dto.DepartmentID != nil {
-		updates["department_id"] = *dto.DepartmentID
 	}
 	if dto.Code != nil {
 		updates["code"] = *dto.Code

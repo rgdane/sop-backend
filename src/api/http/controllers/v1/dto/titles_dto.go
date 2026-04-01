@@ -12,8 +12,6 @@ type CreateTitleDto struct {
 	Name       string `json:"name" example:"Software Engineer"`
 	Code       string `json:"code" example:"SE"`
 	Color      string `json:"color" example:"#FF0000"`
-	PositionID *int64 `json:"position_id" example:"1"`
-	LevelID    *int64 `json:"level_id" example:"2"`
 }
 
 // UpdateTitleDto is used when updating an existing Title.
@@ -21,8 +19,6 @@ type UpdateTitleDto struct {
 	Name       *string    `json:"name" example:"Senior Software Engineer"`
 	Code       *string    `json:"code" example:"SSE"`
 	Color      *string    `json:"color" example:"#00FF00"`
-	PositionID *int64     `json:"position_id" example:"2"`
-	LevelID    *int64     `json:"level_id" example:"3"`
 	DeletedAt  *time.Time `json:"deleted_at"`
 }
 

@@ -33,7 +33,6 @@ import (
 //	@Router			/divisions [get]
 func GetDivisions(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		departmentId, _ := helper.ParseQueryInt64(c, "department_id")
 		sopId, _ := helper.ParseQueryInt64(c, "sop_id")
 		sort := c.Query("sort")
 		order := c.Query("order")
@@ -42,7 +41,6 @@ func GetDivisions(cn *container.AppContainer) fiber.Handler {
 		name := c.Query("name")
 
 		filter := dto.DivisionFilterDto{
-			DepartmentID: departmentId,
 			SopId:        sopId,
 			Preload:      c.Query("preload", "false") == "true",
 			Sort:         sort,
@@ -63,7 +61,6 @@ func GetDivisions(cn *container.AppContainer) fiber.Handler {
 
 func GetGraphDivisions(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		departmentId, _ := helper.ParseQueryInt64(c, "department_id")
 		sopId, _ := helper.ParseQueryInt64(c, "sop_id")
 		sort := c.Query("sort")
 		order := c.Query("order")
@@ -72,7 +69,6 @@ func GetGraphDivisions(cn *container.AppContainer) fiber.Handler {
 		name := c.Query("name")
 
 		filter := dto.DivisionFilterDto{
-			DepartmentID: departmentId,
 			SopId:        sopId,
 			Preload:      c.Query("preload", "false") == "true",
 			Sort:         sort,

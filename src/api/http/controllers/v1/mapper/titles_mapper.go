@@ -16,8 +16,6 @@ func CreateTitleDtoToModel(dto *dto.CreateTitleDto) (*models.Title, error) {
 		Name:       dto.Name,
 		Code:       dto.Code,
 		Color:      dto.Color,
-		PositionID: dto.PositionID,
-		LevelID:    dto.LevelID,
 	}
 
 	return data, nil
@@ -39,12 +37,7 @@ func UpdateTitleDtoToModel(dto *dto.UpdateTitleDto) (map[string]interface{}, err
 	if dto.Color != nil {
 		updates["color"] = *dto.Color
 	}
-	if dto.LevelID != nil {
-		updates["level_id"] = *dto.LevelID
-	}
-	if dto.PositionID != nil {
-		updates["position_id"] = *dto.PositionID
-	}
+
 	updates["deleted_at"] = dto.DeletedAt
 
 	return updates, nil

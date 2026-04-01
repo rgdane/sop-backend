@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"jk-api/internal/config"
 	"jk-api/internal/database/migrations"
+	"jk-api/internal/database/seeders"
 )
 
 func Setup() {
@@ -17,5 +19,5 @@ func Setup() {
 
 func runMigrate() {
 	migrations.Migrate()
-	//seeders.InitSeeder(config.DB)
+	seeders.InitSeeder(config.DB)
 }

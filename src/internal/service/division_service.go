@@ -108,7 +108,7 @@ func (s *divisionService) GetAllDivisions(filter dto.DivisionFilterDto) ([]model
 	repo := s.repo
 
 	if filter.Preload {
-		repo = repo.WithPreloads("HasDepartment")
+		repo = repo.WithPreloads("")
 	}
 
 	if filter.Sort != "" && filter.Order != "" {
@@ -131,7 +131,7 @@ func (s *divisionService) GetAllDivisions(filter dto.DivisionFilterDto) ([]model
 func (s *divisionService) GetDivisionByID(id int64, filter dto.DivisionFilterDto) (*models.Division, error) {
 	repo := s.repo
 	if filter.Preload {
-		repo = repo.WithPreloads("HasDepartment")
+		repo = repo.WithPreloads("")
 	}
 	data, err := repo.FindDivisionByID(id)
 	if err != nil {

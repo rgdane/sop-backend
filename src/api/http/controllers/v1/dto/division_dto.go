@@ -9,14 +9,12 @@ import (
 type CreateDivisionDto struct {
 	Name         string `json:"name"`
 	Code         string `json:"code"`
-	DepartmentID int64  `json:"department_id"`
 }
 
 // UpdateDivisionDto is used when updating an existing Division.
 type UpdateDivisionDto struct {
 	Name         *string    `json:"name"`
 	Code         *string    `json:"code"`
-	DepartmentID *int64     `json:"department_id"`
 	DeletedAt    *time.Time `json:"deleted_at"`
 }
 
@@ -39,7 +37,6 @@ type DivisionResponseDto struct {
 }
 
 type DivisionFilterDto struct {
-	DepartmentID int64
 	SopId        int64
 	Preload      bool
 	Name         string

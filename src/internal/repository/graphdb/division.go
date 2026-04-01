@@ -11,12 +11,11 @@ import (
 
 // 🔹 1. Ini adalah Struct Khusus Graph (Tidak ada hubungannya dengan GORM/SQL)
 type DivisionNode struct {
-	ID        int64
-	Name      string
-	Code      string
-	CreatedAt string // Disimpan sebagai string ISO 8601 di Neo4j
-	UpdatedAt string
-	Department map[string]any `json:"department,omitempty"` // 🔹 Field hasil preload
+	ID         int64          `json:"id"`
+	Name       string         `json:"name"`
+	Code       string         `json:"code"`
+	CreatedAt  string         `json:"created_at"`
+	UpdatedAt  string         `json:"updated_at"`
 }
 
 // 🔹 2. Interface sekarang menggunakan DivisionNode
@@ -67,17 +66,6 @@ func (r *divisionRepository) GetAllGraphDivisions(filter dto.DivisionFilterDto) 
 	// 3. Return Clause (Termasuk eksekusi PRELOAD menggunakan Pattern Comprehension)
 	// Default return tanpa preload
 	returnClause := "d {.*} AS data"
-
-	if filter.Preload {
-		// Menggunakan Pattern Comprehension: [(start)-[:REL]->(end) | end {.*}]
-		// Ini mengambil relasi secara otomatis di dalam single query, tanpa perlu OPTIONAL MATCH terpisah.
-		returnClause = `
-			d {
-				.*, 
-				department: [(d)-[:HAS_DEPARTMENT]->(dept:Department) WHERE dept.deleted_at IS NULL | dept {.*}][0]
-			} AS data
-		`
-	}
 
 	// 4. Tambahkan ORDER BY ke dalam string Return jika ada Sort
 	if filter.Sort != "" && filter.Order != "" {
@@ -160,8 +148,6 @@ func (r *divisionRepository) GetGraphDivisionByID(id int64) (*DivisionNode, erro
 func mapToDivisionNode(props map[string]any) *DivisionNode {
 	div := &DivisionNode{}
 
-	// Mapping basic properties
-	// Catatan: Driver Neo4j biasanya mengembalikan angka bulat sebagai int64
 	if idVal, ok := props["id"].(int64); ok {
 		div.ID = idVal
 	}
@@ -180,15 +166,6 @@ func mapToDivisionNode(props map[string]any) *DivisionNode {
 	
 	if updatedVal, ok := props["updated_at"].(string); ok {
 		div.UpdatedAt = updatedVal
-	}
-
-	// 🔹 Mapping data Preload (Department)
-	// Kita cek apakah key "department" ada di dalam map dan nilainya tidak nil
-	if deptVal, ok := props["department"]; ok && deptVal != nil {
-		// Driver Neo4j akan membaca hasil dept {.*} sebagai map[string]any
-		if deptMap, isMap := deptVal.(map[string]any); isMap {
-			div.Department = deptMap
-		}
 	}
 
 	return div

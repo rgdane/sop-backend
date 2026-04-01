@@ -16,10 +16,7 @@ func Migrate() {
 
 	err := db.AutoMigrate(
 		&models.User{},
-		&models.Department{},
 		&models.Division{},
-		&models.Level{},
-		&models.Position{},
 		&models.Title{},
 		&models.Role{},
 		&models.Permission{},
@@ -28,7 +25,6 @@ func Migrate() {
 		&models.Flowchart{},
 		&models.SpkJob{},
 		&models.SopJob{},
-		&models.DatabaseNode{},
 	)
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)
