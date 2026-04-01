@@ -61,6 +61,36 @@ func GetDivisions(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphDivisions(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		departmentId, _ := helper.ParseQueryInt64(c, "department_id")
+		sopId, _ := helper.ParseQueryInt64(c, "sop_id")
+		sort := c.Query("sort")
+		order := c.Query("order")
+		cursor, _ := helper.ParseQueryInt64(c, "cursor")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
+		name := c.Query("name")
+
+		filter := dto.DivisionFilterDto{
+			DepartmentID: departmentId,
+			SopId:        sopId,
+			Preload:      c.Query("preload", "false") == "true",
+			Sort:         sort,
+			Order:        order,
+			Cursor:       cursor,
+			Limit:        limit,
+			Name:         name,
+			ShowDeleted:  c.Query("show_deleted", "false") == "true",
+		}
+
+		data, total, err := cn.DivisionHandler.GetAllDivisionsGraphHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
 // GetDivisionByID godoc
 //
 //	@Summary		Get division by ID
@@ -93,6 +123,21 @@ func GetDivisionByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphDivisionByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.DivisionHandler.GetDivisionByIdGraphHandler(id)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
 // CreateDivisions godoc
 //
 //	@Summary		Create a new division
@@ -106,7 +151,7 @@ func GetDivisionByID(cn *container.AppContainer) fiber.Handler {
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/divisions [post]
-func CreateDivisions(cn *container.AppContainer) fiber.Handler {
+func CreateDivision(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateDivisionDto
 		if err := c.BodyParser(&input); err != nil {
@@ -114,6 +159,36 @@ func CreateDivisions(cn *container.AppContainer) fiber.Handler {
 		}
 
 		result, err := cn.DivisionHandler.CreateDivisionHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateSqlDivision(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateDivisionDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.DivisionHandler.CreateDivisionSqlHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateGraphDivision(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateDivisionDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.DivisionHandler.CreateDivisionGraphHandler(&input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -135,7 +210,7 @@ func CreateDivisions(cn *container.AppContainer) fiber.Handler {
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/divisions/{id} [put]
-func UpdateDivisions(cn *container.AppContainer) fiber.Handler {
+func UpdateDivision(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
@@ -148,6 +223,46 @@ func UpdateDivisions(cn *container.AppContainer) fiber.Handler {
 		}
 
 		updated, err := cn.DivisionHandler.UpdateDivisionHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, updated)
+	}
+}
+
+func UpdateSqlDivision(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		var input dto.UpdateDivisionDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		updated, err := cn.DivisionHandler.UpdateDivisionSqlHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, updated)
+	}
+}
+
+func UpdateGraphDivision(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		var input dto.UpdateDivisionDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		updated, err := cn.DivisionHandler.UpdateDivisionGraphHandler(id, &input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -168,7 +283,7 @@ func UpdateDivisions(cn *container.AppContainer) fiber.Handler {
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/divisions/{id} [delete]
-func DeleteDivisions(cn *container.AppContainer) fiber.Handler {
+func DeleteDivision(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
@@ -176,6 +291,34 @@ func DeleteDivisions(cn *container.AppContainer) fiber.Handler {
 		}
 
 		if err := cn.DivisionHandler.DeleteDivisionHandler(id); err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "Division deleted successfully", nil)
+	}
+}
+
+func DeleteSqlDivision(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.DivisionHandler.DeleteDivisionSqlHandler(id); err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "Division deleted successfully", nil)
+	}
+}
+
+func DeleteGraphDivision(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.DivisionHandler.DeleteDivisionGraphHandler(id); err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
 		return presenters.SendSuccessResponseWithMessage(c, "Division deleted successfully", nil)

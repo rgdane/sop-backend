@@ -7,7 +7,9 @@ import (
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/api/http/controllers/v1/mapper"
 	"jk-api/internal/database/models"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/service"
+	"time"
 )
 
 type DivisionHandler struct {
@@ -18,6 +20,7 @@ func NewDivisionHandler(service service.DivisionService) *DivisionHandler {
 	return &DivisionHandler{Service: service}
 }
 
+// --- CREATE ---
 func (h *DivisionHandler) CreateDivisionHandler(input *dto.CreateDivisionDto) (*dto.DivisionResponseDto, error) {
 	db := h.Service.GetDB().Begin()
 	committed := false
@@ -38,6 +41,53 @@ func (h *DivisionHandler) CreateDivisionHandler(input *dto.CreateDivisionDto) (*
 		return nil, err
 	}
 
+	// 1. Eksekusi SQL
+	createdData, err := divisionService.CreateDivision(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Eksekusi Graph (Gunakan data hasil SQL)
+	graphNode := &graphdb.DivisionNode{
+		ID:        createdData.ID,
+		Name:      createdData.Name,
+		Code:      createdData.Code,
+		CreatedAt: createdData.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt: createdData.UpdatedAt.Format(time.RFC3339Nano),
+	}
+	if err := divisionService.InsertGraphDivision(graphNode); err != nil {
+		return nil, fmt.Errorf("failed to sync to graph: %w", err) // Ini akan memicu Rollback SQL
+	}
+
+	if err := db.Commit().Error; err != nil {
+		return nil, err
+	}
+	committed = true
+
+	return mapper.DivisionModelToResponseDto(createdData)
+}
+
+func (h *DivisionHandler) CreateDivisionSqlHandler(input *dto.CreateDivisionDto) (*dto.DivisionResponseDto, error) {
+	db := h.Service.GetDB().Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			db.Rollback()
+			panic(r)
+		}
+		if !committed {
+			db.Rollback()
+		}
+	}()
+
+	divisionService := h.Service.WithTx(db)
+
+	payload, err := mapper.CreateDivisionDtoToModel(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1. Eksekusi SQL
 	createdData, err := divisionService.CreateDivision(payload)
 	if err != nil {
 		return nil, err
@@ -51,6 +101,29 @@ func (h *DivisionHandler) CreateDivisionHandler(input *dto.CreateDivisionDto) (*
 	return mapper.DivisionModelToResponseDto(createdData)
 }
 
+func (h *DivisionHandler) CreateDivisionGraphHandler(input *dto.CreateDivisionDto) (*graphdb.DivisionNode, error) {
+	// Generate ID manual untuk Graph (karena tidak ada SQL Auto-Increment)
+	// Pastikan tipe data sesuai dengan yang kamu pakai, di sini menggunakan int64 Unix millisecond
+	newID := time.Now().UnixMilli()
+	now := time.Now().Format(time.RFC3339Nano)
+
+	graphNode := &graphdb.DivisionNode{
+		ID:        newID,
+		Name:      input.Name,
+		Code:      input.Code,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	// Panggil service untuk eksekusi ke Graph repository
+	if err := h.Service.InsertGraphDivision(graphNode); err != nil {
+		return nil, fmt.Errorf("failed to create graph division: %w", err)
+	}
+
+	return graphNode, nil
+}
+
+// --- UPDATE ---
 func (h *DivisionHandler) UpdateDivisionHandler(id int64, input *dto.UpdateDivisionDto) (*models.Division, error) {
 	db := h.Service.GetDB().Begin()
 	committed := false
@@ -71,6 +144,52 @@ func (h *DivisionHandler) UpdateDivisionHandler(id int64, input *dto.UpdateDivis
 		return nil, err
 	}
 
+	// 1. Eksekusi SQL
+	updatedData, err := divisionService.UpdateDivision(id, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Eksekusi Graph (Kirim data yang diupdate saja)
+	graphNode := &graphdb.DivisionNode{
+		ID:   id,
+		// Ambil dari DTO input, karena updatedData mungkin tidak full jika di-update partial
+		Name: *input.Name, 
+		Code: *input.Code,
+	}
+	if err := divisionService.UpdateGraphDivision(graphNode); err != nil {
+		return nil, fmt.Errorf("failed to update graph: %w", err)
+	}
+
+	if err := db.Commit().Error; err != nil {
+		return nil, err
+	}
+	committed = true
+
+	return updatedData, nil
+}
+
+func (h *DivisionHandler) UpdateDivisionSqlHandler(id int64, input *dto.UpdateDivisionDto) (*models.Division, error) {
+	db := h.Service.GetDB().Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			db.Rollback()
+			panic(r)
+		}
+		if !committed {
+			db.Rollback()
+		}
+	}()
+
+	divisionService := h.Service.WithTx(db)
+
+	payload, err := mapper.UpdateDivisionDtoToModel(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1. Eksekusi SQL
 	updatedData, err := divisionService.UpdateDivision(id, payload)
 	if err != nil {
 		return nil, err
@@ -84,12 +203,113 @@ func (h *DivisionHandler) UpdateDivisionHandler(id int64, input *dto.UpdateDivis
 	return updatedData, nil
 }
 
-func (h *DivisionHandler) DeleteDivisionHandler(id int64) error {
-	return h.Service.DeleteDivision(id)
+func (h *DivisionHandler) UpdateDivisionGraphHandler(id int64, input *dto.UpdateDivisionDto) (*graphdb.DivisionNode, error) {
+	// Siapkan node dengan ID yang akan diupdate
+	graphNode := &graphdb.DivisionNode{
+		ID:        id,
+		UpdatedAt: time.Now().Format(time.RFC3339Nano),
+	}
+
+	// Pengecekan pointer untuk update parsial (hanya update field yang dikirim)
+	if input.Name != nil {
+		graphNode.Name = *input.Name
+	}
+	if input.Code != nil {
+		graphNode.Code = *input.Code
+	}
+
+	// Panggil service untuk eksekusi update ke Graph repository
+	if err := h.Service.UpdateGraphDivision(graphNode); err != nil {
+		return nil, fmt.Errorf("failed to update graph division: %w", err)
+	}
+
+	// Opsional: Kamu bisa melakukan GetNodeById di sini jika ingin mengembalikan
+	// data Node yang utuh setelah diupdate dari Neo4j.
+	// Jika tidak, mengembalikan graphNode yang berisi data parsial juga cukup.
+
+	return graphNode, nil
 }
 
+// --- DELETE ---
+func (h *DivisionHandler) DeleteDivisionHandler(id int64) error {
+	// 🔹 Opsional: Tambahkan transaksi SQL di sini jika belum ada
+	db := h.Service.GetDB().Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			db.Rollback()
+			panic(r)
+		}
+		if !committed {
+			db.Rollback()
+		}
+	}()
+
+	divisionService := h.Service.WithTx(db)
+
+	// 1. Delete SQL
+	if err := divisionService.DeleteDivision(id); err != nil {
+		return err
+	}
+
+	// 2. Delete Graph
+	if err := divisionService.DeleteGraphDivision(id); err != nil {
+		return fmt.Errorf("failed to delete graph: %w", err)
+	}
+
+	if err := db.Commit().Error; err != nil {
+		return err
+	}
+	committed = true
+
+	return nil
+}
+
+func (h *DivisionHandler) DeleteDivisionSqlHandler(id int64) error {
+	// 🔹 Opsional: Tambahkan transaksi SQL di sini jika belum ada
+	db := h.Service.GetDB().Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			db.Rollback()
+			panic(r)
+		}
+		if !committed {
+			db.Rollback()
+		}
+	}()
+
+	divisionService := h.Service.WithTx(db)
+
+	// 1. Delete SQL
+	if err := divisionService.DeleteDivision(id); err != nil {
+		return err
+	}
+
+	if err := db.Commit().Error; err != nil {
+		return err
+	}
+	committed = true
+
+	return nil
+}
+
+func (h *DivisionHandler) DeleteDivisionGraphHandler(id int64) error {
+	// Panggil service untuk melakukan Soft Delete atau Hard Delete ke Graph repository
+	if err := h.Service.DeleteGraphDivision(id); err != nil {
+		return fmt.Errorf("failed to delete graph division: %w", err)
+	}
+
+	return nil
+}
+
+// --- READ (Tidak perlu merubah Graph, biasanya baca dari SQL saja) ---
 func (h *DivisionHandler) GetDivisionByIDHandler(id int64, filter dto.DivisionFilterDto) (*models.Division, error) {
 	return h.Service.GetDivisionByID(id, filter)
+}
+
+func (h *DivisionHandler) GetDivisionByIdGraphHandler(id int64) (*graphdb.DivisionNode, error) {
+	return h.Service.GetGraphDivisionByID(id)
 }
 
 func (h *DivisionHandler) GetAllDivisionsHandler(filter dto.DivisionFilterDto) ([]models.Division, int64, error) {
@@ -112,6 +332,23 @@ func (h *DivisionHandler) GetAllDivisionsHandler(filter dto.DivisionFilterDto) (
 	return data, total, nil
 }
 
+func (h *DivisionHandler) GetAllDivisionsGraphHandler(filter dto.DivisionFilterDto) ([]*graphdb.DivisionNode, int64, error) {
+// 1. Ambil data Graph
+	data, err := h.Service.GetAllGraphDivisions(filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 2. Hitung total data Graph berdasarkan filter
+	total, err := h.Service.CountGraphDivisions(filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return data, total, nil
+}
+
+// --- BULK CREATE ---
 func (h *DivisionHandler) BulkCreateHandler(input *dto.BulkCreateDivisionDto) ([]*models.Division, error) {
 	db := h.Service.GetDB().Begin()
 	committed := false
@@ -138,9 +375,23 @@ func (h *DivisionHandler) BulkCreateHandler(input *dto.BulkCreateDivisionDto) ([
 		}
 	}
 
+	// 1. Eksekusi SQL Bulk
 	createdDivisions, err := divisionService.BulkCreateDivisions(divisions)
 	if err != nil {
 		return nil, err
+	}
+
+	// 2. Eksekusi Graph Bulk
+	var graphNodes []*graphdb.DivisionNode
+	for _, sqlData := range createdDivisions {
+		graphNodes = append(graphNodes, &graphdb.DivisionNode{
+			ID:   sqlData.ID,
+			Name: sqlData.Name,
+			Code: sqlData.Code,
+		})
+	}
+	if err := divisionService.BulkInsertGraphDivisions(graphNodes); err != nil {
+		return nil, fmt.Errorf("failed to bulk insert graph: %w", err)
 	}
 
 	if err := db.Commit().Error; err != nil {
@@ -151,6 +402,7 @@ func (h *DivisionHandler) BulkCreateHandler(input *dto.BulkCreateDivisionDto) ([
 	return createdDivisions, nil
 }
 
+// --- BULK UPDATE ---
 func (h *DivisionHandler) BulkUpdateHandler(input *dto.BulkUpdateDivisionDto) ([]*models.Division, error) {
 	db := h.Service.GetDB().Begin()
 	committed := false
@@ -175,6 +427,7 @@ func (h *DivisionHandler) BulkUpdateHandler(input *dto.BulkUpdateDivisionDto) ([
 		return nil, fmt.Errorf("update data cannot be empty")
 	}
 
+	// 1. Eksekusi SQL Bulk Update
 	err = divisionService.BulkUpdateDivisions(input.IDs, updates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bulk update Divisions: %w", err)
@@ -185,6 +438,19 @@ func (h *DivisionHandler) BulkUpdateHandler(input *dto.BulkUpdateDivisionDto) ([
 		return nil, fmt.Errorf("failed to retrieve updated Divisions: %w", err)
 	}
 
+	// 2. Eksekusi Graph Bulk Update
+	var graphNodes []*graphdb.DivisionNode
+	for _, sqlData := range updatedDivisions {
+		graphNodes = append(graphNodes, &graphdb.DivisionNode{
+			ID:   sqlData.ID,
+			Name: sqlData.Name, // Neo4j butuh data lengkap untuk update name/code
+			Code: sqlData.Code,
+		})
+	}
+	if err := divisionService.BulkUpdateGraphDivisions(graphNodes); err != nil {
+		return nil, fmt.Errorf("failed to bulk update graph: %w", err)
+	}
+
 	if err := db.Commit().Error; err != nil {
 		return nil, err
 	}
@@ -193,6 +459,7 @@ func (h *DivisionHandler) BulkUpdateHandler(input *dto.BulkUpdateDivisionDto) ([
 	return updatedDivisions, nil
 }
 
+// --- BULK DELETE ---
 func (h *DivisionHandler) BulkDeleteHandler(input *dto.BulkDeleteDivisionDto) error {
 	db := h.Service.GetDB().Begin()
 	committed := false
@@ -208,8 +475,14 @@ func (h *DivisionHandler) BulkDeleteHandler(input *dto.BulkDeleteDivisionDto) er
 
 	divisionService := h.Service.WithTx(db)
 
+	// 1. SQL Bulk Delete
 	if err := divisionService.BulkDeleteDivisions(input.IDs); err != nil {
 		return err
+	}
+
+	// 2. Graph Bulk Delete
+	if err := divisionService.BulkDeleteGraphDivisions(input.IDs); err != nil {
+		return fmt.Errorf("failed to bulk delete graph: %w", err)
 	}
 
 	if err := db.Commit().Error; err != nil {

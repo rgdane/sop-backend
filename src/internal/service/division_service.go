@@ -6,8 +6,8 @@ import (
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
 	"jk-api/internal/repository/sql"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/pkg/errors/gorm_err"
-	"jk-api/pkg/neo4j/builder"
 	"time"
 
 	"gorm.io/gorm"
@@ -26,20 +26,33 @@ type DivisionService interface {
 	BulkCreateDivisions(data []*models.Division) ([]*models.Division, error)
 	BulkUpdateDivisions(ids []int64, updates map[string]interface{}) error
 	BulkDeleteDivisions(ids []int64) error
+
+	GetAllGraphDivisions(filter dto.DivisionFilterDto) ([]*graphdb.DivisionNode, error)
+	GetGraphDivisionByID(id int64) (*graphdb.DivisionNode, error)
+	InsertGraphDivision(data *graphdb.DivisionNode) error
+	UpdateGraphDivision(data *graphdb.DivisionNode) error
+	DeleteGraphDivision(divisionId int64) error
+	BulkInsertGraphDivisions(data []*graphdb.DivisionNode) error
+	BulkUpdateGraphDivisions(data []*graphdb.DivisionNode) error
+	BulkDeleteGraphDivisions(ids []int64) error
+
+	CountGraphDivisions(filter dto.DivisionFilterDto) (int64, error)
 }
 
 type divisionService struct {
 	repo sql.DivisionRepository
+	graphRepo graphdb.DivisionRepository
 	tx   *gorm.DB
 }
 
-func NewDivisionService(repo sql.DivisionRepository) DivisionService {
-	return &divisionService{repo: repo}
+func NewDivisionService(repo sql.DivisionRepository, graphRepo graphdb.DivisionRepository) DivisionService {
+	return &divisionService{repo: repo, graphRepo: graphRepo}
 }
 
 func (s *divisionService) WithTx(tx *gorm.DB) DivisionService {
 	return &divisionService{
 		repo: s.repo.WithTx(tx),
+		graphRepo: s.graphRepo,
 		tx:   tx,
 	}
 }
@@ -58,10 +71,6 @@ func (s *divisionService) CreateDivision(input *models.Division) (*models.Divisi
 	data, err := s.repo.InsertDivision(input)
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
-	}
-
-	if err := s.insertGraphDivision(data); err != nil {
-		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
 	return data, nil
@@ -86,19 +95,11 @@ func (s *divisionService) UpdateDivision(id int64, updates map[string]interface{
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	if err := s.updateGraphDivision(data); err != nil {
-		return nil, fmt.Errorf("neo4j sync failed: %w", err)
-	}
-
 	return data, nil
 }
 
 func (s *divisionService) DeleteDivision(id int64) error {
 	err := s.repo.RemoveDivision(id)
-
-	if err := s.deleteGraphDivision(id); err != nil {
-		return fmt.Errorf("neo4j sync failed: %w", err)
-	}
 
 	return gorm_err.TranslateGormError(err)
 }
@@ -145,10 +146,6 @@ func (s *divisionService) BulkCreateDivisions(data []*models.Division) ([]*model
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	if err := s.bulkInsertGraphDivisions(datas); err != nil {
-		return nil, fmt.Errorf("neo4j sync failed: %w", err)
-	}
-
 	return datas, nil
 }
 
@@ -160,17 +157,6 @@ func (s *divisionService) BulkUpdateDivisions(ids []int64, updates map[string]in
 	}
 
 	err := repo.UpdateManyDivisions(ids, updates)
-	
-	// Fetch updated data untuk sync ke Neo4j
-	updatedJobs, err := s.repo.FindDivisionsByIDs(ids)
-	if err != nil {
-		return gorm_err.TranslateGormError(err)
-	}
-
-	// ✅ BULK UPDATE - SEKALI JALAN!
-	if err := s.bulkUpdateGraphDivisions(updatedJobs); err != nil {
-		return fmt.Errorf("neo4j sync failed: %w", err)
-	}
 
 	return gorm_err.TranslateGormError(err)
 }
@@ -186,167 +172,42 @@ func (s *divisionService) GetDivisionsByIDs(ids []int64) ([]*models.Division, er
 func (s *divisionService) BulkDeleteDivisions(ids []int64) error {
 	err := s.repo.RemoveManyDivisions(ids)
 
-	if err := s.bulkDeleteGraphDivisions(ids); err != nil {
-		return fmt.Errorf("neo4j sync failed: %w", err)
-	}
-
 	return gorm_err.TranslateGormError(err)
 }
 
-func (s *divisionService) insertGraphDivision(data *models.Division) error {
-	graph := builder.NewGraphRepository()
-
-	params := map[string]any{
-		"name":        data.Name,
-		"code":        data.Code,
-		"id":          data.ID,
-		"createdAt":   data.CreatedAt.Format(time.RFC3339Nano),
-		"updatedAt":   data.UpdatedAt.Format(time.RFC3339Nano),
-	}
-
-	if err := graph.
-		WithMerge("(s:Division {id: $id, name: $name, code: $code, id: $id})").
-		WithSet("s.created_at = datetime($createdAt), s.updated_at = datetime($updatedAt)", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to merge Division node: %w", err)
-	}
-
-	return nil
+func (s *divisionService) GetAllGraphDivisions(filter dto.DivisionFilterDto) ([]*graphdb.DivisionNode, error) {
+		return s.graphRepo.GetAllGraphDivisions(filter)
 }
 
-func (s *divisionService) updateGraphDivision(data *models.Division) error {
-	graph := builder.NewGraphRepository()
-
-	params := map[string]any{
-		"name":        data.Name,
-		"code":        data.Code,
-		"id":          data.ID,
-	}
-
-	if err := graph.
-		WithMatch("(s:Division {id: $id})").
-		WithSet("s.name = $name, s.code = $code", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update Division graph with id %d: %w", data.ID, err)
-	}
-
-	return nil
+func (s *divisionService) GetGraphDivisionByID(id int64) (*graphdb.DivisionNode, error) {
+	return s.graphRepo.GetGraphDivisionByID(id)
 }
 
-func (s *divisionService) deleteGraphDivision(divisionId int64) error {
-    graph := builder.NewGraphRepository()
-    
-    params := map[string]interface{}{
-        "docId":     divisionId,
-        "deletedAt": time.Now().Format(time.RFC3339Nano),
-    }
-
-    // Karena Division adalah titik akhir (leaf node) dari relasi,
-    // kita cukup melakukan MATCH langsung pada node tersebut tanpa perlu APOC traversal.
-    if err := graph.
-        WithMatch("(d:Division {id: $docId})").
-        WithSet("d.deleted_at = $deletedAt", nil).
-        WithParams(params).
-        RunWrite(); err != nil {
-        return fmt.Errorf("failed to soft delete Division graph with id %d: %w", divisionId, err)
-    }
-    
-    return nil
+func (s *divisionService) InsertGraphDivision(data *graphdb.DivisionNode) error {
+	return s.graphRepo.InsertGraphDivision(data)
 }
 
-func (s *divisionService) bulkInsertGraphDivisions(data []*models.Division) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	// 1. Siapkan batch data
-	divisionNodes := make([]map[string]any, 0, len(data))
-	for _, div := range data {
-		divisionNodes = append(divisionNodes, map[string]any{
-			"id":   div.ID,
-			"code": div.Code,
-			"name": div.Name,
-		})
-	}
-
-	params := map[string]any{
-		"divisions": divisionNodes,
-	}
-
-	// 2. Eksekusi UNWIND untuk Bulk Merge
-	if err := graph.
-		WithUnwind("$divisions", "div").
-		WithMerge("(d:Division {id: div.id})").
-		WithSet(`d.code = div.code, d.name = div.name`, nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to bulk insert Division nodes: %w", err)
-	}
-
-	return nil
+func (s *divisionService) UpdateGraphDivision(data *graphdb.DivisionNode) error {
+	return s.graphRepo.UpdateGraphDivision(data)
 }
 
-func (s *divisionService) bulkUpdateGraphDivisions(data []*models.Division) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	// 1. Siapkan batch data
-	divisionNodes := make([]map[string]any, 0, len(data))
-	for _, div := range data {
-		divisionNodes = append(divisionNodes, map[string]any{
-			"id":   div.ID,
-			"code": div.Code,
-			"name": div.Name,
-		})
-	}
-
-	params := map[string]any{
-		"divisions": divisionNodes,
-	}
-
-	// 2. Eksekusi UNWIND untuk Bulk Update.
-	// Kita gunakan MATCH karena kita hanya ingin update node yang sudah ada.
-	if err := graph.
-		WithUnwind("$divisions", "div").
-		WithMatch("(d:Division {id: div.id})").
-		WithSet("d.code = div.code, d.name = div.name", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to bulk update Division nodes: %w", err)
-	}
-
-	return nil
+func (s *divisionService) DeleteGraphDivision(divisionId int64) error {
+	return s.graphRepo.DeleteGraphDivision(divisionId)
 }
 
-func (s *divisionService) bulkDeleteGraphDivisions(ids []int64) error {
-	if len(ids) == 0 {
-		return nil
-	}
+func (s *divisionService) BulkInsertGraphDivisions(data []*graphdb.DivisionNode) error {
+	return s.graphRepo.BulkInsertGraphDivisions(data)
+}
 
-	graph := builder.NewGraphRepository()
+func (s *divisionService) BulkUpdateGraphDivisions(data []*graphdb.DivisionNode) error {
+	return s.graphRepo.BulkUpdateGraphDivisions(data)
+}
 
-	params := map[string]any{
-		"divisionIds": ids,
-		// Gunakan format RFC3339Nano agar konsisten dengan created_at (seperti kesepakatan sebelumnya)
-		"deletedAt":   time.Now().Format(time.RFC3339Nano), 
-	}
+func (s *divisionService) BulkDeleteGraphDivisions(ids []int64) error {
+	return s.graphRepo.BulkDeleteGraphDivisions(ids)
+}
 
-	// Bulk Soft Delete sederhana tanpa APOC
-	if err := graph.
-		WithMatch("(d:Division)").
-		WithWhere("d.id IN $divisionIds", nil).
-		WithSet("d.deleted_at = $deletedAt", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to bulk soft delete Division nodes: %w", err)
-	}
-
-	return nil
+// Di dalam struct implementasi Service:
+func (s *divisionService) CountGraphDivisions(filter dto.DivisionFilterDto) (int64, error) {
+	return s.graphRepo.CountGraphDivisions(filter)
 }
