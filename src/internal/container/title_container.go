@@ -4,12 +4,14 @@ package container
 
 import (
 	"jk-api/api/http/controllers/v1/handlers"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/repository/sql"
 	"jk-api/internal/service"
 )
 
 func InitTitleContainer() *handlers.TitleHandler {
 	repo := sql.NewTitleRepository()
-	service := service.NewTitleService(repo)
+	graphRepo := graphdb.NewTitleRepository()
+	service := service.NewTitleService(repo, graphRepo)
 	return handlers.NewTitleHandler(service)
 }

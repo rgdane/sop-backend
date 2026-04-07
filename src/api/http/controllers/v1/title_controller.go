@@ -56,6 +56,32 @@ func GetTitles(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphTitles(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		sort := c.Query("sort", "id")
+		order := c.Query("order", "asc")
+		cursor, _ := helper.ParseQueryInt64(c, "cursor")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
+		name := c.Query("name")
+
+		filter := dto.TitleFilterDto{
+			Preload:     c.Query("preload", "false") == "true",
+			Sort:        sort,
+			Order:       order,
+			Limit:       limit,
+			Cursor:      cursor,
+			Name:        name,
+			ShowDeleted: c.Query("show_deleted", "false") == "true",
+		}
+
+		data, total, err := cn.TitleHandler.GetAllTitlesGraphHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
 // GetTitleByID godoc
 //
 //	@Summary		Get title by ID
@@ -88,6 +114,21 @@ func GetTitleByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphTitleByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.TitleHandler.GetTitleByIdGraphHandler(id)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
 // CreateTitles godoc
 //
 //	@Summary		Create a new title
@@ -100,7 +141,7 @@ func GetTitleByID(cn *container.AppContainer) fiber.Handler {
 //	@Failure		400		{object}	presenters.ErrorResponse
 //	@Failure		500		{object}	presenters.ErrorResponse
 //	@Router			/titles [post]
-func CreateTitles(cn *container.AppContainer) fiber.Handler {
+func CreateTitle(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateTitleDto
 		if err := c.BodyParser(&input); err != nil {
@@ -108,6 +149,36 @@ func CreateTitles(cn *container.AppContainer) fiber.Handler {
 		}
 
 		result, err := cn.TitleHandler.CreateTitleHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateSqlTitle(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateTitleDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.TitleHandler.CreateTitleSqlHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateGraphTitle(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateTitleDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.TitleHandler.CreateTitleGraphHandler(&input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -128,7 +199,7 @@ func CreateTitles(cn *container.AppContainer) fiber.Handler {
 //	@Failure		400		{object}	presenters.ErrorResponse
 //	@Failure		500		{object}	presenters.ErrorResponse
 //	@Router			/titles/{id} [put]
-func UpdateTitles(cn *container.AppContainer) fiber.Handler {
+func UpdateTitle(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
@@ -148,6 +219,46 @@ func UpdateTitles(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func UpdateSqlTitle(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		var input dto.UpdateTitleDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		updated, err := cn.TitleHandler.UpdateTitleSqlHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, updated)
+	}
+}
+
+func UpdateGraphTitle(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		var input dto.UpdateTitleDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		updated, err := cn.TitleHandler.UpdateTitleGraphHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, updated)
+	}
+}
+
 // DeleteTitles godoc
 //
 //	@Summary		Delete a title
@@ -160,7 +271,7 @@ func UpdateTitles(cn *container.AppContainer) fiber.Handler {
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/titles/{id} [delete]
-func DeleteTitles(cn *container.AppContainer) fiber.Handler {
+func DeleteTitle(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
@@ -168,6 +279,34 @@ func DeleteTitles(cn *container.AppContainer) fiber.Handler {
 		}
 
 		if err := cn.TitleHandler.DeleteTitleHandler(id); err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "Title deleted successfully", nil)
+	}
+}
+
+func DeleteSqlTitle(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.TitleHandler.DeleteTitleSqlHandler(id); err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "Title deleted successfully", nil)
+	}
+}
+
+func DeleteGraphTitle(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.TitleHandler.DeleteTitleGraphHandler(id); err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
 		return presenters.SendSuccessResponseWithMessage(c, "Title deleted successfully", nil)
