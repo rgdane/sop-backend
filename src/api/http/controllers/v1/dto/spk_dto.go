@@ -41,6 +41,8 @@ type SpkFilterDto struct {
 	Name        string
 	ShowDeleted bool
 	Restore     bool
+	Sort        string
+	Order       string
 }
 
 type SpkResponseDto struct {

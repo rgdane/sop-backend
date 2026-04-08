@@ -37,6 +37,31 @@ func GetSpks(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphSpks(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		titleId, _ := helper.ParseQueryInt64(c, "title_id")
+		cursor, _ := helper.ParseQueryInt64(c, "cursor")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
+		name := c.Query("name", "")
+		deleted := c.Query("show_deleted", "false") == "true"
+
+		filter := dto.SpkFilterDto{
+			TitleIDs:    titleId,
+			Preload:     c.Query("preload", "false") == "true",
+			Cursor:      cursor,
+			Limit:       limit,
+			Name:        name,
+			ShowDeleted: deleted,
+		}
+
+		data, total, err := cn.SpkHandler.GetAllSpksGraphHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
 func GetSpkByID(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		filter := dto.SpkFilterDto{
@@ -56,7 +81,22 @@ func GetSpkByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
-func CreateSpks(cn *container.AppContainer) fiber.Handler {
+func GetGraphSpkByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.SpkHandler.GetSpkByIdGraphHandler(id)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
+func CreateSpk(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSpkDto
 		if err := c.BodyParser(&input); err != nil {
@@ -71,37 +111,140 @@ func CreateSpks(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
-func UpdateSpks(cn *container.AppContainer) fiber.Handler {
+func CreateSqlSpk(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
-		if err != nil {
-			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		var input dto.CreateSpkDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
 		}
 
+		result, err := cn.SpkHandler.CreateSpkSqlHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateGraphSpk(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateSpkDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.SpkHandler.CreateSpkGraphHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func UpdateSpk(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
 		var input dto.UpdateSpkDto
 		if err := c.BodyParser(&input); err != nil {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
 		}
 
-		updated, err := cn.SpkHandler.UpdateSpkHandler(id, &input)
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		result, err := cn.SpkHandler.UpdateSpkHandler(id, &input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
-		return presenters.SendSuccessResponse(c, updated)
+		return presenters.SendSuccessResponse(c, result)
 	}
 }
 
-func DeleteSpks(cn *container.AppContainer) fiber.Handler {
+func UpdateSqlSpk(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.UpdateSpkDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		result, err := cn.SpkHandler.UpdateSpkSqlHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func UpdateGraphSpk(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.UpdateSpkDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		result, err := cn.SpkHandler.UpdateSpkGraphHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func DeleteSpk(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		isPermanent := c.Query("isPermanent", "false") == "true"
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		err = cn.SpkHandler.DeleteSpkHandler(id, isPermanent)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, nil)
+	}
+}
+
+func DeleteSqlSpk(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		isPermanent := c.Query("isPermanent", "false") == "true"
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		err = cn.SpkHandler.DeleteSpkSqlHandler(id, isPermanent)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, nil)
+	}
+}
+
+func DeleteGraphSpk(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
 		}
 
-		if err := cn.SpkHandler.DeleteSpkHandler(id); err != nil {
+		err = cn.SpkHandler.DeleteSpkGraphHandler(id)
+		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
-		return presenters.SendSuccessResponseWithMessage(c, "Spk berhasil dihapus", nil)
+		return presenters.SendSuccessResponseWithMessage(c, "SPK deleted successfully from graph", nil)
 	}
 }
 
@@ -147,6 +290,7 @@ func BulkUpdateSpks(cn *container.AppContainer) fiber.Handler {
 func BulkDeleteSpks(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.BulkDeleteSpkDto
+		isPermanent := c.Query("isPermanent", "false") == "true"
 		if err := c.BodyParser(&input); err != nil {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request body for bulk delete")
 		}
@@ -155,7 +299,7 @@ func BulkDeleteSpks(cn *container.AppContainer) fiber.Handler {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "No Spk IDs provided")
 		}
 
-		err := cn.SpkHandler.BulkDeleteHandler(&input)
+		err := cn.SpkHandler.BulkDeleteSpksHandler(&input, isPermanent)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}

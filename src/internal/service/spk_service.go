@@ -2,14 +2,17 @@ package service
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/repository/sql"
 	"jk-api/internal/shared/helper"
 	"jk-api/pkg/errors/gorm_err"
 	"jk-api/pkg/neo4j/builder"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,29 +22,42 @@ type SpkService interface {
 
 	CreateSpk(input *models.Spk) (*models.Spk, error)
 	UpdateSpk(id int64, updates map[string]interface{}, associations map[string]interface{}) (*models.Spk, error)
-	DeleteSpk(id int64) error
+	DeleteSpk(id int64, isPermanent bool) error
 	GetAllSpks(filter dto.SpkFilterDto) ([]models.Spk, error)
 	GetSpkByID(id int64, filter dto.SpkFilterDto) (*models.Spk, error)
 	GetSpksByIDs(ids []int64) ([]*models.Spk, error)
 	GetDB() *gorm.DB
 	BulkCreateSpks(data []*models.Spk) ([]*models.Spk, error)
 	BulkUpdateSpks(ids []int64, updates map[string]interface{}) error
-	BulkDeleteSpks(ids []int64) error
+	BulkDeleteSpks(ids []int64, isPermanent bool) error
+	CountSpks(filter dto.SpkFilterDto) (int64, error)
+
+	GetAllGraphSpks(filter dto.SpkFilterDto) ([]*graphdb.SpkNode, error)
+	GetGraphSpkByID(id int64) (*graphdb.SpkNode, error)
+	InsertGraphSpk(data *graphdb.SpkNode) error
+	UpdateGraphSpk(data *graphdb.SpkNode) error
+	DeleteGraphSpk(spkId int64) error
+	BulkInsertGraphSpks(data []*graphdb.SpkNode) error
+	BulkUpdateGraphSpks(data []*graphdb.SpkNode) error
+	BulkDeleteGraphSpks(ids []int64) error
+	CountGraphSpks(filter dto.SpkFilterDto) (int64, error)
 }
 
 type spkService struct {
-	repo sql.SpkRepository
-	tx   *gorm.DB
+	repo      sql.SpkRepository
+	graphRepo graphdb.SpkRepository
+	tx        *gorm.DB
 }
 
-func NewSpkService(repo sql.SpkRepository) SpkService {
-	return &spkService{repo: repo}
+func NewSpkService(repo sql.SpkRepository, graphRepo graphdb.SpkRepository) SpkService {
+	return &spkService{repo: repo, graphRepo: graphRepo}
 }
 
 func (s *spkService) WithTx(tx *gorm.DB) SpkService {
 	return &spkService{
-		repo: s.repo.WithTx(tx),
-		tx:   tx,
+		repo:      s.repo.WithTx(tx),
+		graphRepo: s.graphRepo,
+		tx:        tx,
 	}
 }
 
@@ -61,11 +77,9 @@ func (s *spkService) CreateSpk(input *models.Spk) (*models.Spk, error) {
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	// Sync to Neo4j - create SPK node only
-	if err := s.insertGraphSpk(data); err != nil {
+	if err := s.InsertGraphSpk(toSpkNode(data)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
-
 	return data, nil
 }
 
@@ -86,42 +100,52 @@ func (s *spkService) UpdateSpk(id int64, updates map[string]interface{}, associa
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	// Sync to Neo4j after SQL update
-	if err := s.updateGraphSpk(data); err != nil {
+	if err := s.UpdateGraphSpk(toSpkNode(data)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
-
 	return data, nil
 }
 
-func (s *spkService) DeleteSpk(id int64) error {
-	// Get SPK data before deletion for Neo4j cleanup
-	spk, err := s.repo.FindSpkByID(id)
+func (s *spkService) DeleteSpk(id int64, isPermanent bool) (err error) {
+	repo := s.repo
+	if isPermanent {
+		repo = repo.WithUnscoped()
+		err = repo.RemoveSpk(id)
+		return gorm_err.TranslateGormError(err)
+	}
+
+	data, err := repo.FindSpkByID(id)
 	if err != nil {
 		return gorm_err.TranslateGormError(err)
 	}
 
-	// Delete from Neo4j graph first
-	if err := s.deleteGraphSpk(spk); err != nil {
+	payload := map[string]any{
+		"name": fmt.Sprintf("DELETED-%s", data.Name),
+	}
+
+	if _, err = s.UpdateSpk(id, payload, nil); err != nil {
+		return gorm_err.TranslateGormError(err)
+	}
+
+	if err := s.DeleteGraphSpk(id); err != nil {
 		return fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
-	// Then delete from SQL
-	err = s.repo.RemoveSpk(id)
+	err = repo.RemoveSpk(id)
 	return gorm_err.TranslateGormError(err)
 }
 
 func (s *spkService) GetAllSpks(filter dto.SpkFilterDto) ([]models.Spk, error) {
 	repo := s.repo
 
-	if filter.Preload {
-		repo = repo.WithPreloads("HasTitles", "HasJobs.HasSop")
-	}
 	if filter.Limit != 0 {
 		repo = repo.WithLimit(int(filter.Limit))
 	}
 	if filter.Cursor != 0 {
 		repo = repo.WithCursor(int(filter.Cursor))
+	}
+	if filter.Preload {
+		repo = repo.WithPreloads("HasTitles", "HasJobs.HasSop")
 	}
 	if filter.Name != "" {
 		repo = repo.WithWhere("name ILIKE ?", "%"+filter.Name+"%")
@@ -130,13 +154,14 @@ func (s *spkService) GetAllSpks(filter dto.SpkFilterDto) ([]models.Spk, error) {
 		repo = repo.WithJoins("JOIN spk_titles ON spk_titles.spk_id = spks.id").WithWhere("spk_titles.title_id = ?", filter.TitleIDs)
 	}
 	if filter.ShowDeleted {
-		repo = repo.WithUnscoped().WithWhere("spks.deleted_at IS NOT NULL")
+		repo = repo.WithUnscoped().WithWhere("deleted_at IS NOT NULL")
 	}
 
 	data, err := repo.FindSpk()
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
 	}
+
 	return data, nil
 }
 
@@ -152,44 +177,56 @@ func (s *spkService) GetSpkByID(id int64, filter dto.SpkFilterDto) (*models.Spk,
 	return data, nil
 }
 
-func (s *spkService) BulkUpdateSpks(ids []int64, updates map[string]interface{}) error {
-	repo := s.repo
-
-	if _, ok := updates["deleted_at"]; ok {
-		repo = repo.WithUnscoped()
-	}
-
-	err := repo.UpdateManySpks(ids, updates)
-	if err != nil {
-		return gorm_err.TranslateGormError(err)
-	}
-
-	// Sync to Neo4j using batch - reload SPKs and update graph
-	spks, err := s.repo.FindSpksByIDs(ids)
-	if err != nil {
-		fmt.Printf("Failed to load SPKs for graph sync: %v\n", err)
-		return nil
-	}
-
-	if err := s.batchUpdateGraphSpks(spks); err != nil {
-		fmt.Printf("Failed to batch update SPKs in graph: %v\n", err)
-	}
-
-	return nil
-}
-
 func (s *spkService) BulkCreateSpks(data []*models.Spk) ([]*models.Spk, error) {
 	datas, err := s.repo.InsertManySpks(data)
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
 	}
+	if err := s.BulkInsertGraphSpks(toSpkNodeSlice(datas)); err != nil {
+		return nil, fmt.Errorf("neo4j sync failed: %w", err)
+	}
+	return datas, nil
+}
 
-	// Sync to Neo4j using batch
-	if err := s.batchInsertGraphSpks(datas); err != nil {
-		fmt.Printf("Failed to batch sync SPKs to graph: %v\n", err)
+func (s *spkService) BulkUpdateSpks(ids []int64, updates map[string]interface{}) error {
+	repo := s.repo
+
+	if _, ok := updates["deleted_at"]; ok {
+		repo = repo.WithUnscoped()
+		deletedAtValue := updates["deleted_at"]
+		shouldRestore := false
+
+		switch v := deletedAtValue.(type) {
+		case nil:
+			shouldRestore = true
+		case *time.Time:
+			shouldRestore = (v == nil)
+		case time.Time:
+			shouldRestore = v.IsZero()
+		default:
+			shouldRestore = false
+		}
+
+		if shouldRestore {
+			if err := s.spkRestore(ids); err != nil {
+				return err
+			}
+			err := repo.UpdateManySpks(ids, updates)
+			return gorm_err.TranslateGormError(err)
+		}
 	}
 
-	return datas, nil
+	updatedSpks, err := s.repo.FindSpksByIDs(ids)
+	if err != nil {
+		return gorm_err.TranslateGormError(err)
+	}
+
+	if err := s.BulkUpdateGraphSpks(toSpkNodeSlice(updatedSpks)); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
+	}
+
+	err = repo.UpdateManySpks(ids, updates)
+	return gorm_err.TranslateGormError(err)
 }
 
 func (s *spkService) GetSpksByIDs(ids []int64) ([]*models.Spk, error) {
@@ -200,262 +237,214 @@ func (s *spkService) GetSpksByIDs(ids []int64) ([]*models.Spk, error) {
 	return data, nil
 }
 
-func (s *spkService) BulkDeleteSpks(ids []int64) error {
-	// Delete from Neo4j first using batch
-	if err := s.batchDeleteGraphSpks(ids); err != nil {
-		fmt.Printf("Failed to batch delete SPKs from graph: %v\n", err)
+func (s *spkService) BulkDeleteSpks(ids []int64, isPermanent bool) (err error) {
+	repo := s.repo
+
+	if isPermanent {
+		repo = repo.WithUnscoped()
+		err = repo.RemoveManySpks(ids)
+		return gorm_err.TranslateGormError(err)
 	}
 
-	// Then delete from SQL
-	err := s.repo.RemoveManySpks(ids)
+	if err := s.BulkDeleteGraphSpks(ids); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
+	}
+
+	err = repo.RemoveManySpks(ids)
 	return gorm_err.TranslateGormError(err)
 }
 
-// insertGraphSpk creates SPK Document node in Neo4j
-func (s *spkService) insertGraphSpk(data *models.Spk) error {
+func (s *spkService) CountSpks(filter dto.SpkFilterDto) (int64, error) {
+	repo := s.repo
+	if filter.TitleIDs != 0 {
+		repo = repo.WithJoins("JOIN spk_titles ON spks.id = spk_titles.spk_id").
+			WithWhere("spk_titles.title_id = ?", filter.TitleIDs)
+	}
+
+	data, err := repo.CountSpks()
+	if err != nil {
+		return 0, gorm_err.TranslateGormError(err)
+	}
+
+	return data, nil
+}
+
+func (s *spkService) GetAllGraphSpks(filter dto.SpkFilterDto) ([]*graphdb.SpkNode, error) {
+	return s.graphRepo.GetAllGraphSpks(filter)
+}
+
+func (s *spkService) GetGraphSpkByID(id int64) (*graphdb.SpkNode, error) {
+	return s.graphRepo.GetGraphSpkByID(id)
+}
+
+func (s *spkService) InsertGraphSpk(data *graphdb.SpkNode) error {
+	return s.graphRepo.InsertGraphSpk(data)
+}
+
+func (s *spkService) UpdateGraphSpk(data *graphdb.SpkNode) error {
+	return s.graphRepo.UpdateGraphSpk(data)
+}
+
+func (s *spkService) DeleteGraphSpk(spkId int64) error {
+	return s.graphRepo.DeleteGraphSpk(spkId)
+}
+
+func (s *spkService) BulkInsertGraphSpks(data []*graphdb.SpkNode) error {
+	return s.graphRepo.BulkInsertGraphSpks(data)
+}
+
+func (s *spkService) BulkUpdateGraphSpks(data []*graphdb.SpkNode) error {
+	return s.graphRepo.BulkUpdateGraphSpks(data)
+}
+
+func (s *spkService) BulkDeleteGraphSpks(ids []int64) error {
+	return s.graphRepo.BulkDeleteGraphSpks(ids)
+}
+
+func (s *spkService) CountGraphSpks(filter dto.SpkFilterDto) (int64, error) {
+	return s.graphRepo.CountGraphSpks(filter)
+}
+
+func toSpkNode(m *models.Spk) *graphdb.SpkNode {
+	return &graphdb.SpkNode{
+		ID:          m.ID,
+		Name:        m.Name,
+		Code:        m.Code,
+		Description: helper.ToJSONString(m.Description),
+		CreatedAt:   m.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339Nano),
+	}
+}
+
+func toSpkNodeSlice(m []*models.Spk) []*graphdb.SpkNode {
+	result := make([]*graphdb.SpkNode, 0, len(m))
+	for _, spk := range m {
+		result = append(result, toSpkNode(spk))
+	}
+	return result
+}
+
+func (s *spkService) spkRestore(ids []int64) error {
+	var spks []models.Spk
+	if err := s.GetDB().Unscoped().Preload("HasTitles").Where("id IN ? AND deleted_at IS NOT NULL", ids).Find(&spks).Error; err != nil {
+		return err
+	}
+
+	for _, spk := range spks {
+		spk.Name = strings.TrimPrefix(spk.Name, "DELETED-")
+
+		var updatedSpk models.Spk
+		if err := s.GetDB().Unscoped().Where("id = ?", spk.ID).First(&updatedSpk).Error; err != nil {
+			return err
+		}
+
+		if updatedSpk.CreatedAt.IsZero() {
+			updatedSpk.CreatedAt = time.Now()
+		}
+		updatedSpk.UpdatedAt = time.Now()
+
+		if err := s.removeDeletedAtFromGraph(updatedSpk.ID); err != nil {
+			return fmt.Errorf("failed to remove deleted_at from graph: %w", err)
+		}
+
+		if err := s.insertGraphSpkWithRelations(&updatedSpk); err != nil {
+			return fmt.Errorf("failed to restore SPK graph: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *spkService) insertGraphSpkWithRelations(data *models.Spk) error {
 	graph := builder.NewGraphRepository()
 
-	docParam := map[string]interface{}{
-		"id":          data.ID,
+	params := map[string]any{
 		"name":        data.Name,
 		"code":        data.Code,
 		"description": helper.ToJSONString(data.Description),
+		"id":          data.ID,
+		"createdAt":   data.CreatedAt.Format(time.RFC3339Nano),
+		"updatedAt":   data.UpdatedAt.Format(time.RFC3339Nano),
 	}
 
 	if err := graph.
 		WithMerge("(s:SPK {id: $id})").
-		WithSet("s.name = $name, s.code = $code, s.description = $description", nil).
-		WithParams(docParam).
+		WithSet("s.name = $name, s.code = $code, s.description = $description, s.created_at = datetime($createdAt), s.updated_at = datetime($updatedAt)", nil).
+		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to create SPK node: %w", err)
+		return fmt.Errorf("failed to merge SPK node: %w", err)
 	}
 
-	// --- B. PASANG (Buat Relasi Baru Jika Ada) ---
 	if len(data.HasTitles) > 0 {
-		insertGraph := builder.NewGraphRepository()
-
+		fmt.Printf("Creating relationships for %d titles\n", len(data.HasTitles))
 		titleIDs := make([]int64, 0, len(data.HasTitles))
 		for _, title := range data.HasTitles {
 			titleIDs = append(titleIDs, title.ID)
 		}
 
-		if err := insertGraph.
+		relParams := map[string]any{
+			"spkId":    data.ID,
+			"titleIds": titleIDs,
+		}
+
+		if err := graph.
 			WithMatch("(s:SPK {id: $spkId})").
 			WithUnwind("$titleIds", "titleId").
 			WithMatch("(t:Title {id: titleId})").
 			WithMerge("(s)-[:HAS_TITLE]->(t)").
-			WithParams(map[string]any{
-				"spkId":    data.ID,
-				"titleIds": titleIDs,
-			}).
+			WithParams(relParams).
 			RunWrite(); err != nil {
-			return fmt.Errorf("failed to recreate HAS_TITLE relationships for SPK %d: %w", data.ID, err)
+			fmt.Printf("Failed to create title relationship: %v\n", err)
+			return fmt.Errorf("failed to create HAS_TITLE relationship for SPK %d: %w", data.ID, err)
 		}
 	}
 
 	return nil
 }
 
-// updateGraphSpk updates SPK node in Neo4j
-func (s *spkService) updateGraphSpk(data *models.Spk) error {
-	// ==========================================
-	// 1. UPDATE NODE PROPERTIES
-	// ==========================================
+func (s *spkService) removeDeletedAtFromGraph(spkID int64) error {
 	graph := builder.NewGraphRepository()
-
-	docParam := map[string]interface{}{
-		"id":          data.ID,
-		"name":        data.Name,
-		"code":        data.Code,
-		"description": helper.ToJSONString(data.Description),
-	}
-
-	if err := graph.
-		WithMatch("(s:SPK {id: $id})").
-		WithSet("s.name = $name, s.code = $code, s.description = $description", nil).
-		WithParams(docParam).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update SPK node: %w", err)
-	}
-
-	// ==========================================
-	// 2. BONGKAR PASANG RELASI HAS_TITLE
-	// ==========================================
-	// Asumsi struct SPK memiliki field HasTitles. Sesuaikan jika namanya berbeda!
-	if data.HasTitles != nil {
-
-		// --- A. BONGKAR (Hapus Relasi Lama) ---
-		deleteGraph := builder.NewGraphRepository()
-		if err := deleteGraph.
-			WithMatch("(s:SPK {id: $spkId})-[r:HAS_TITLE]->()").
-			WithDelete("r").
-			WithParams(map[string]any{"spkId": data.ID}).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to delete old HAS_TITLE relationships for SPK %d: %w", data.ID, err)
-		}
-
-		// --- B. PASANG (Buat Relasi Baru Jika Ada) ---
-		if len(data.HasTitles) > 0 {
-			insertGraph := builder.NewGraphRepository()
-
-			titleIDs := make([]int64, 0, len(data.HasTitles))
-			for _, title := range data.HasTitles {
-				titleIDs = append(titleIDs, title.ID)
-			}
-
-			if err := insertGraph.
-				WithMatch("(s:SPK {id: $spkId})").
-				WithUnwind("$titleIds", "titleId").
-				WithMatch("(t:Title {id: titleId})").
-				WithMerge("(s)-[:HAS_TITLE]->(t)").
-				WithParams(map[string]any{
-					"spkId":    data.ID,
-					"titleIds": titleIDs,
-				}).
-				RunWrite(); err != nil {
-				return fmt.Errorf("failed to recreate HAS_TITLE relationships for SPK %d: %w", data.ID, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-// deleteGraphSpk removes SPK node and all children from Neo4j
-func (s *spkService) deleteGraphSpk(data *models.Spk) error {
-	return s.deleteGraphSpkByID(data.ID)
-}
-
-func (s *spkService) deleteGraphSpkByID(spkId int64) error {
-	graph := builder.NewGraphRepository()
-
 	params := map[string]interface{}{
-		"spkId":     spkId,
-		"deletedAt": time.Now().Format(time.RFC3339Nano),
+		"spkId": spkID,
 	}
 
 	if err := graph.
 		WithMatch("(s:SPK {id: $spkId})").
-		// 1. Putus (Hard Delete) relasi ke Title terlebih dahulu
-		WithOptionalMatch("(s)-[r:HAS_TITLE]->(:Title)").
-		WithDelete("r").
-		// Pastikan di-distinct jika relasi HAS_TITLE lebih dari satu
-		WithWith("DISTINCT s").
-		// 2. APOC traversal untuk merambat ke child node SPK (misal: Job/Step)
 		WithCall(`
 			apoc.path.expandConfig(s, {
 				relationshipFilter: ">",
-				labelFilter: "-Title", // <-- Kunci: Lindungi Node Title dari efek berantai
 				minLevel: 0,
 				maxLevel: -1
 			})
 		`).
 		WithYield("path").
-		WithUnwind("nodes(path)", "n").
+		WithWith("s, collect(DISTINCT path) AS paths").
+		WithUnwind("paths", "p").
+		WithUnwind("nodes(p)", "n").
 		WithWith("DISTINCT n").
-		WithSet("n.deleted_at = $deletedAt", nil).
+		WithSet("n.deleted_at = NULL", nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to soft delete SPK graph with id %d: %w", spkId, err)
+		return fmt.Errorf("failed to remove deleted_at from SPK graph with id %d: %w", spkID, err)
 	}
-
 	return nil
 }
 
-// batchInsertGraphSpks creates multiple SPK nodes in Neo4j using UNWIND batch operation
-func (s *spkService) batchInsertGraphSpks(data []*models.Spk) error {
-	if len(data) == 0 {
-		return nil
-	}
-
+func GetSPKGraphs() (any, error) {
 	graph := builder.NewGraphRepository()
 
-	// Prepare batch data
-	var spkList []map[string]interface{}
-	for _, spk := range data {
-		spkList = append(spkList, map[string]interface{}{
-			"id":          spk.ID,
-			"name":        spk.Name,
-			"code":        spk.Code,
-			"description": helper.ToJSONString(spk.Description),
-		})
+	result, err := graph.
+		WithMatch("(s:SPK)").
+		WithWhere("s.deleted_at IS NULL", nil).
+		WithOptionalMatch("(s)-[:HAS_TITLE]->(t:Title)").
+		WithWhere("t.deleted_at IS NULL", nil).
+		WithWith("s, collect(apoc.map.removeKey(apoc.convert.toMap(t), 'deleted_at')) AS titles").
+		WithWith("apoc.map.removeKey(apoc.convert.toMap(s), 'deleted_at') AS sMap").
+		WithWith("apoc.map.setKey(sMap, 'has_title', titles) AS spk").
+		WithReturn("spk").
+		RunWriteWithReturn()
+	if err != nil {
+		return nil, err
 	}
 
-	params := map[string]interface{}{
-		"spks": spkList,
-	}
-
-	// Use UNWIND to batch create SPK nodes
-	if err := graph.
-		WithUnwind("$spks", "spkData").
-		WithMerge("(s:SPK {id: spkData.id})").
-		WithSet("s.name = spkData.name, s.code = spkData.code, s.description = spkData.description", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to batch insert SPK nodes: %w", err)
-	}
-
-	return nil
-}
-
-// batchUpdateGraphSpks updates multiple SPK nodes in Neo4j using UNWIND batch operation
-func (s *spkService) batchUpdateGraphSpks(data []*models.Spk) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	// Prepare batch data
-	var spkList []map[string]interface{}
-	for _, spk := range data {
-		spkList = append(spkList, map[string]interface{}{
-			"id":          spk.ID,
-			"name":        spk.Name,
-			"code":        spk.Code,
-			"description": helper.ToJSONString(spk.Description),
-		})
-	}
-
-	params := map[string]interface{}{
-		"spks": spkList,
-	}
-
-	// Use UNWIND to batch update SPK nodes
-	if err := graph.
-		WithUnwind("$spks", "spkData").
-		WithMatch("(s:SPK {id: spkData.id})").
-		WithSet("s.name = spkData.name, s.code = spkData.code, s.description = spkData.description", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to batch update SPK nodes: %w", err)
-	}
-
-	return nil
-}
-
-// batchDeleteGraphSpks deletes multiple SPK nodes from Neo4j using UNWIND batch operation
-func (s *spkService) batchDeleteGraphSpks(ids []int64) error {
-	if len(ids) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	params := map[string]interface{}{
-		"spkIds": ids,
-	}
-
-	// Use UNWIND to batch delete SPK nodes and their children
-	if err := graph.
-		WithUnwind("$spkIds", "spkId").
-		WithMatch("(s:SPK {id: spkId})").
-		WithOptionalMatch("(s)-[*]->(child)").
-		WithDetachDelete("s, child").
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to batch delete SPK nodes: %w", err)
-	}
-
-	return nil
+	return helper.Neo4jFormatter(result), nil
 }

@@ -30,6 +30,7 @@ type SpkRepository interface {
 	FindSpk() ([]models.Spk, error)
 	FindSpkByID(id int64) (*models.Spk, error)
 	FindSpksByIDs(ids []int64) ([]*models.Spk, error)
+	CountSpks() (int64, error)
 }
 
 type spkRepository struct {
@@ -189,4 +190,15 @@ func (repo *spkRepository) FindSpksByIDs(ids []int64) ([]*models.Spk, error) {
 	return repo.getQueryBuilder().WithWhere(func(db *gorm.DB) *gorm.DB {
 		return db.Where("id IN ?", ids)
 	}).FindAllPtr()
+}
+
+func (repo *spkRepository) CountSpks() (int64, error) {
+	var count int64
+	err := repo.db.Model(&models.Spk{}).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
