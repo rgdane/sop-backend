@@ -19,6 +19,7 @@ type SopJobRepository interface {
 	WithOrder(order string) SopJobRepository
 	WithLimit(limit int) SopJobRepository
 	WithCursor(cursor int) SopJobRepository
+	WithUnscoped() SopJobRepository
 
 	InsertSopJob(data *models.SopJob) (*models.SopJob, error)
 	InsertManySopJobs(data []*models.SopJob) ([]*models.SopJob, error)
@@ -31,6 +32,7 @@ type SopJobRepository interface {
 	FindSopJobByID(id int64) (*models.SopJob, error)
 	FindSopJobByIDs(ids []int64) ([]*models.SopJob, error)
 	ReorderSopJob(sopJobID int64, newIndex int, sopID int64) error
+	CountSopJobs() (int64, error)
 }
 
 type sopJobRepository struct {
@@ -43,6 +45,7 @@ type sopJobRepository struct {
 	order        string
 	limit        *int
 	cursor       *int
+	unscoped     bool
 }
 
 func NewSopJobRepository() SopJobRepository {
@@ -110,8 +113,19 @@ func (repo *sopJobRepository) WithCursor(cursor int) SopJobRepository {
 	return clone
 }
 
+func (repo *sopJobRepository) WithUnscoped() SopJobRepository {
+	clone := repo.clone()
+	clone.unscoped = true
+	return clone
+}
+
 func (repo *sopJobRepository) getQueryBuilder() *builder.QueryBuilder[models.SopJob] {
-	qb := builder.NewQueryBuilder[models.SopJob](repo.db).
+	db := repo.db
+	if repo.unscoped {
+		db = db.Unscoped()
+	}
+
+	qb := builder.NewQueryBuilder[models.SopJob](db).
 		WithPreloads(repo.preloads...).
 		WithAssociations(repo.associations...).
 		WithReplacements(repo.replacements).
@@ -165,9 +179,8 @@ func (repo *sopJobRepository) RemoveManySopJobs(ids []int64) error {
 func (repo *sopJobRepository) FindSopJob() ([]models.SopJob, error) {
 	r := repo
 	if r.order == "" {
-		if casted, ok := r.WithOrder("index ASC").(*sopJobRepository); ok {
-			r = casted
-		}
+		r = repo.clone()
+		r.order = "index ASC"
 	}
 	return repo.getQueryBuilder().FindAll()
 }
@@ -241,4 +254,19 @@ func (repo *sopJobRepository) ReorderSopJob(sopJobID int64, newIndex int, sopID 
 	}
 
 	return nil
+}
+
+func (repo *sopJobRepository) CountSopJobs() (int64, error) {
+	var count int64
+	db := repo.db
+	if repo.unscoped {
+		db = db.Unscoped()
+	}
+	err := db.Model(&models.SopJob{}).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

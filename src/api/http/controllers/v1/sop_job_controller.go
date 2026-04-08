@@ -19,20 +19,46 @@ func GetSopJobs(cn *container.AppContainer) fiber.Handler {
 		titleID, _ := helper.ParseQueryInt64(c, "title_id")
 		page, _ := helper.ParseQueryInt64(c, "page")
 		limit, _ := helper.ParseQueryInt64(c, "limit")
+		name := c.Query("name", "")
 
 		filter := dto.SopJobFilterDto{
-			Preload: c.Query("preload", "false") == "true",
-			SopID:   sopID,
-			TitleID: titleID,
-			Page:    page,
-			Limit:   limit,
+			Preload:     c.Query("preload", "false") == "true",
+			SopID:       sopID,
+			TitleID:     titleID,
+			Page:        page,
+			Limit:       limit,
+			Name:        name,
+			ShowDeleted: c.Query("show_deleted", "false") == "true",
 		}
 
-		data, err := cn.SopJobHandler.GetAllSopJobsHandler(filter)
+		data, total, err := cn.SopJobHandler.GetAllSopJobsHandler(filter)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
-		return presenters.SendSuccessResponse(c, data)
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+func GetGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		sopID, _ := helper.ParseQueryInt64(c, "sop_id")
+		titleID, _ := helper.ParseQueryInt64(c, "title_id")
+		name := c.Query("name", "")
+		deleted := c.Query("show_deleted", "false") == "true"
+
+		filter := dto.SopJobFilterDto{
+			Preload:     c.Query("preload", "false") == "true",
+			SopID:       sopID,
+			TitleID:     titleID,
+			Name:        name,
+			ShowDeleted: deleted,
+		}
+
+		data, total, err := cn.SopJobHandler.GetAllSopJobsGraphHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
 	}
 }
 
@@ -55,6 +81,21 @@ func GetSopJobByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphSopJobByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.SopJobHandler.GetSopJobByIdGraphHandler(id)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
 func CreateSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSopJobDto
@@ -63,6 +104,36 @@ func CreateSopJobs(cn *container.AppContainer) fiber.Handler {
 		}
 
 		result, err := cn.SopJobHandler.CreateSopJobHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateSopJobDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.SopJobHandler.CreateSopJobSqlHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateSopJobDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.SopJobHandler.CreateSopJobGraphHandler(&input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -90,17 +161,87 @@ func UpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
-func DeleteSopJobs(cn *container.AppContainer) fiber.Handler {
+func UpdateSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
 		}
 
-		if err := cn.SopJobHandler.DeleteSopJobHandler(id); err != nil {
+		var input dto.UpdateSopJobDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		updated, err := cn.SopJobHandler.UpdateSopJobSqlHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, updated)
+	}
+}
+
+func UpdateGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		var input dto.UpdateSopJobDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		updated, err := cn.SopJobHandler.UpdateSopJobGraphHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, updated)
+	}
+}
+
+func DeleteSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		isPermanent := c.Query("isPermanent", "false") == "true"
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.SopJobHandler.DeleteSopJobHandler(id, isPermanent); err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
 		return presenters.SendSuccessResponseWithMessage(c, "SopJob berhasil dihapus", nil)
+	}
+}
+
+func DeleteSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		isPermanent := c.Query("isPermanent", "false") == "true"
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.SopJobHandler.DeleteSopJobSqlHandler(id, isPermanent); err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "SopJob berhasil dihapus", nil)
+	}
+}
+
+func DeleteGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		if err := cn.SopJobHandler.DeleteSopJobGraphHandler(id); err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "SopJob deleted successfully from graph", nil)
 	}
 }
 
@@ -135,7 +276,7 @@ func BulkUpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "No update data provided")
 		}
 
-		updatedSopJobs, err := cn.SopJobHandler.BulkUpdateHandler(&input)
+		updatedSopJobs, err := cn.SopJobHandler.BulkUpdateSopJobsHandler(&input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -146,6 +287,7 @@ func BulkUpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 func BulkDeleteSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.BulkDeleteSopJobDto
+		isPermanent := c.Query("isPermanent", "false") == "true"
 		if err := c.BodyParser(&input); err != nil {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request body for bulk delete")
 		}
@@ -154,7 +296,7 @@ func BulkDeleteSopJobs(cn *container.AppContainer) fiber.Handler {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "No sop_job IDs provided")
 		}
 
-		err := cn.SopJobHandler.BulkDeleteHandler(&input)
+		err := cn.SopJobHandler.BulkDeleteSopJobsHandler(&input, isPermanent)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}

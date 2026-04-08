@@ -7,7 +7,9 @@ import (
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/repository/sql"
+	"jk-api/internal/shared/helper"
 	"jk-api/pkg/errors/gorm_err"
 	"jk-api/pkg/neo4j/builder"
 
@@ -19,7 +21,7 @@ type SopJobService interface {
 
 	CreateSopJob(input *models.SopJob) (*models.SopJob, error)
 	UpdateSopJob(id int64, updates map[string]any) (*models.SopJob, error)
-	DeleteSopJob(id int64) error
+	DeleteSopJob(id int64, isPermanent bool) error
 	GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJob, error)
 	GetDB() *gorm.DB
 
@@ -27,23 +29,36 @@ type SopJobService interface {
 	GetSopJobByIDs(ids []int64) ([]*models.SopJob, error)
 	BulkCreateSopJobs(input []*models.SopJob) ([]*models.SopJob, error)
 	BulkUpdateSopJobs(ids []int64, updates map[string]any) error
-	BulkDeleteSopJobs(ids []int64) error
+	BulkDeleteSopJobs(ids []int64, isPermanent bool) error
 	ReorderSopJob(sopJobID int64, newIndex int, sopID int64) error
+	CountSopJobs(filter dto.SopJobFilterDto) (int64, error)
+
+	GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*graphdb.SopJobNode, error)
+	GetGraphSopJobByID(id int64) (*graphdb.SopJobNode, error)
+	InsertGraphSopJob(data *graphdb.SopJobNode) error
+	UpdateGraphSopJob(data *graphdb.SopJobNode) error
+	DeleteGraphSopJob(sopJobId int64) error
+	BulkInsertGraphSopJobs(data []*graphdb.SopJobNode) error
+	BulkUpdateGraphSopJobs(data []*graphdb.SopJobNode) error
+	BulkDeleteGraphSopJobs(ids []int64) error
+	CountGraphSopJobs(filter dto.SopJobFilterDto) (int64, error)
 }
 
 type sopJobService struct {
-	repo sql.SopJobRepository
-	tx   *gorm.DB
+	repo      sql.SopJobRepository
+	graphRepo graphdb.SopJobRepository
+	tx        *gorm.DB
 }
 
-func NewSopJobService(repo sql.SopJobRepository) SopJobService {
-	return &sopJobService{repo: repo}
+func NewSopJobService(repo sql.SopJobRepository, graphRepo graphdb.SopJobRepository) SopJobService {
+	return &sopJobService{repo: repo, graphRepo: graphRepo}
 }
 
 func (s *sopJobService) WithTx(tx *gorm.DB) SopJobService {
 	return &sopJobService{
-		repo: s.repo.WithTx(tx),
-		tx:   tx,
+		repo:      s.repo.WithTx(tx),
+		graphRepo: s.graphRepo,
+		tx:        tx,
 	}
 }
 
@@ -72,7 +87,7 @@ func (s *sopJobService) CreateSopJob(input *models.SopJob) (*models.SopJob, erro
 		}
 	}
 
-	if err := s.insertGraphSopJob(data, input); err != nil {
+	if err := s.InsertGraphSopJob(toSopJobNode(data)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
@@ -91,8 +106,7 @@ func (s *sopJobService) UpdateSopJob(id int64, updates map[string]any) (*models.
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	err = s.updateGraphSopJob(data)
-	if err != nil {
+	if err := s.UpdateGraphSopJob(toSopJobNode(data)); err != nil {
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
@@ -107,8 +121,15 @@ func (s *sopJobService) UpdateSopJob(id int64, updates map[string]any) (*models.
 	return data, nil
 }
 
-func (s *sopJobService) DeleteSopJob(id int64) error {
-	_, err := s.GetSopJobByID(id, dto.SopJobFilterDto{Preload: true})
+func (s *sopJobService) DeleteSopJob(id int64, isPermanent bool) (err error) {
+	repo := s.repo
+	if isPermanent {
+		repo = repo.WithUnscoped()
+		err = repo.RemoveSopJob(id)
+		return gorm_err.TranslateGormError(err)
+	}
+
+	_, err = s.GetSopJobByID(id, dto.SopJobFilterDto{Preload: true})
 	if err != nil {
 		return err
 	}
@@ -117,13 +138,16 @@ func (s *sopJobService) DeleteSopJob(id int64) error {
 		Update("parent_job_id", nil).Error; err != nil {
 		return gorm_err.TranslateGormError(err)
 	}
-	err = s.repo.RemoveSopJob(id)
+	err = repo.RemoveSopJob(id)
 	if err != nil {
 		return gorm_err.TranslateGormError(err)
 	}
-	err = s.deleteGraphSopJob(id)
 
-	return gorm_err.TranslateGormError(err)
+	if err := s.DeleteGraphSopJob(id); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
+	}
+
+	return nil
 }
 
 func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJob, error) {
@@ -138,13 +162,18 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 	if filter.Preload {
 		repo = repo.WithPreloads("HasSop", "HasTitle", "HasFlowchart")
 	}
+	if filter.Name != "" {
+		repo = repo.WithWhere("name ILIKE ?", "%"+filter.Name+"%")
+	}
+	if filter.ShowDeleted {
+		repo = repo.WithUnscoped().WithWhere("deleted_at IS NOT NULL")
+	}
 
 	data, err := repo.FindSopJob()
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	// Load dynamic references if preload is enabled
 	if filter.Preload {
 		for i := range data {
 			if err := s.loadDynamicReference(&data[i]); err != nil {
@@ -166,7 +195,6 @@ func (s *sopJobService) GetSopJobByID(id int64, filter dto.SopJobFilterDto) (*mo
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	// Load dynamic reference if preload is enabled
 	if filter.Preload {
 		if err := s.loadDynamicReference(data); err != nil {
 			return nil, err
@@ -189,50 +217,74 @@ func (s *sopJobService) BulkCreateSopJobs(input []*models.SopJob) ([]*models.Sop
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
 	}
-	if err := s.bulkInsertGraphSopJobs(datas); err != nil {
+	if err := s.BulkInsertGraphSopJobs(toSopJobNodeSlice(datas)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 	return datas, nil
 }
 
 func (s *sopJobService) BulkUpdateSopJobs(ids []int64, updates map[string]any) error {
-	err := s.repo.UpdateManySopJobs(ids, updates)
-	if err != nil {
-		return gorm_err.TranslateGormError(err)
+	repo := s.repo
+
+	if _, ok := updates["deleted_at"]; ok {
+		repo = repo.WithUnscoped()
+		deletedAtValue := updates["deleted_at"]
+		shouldRestore := false
+
+		switch v := deletedAtValue.(type) {
+		case nil:
+			shouldRestore = true
+		case *time.Time:
+			shouldRestore = (v == nil)
+		case time.Time:
+			shouldRestore = v.IsZero()
+		default:
+			shouldRestore = false
+		}
+
+		if shouldRestore {
+			if err := s.sopJobRestore(ids); err != nil {
+				return err
+			}
+			err := repo.UpdateManySopJobs(ids, updates)
+			return gorm_err.TranslateGormError(err)
+		}
 	}
 
-	// Fetch updated data untuk sync ke Neo4j
 	updatedJobs, err := s.repo.FindSopJobByIDs(ids)
 	if err != nil {
 		return gorm_err.TranslateGormError(err)
 	}
 
-	// ✅ BULK UPDATE - SEKALI JALAN!
-	if err := s.bulkUpdateGraphSopJobs(updatedJobs); err != nil {
+	if err := s.BulkUpdateGraphSopJobs(toSopJobNodeSlice(updatedJobs)); err != nil {
 		return fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
-	return nil
+	err = repo.UpdateManySopJobs(ids, updates)
+	return gorm_err.TranslateGormError(err)
 }
 
-func (s *sopJobService) BulkDeleteSopJobs(ids []int64) error {
-	db := s.GetDB()
-	if len(ids) > 0 {
-		if err := db.Model(&models.Sop{}).Where("parent_job_id IN ?", ids).Update("parent_job_id", nil).Error; err != nil {
-			return gorm_err.TranslateGormError(err)
-		}
-	}
-	err := s.repo.RemoveManySopJobs(ids)
-	if err != nil {
+func (s *sopJobService) BulkDeleteSopJobs(ids []int64, isPermanent bool) (err error) {
+	repo := s.repo
+
+	if isPermanent {
+		repo = repo.WithUnscoped()
+		err = repo.RemoveManySopJobs(ids)
 		return gorm_err.TranslateGormError(err)
 	}
 
-	// ✅ BULK DELETE - SEKALI JALAN!
-	if err := s.bulkDeleteGraphSopJobs(ids); err != nil {
+	if len(ids) > 0 {
+		if err := s.GetDB().Model(&models.Sop{}).Where("parent_job_id IN ?", ids).Update("parent_job_id", nil).Error; err != nil {
+			return gorm_err.TranslateGormError(err)
+		}
+	}
+
+	if err := s.BulkDeleteGraphSopJobs(ids); err != nil {
 		return fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
-	return nil
+	err = repo.RemoveManySopJobs(ids)
+	return gorm_err.TranslateGormError(err)
 }
 
 func (s *sopJobService) ReorderSopJob(sopJobID int64, newIndex int, sopID int64) error {
@@ -251,6 +303,90 @@ func (s *sopJobService) ReorderSopJob(sopJobID int64, newIndex int, sopID int64)
 	}
 
 	return db.Commit().Error
+}
+
+func (s *sopJobService) CountSopJobs(filter dto.SopJobFilterDto) (int64, error) {
+	repo := s.repo
+	if filter.SopID != 0 {
+		repo = repo.WithWhere("sop_id = ?", filter.SopID)
+	}
+
+	data, err := repo.CountSopJobs()
+	if err != nil {
+		return 0, gorm_err.TranslateGormError(err)
+	}
+
+	return data, nil
+}
+
+func (s *sopJobService) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetAllGraphSopJobs(filter)
+}
+
+func (s *sopJobService) GetGraphSopJobByID(id int64) (*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetGraphSopJobByID(id)
+}
+
+func (s *sopJobService) InsertGraphSopJob(data *graphdb.SopJobNode) error {
+	return s.graphRepo.InsertGraphSopJob(data)
+}
+
+func (s *sopJobService) UpdateGraphSopJob(data *graphdb.SopJobNode) error {
+	return s.graphRepo.UpdateGraphSopJob(data)
+}
+
+func (s *sopJobService) DeleteGraphSopJob(sopJobId int64) error {
+	return s.graphRepo.DeleteGraphSopJob(sopJobId)
+}
+
+func (s *sopJobService) BulkInsertGraphSopJobs(data []*graphdb.SopJobNode) error {
+	return s.graphRepo.BulkInsertGraphSopJobs(data)
+}
+
+func (s *sopJobService) BulkUpdateGraphSopJobs(data []*graphdb.SopJobNode) error {
+	return s.graphRepo.BulkUpdateGraphSopJobs(data)
+}
+
+func (s *sopJobService) BulkDeleteGraphSopJobs(ids []int64) error {
+	return s.graphRepo.BulkDeleteGraphSopJobs(ids)
+}
+
+func (s *sopJobService) CountGraphSopJobs(filter dto.SopJobFilterDto) (int64, error) {
+	return s.graphRepo.CountGraphSopJobs(filter)
+}
+
+func toSopJobNode(m *models.SopJob) *graphdb.SopJobNode {
+	var typeStr string
+	if m.Type != nil {
+		typeStr = *m.Type
+	}
+	return &graphdb.SopJobNode{
+		ID:          m.ID,
+		Name:        m.Name,
+		Alias:       m.Alias,
+		Type:        typeStr,
+		Code:        m.Code,
+		Description: helper.ToJSONString(m.Description),
+		TitleID:     m.TitleID,
+		SopID:       m.SopID,
+		ReferenceID: m.ReferenceID,
+		Index:       m.Index,
+		FlowchartID: m.FlowchartID,
+		NextIndex:   m.NextIndex,
+		PrevIndex:   m.PrevIndex,
+		IsPublished: m.IsPublished,
+		IsHide:      m.IsHide,
+		CreatedAt:   m.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339Nano),
+	}
+}
+
+func toSopJobNodeSlice(m []*models.SopJob) []*graphdb.SopJobNode {
+	result := make([]*graphdb.SopJobNode, 0, len(m))
+	for _, sopJob := range m {
+		result = append(result, toSopJobNode(sopJob))
+	}
+	return result
 }
 
 func (s *sopJobService) loadDynamicReference(sopJob *models.SopJob) error {
@@ -285,633 +421,78 @@ func (s *sopJobService) loadDynamicReference(sopJob *models.SopJob) error {
 	return nil
 }
 
-func (s *sopJobService) insertGraphSopJob(data *models.SopJob, input *models.SopJob) error {
+func (s *sopJobService) sopJobRestore(ids []int64) error {
+	var sopJobs []models.SopJob
+	if err := s.GetDB().Unscoped().Preload("HasSop").Where("id IN ? AND deleted_at IS NOT NULL", ids).Find(&sopJobs).Error; err != nil {
+		return err
+	}
+
+	for _, sopJob := range sopJobs {
+		var updatedSopJob models.SopJob
+		if err := s.GetDB().Unscoped().Where("id = ?", sopJob.ID).First(&updatedSopJob).Error; err != nil {
+			return err
+		}
+
+		if updatedSopJob.CreatedAt.IsZero() {
+			updatedSopJob.CreatedAt = time.Now()
+		}
+		updatedSopJob.UpdatedAt = time.Now()
+
+		if err := s.removeDeletedAtFromGraph(updatedSopJob.ID); err != nil {
+			return fmt.Errorf("failed to remove deleted_at from graph: %w", err)
+		}
+
+		if err := s.insertGraphSopJobWithRelations(&updatedSopJob); err != nil {
+			return fmt.Errorf("failed to restore SOP Job graph: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *sopJobService) insertGraphSopJobWithRelations(data *models.SopJob) error {
+	graph := builder.NewGraphRepository()
+
 	sopName := ""
 	if data.HasSop != nil {
 		sopName = data.HasSop.Name
 	}
 
 	params := map[string]any{
-		"jobId":       data.ID,
-		"jobName":     data.Name,
-		"alias":       data.Alias,
-		"type":        data.Type,
-		"code":        data.Code,
-		"description": data.Description,
-		"titleId":     data.TitleID,
-		"sopId":       data.SopID,
-		"referenceId": data.ReferenceID,
-		"index":       data.Index,
-		"flowchartId": data.FlowchartID,
-		"nextIndex":   data.NextIndex,
-		"prevIndex":   data.PrevIndex,
-		"sopName":     sopName,
-		"isPublished": data.IsPublished,
-		"isHide":      data.IsHide,
-	}
-
-	// 🔹 1. Merge Job node & SOP Node, lalu buat HAS_JOB (Bisa digabung 1 Query)
-	insertJobGraph := builder.NewGraphRepository()
-	if err := insertJobGraph.
-		WithMerge("(j:Job {id: $jobId})").
-		WithSet(`j.name = $jobName, j.alias = $alias, j.type = $type,
-		j.code = $code, j.description = $description,
-		j.title_id = $titleId, j.sop_id = $sopId,
-		j.reference_id = $referenceId, j.index = $index,
-		j.flowchart_id = $flowchartId, j.is_hide = $isHide,
-		j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
-		WithMerge("(s:SOP {id: $sopId})").
-		WithSet("s.name = $sopName", nil).
-		WithMerge("(s)-[:HAS_JOB]->(j)"). // Gunakan MERGE agar tidak duplicate relasi
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to insert Job and create HAS_JOB relationship: %w", err)
-	}
-
-	// 🔹 2. Optional Relationship (Job)-[:HAS_REFERENCE]->(Parent SOP/SPK)
-	if input.ReferenceID != nil && input.Type != nil {
-		var parentName string
-		var nodeLabel string
-
-		switch *input.Type {
-		case "sop":
-			var parentSop models.Sop
-			if err := s.GetDB().Select("name").First(&parentSop, *input.ReferenceID).Error; err != nil {
-				return fmt.Errorf("failed to find parent SOP with ID %v: %w", *input.ReferenceID, err)
-			}
-			parentName = parentSop.Name
-			nodeLabel = "SOP"
-
-		case "spk":
-			var parentSpk models.Spk 
-			if err := s.GetDB().Select("name").First(&parentSpk, *input.ReferenceID).Error; err != nil {
-				return fmt.Errorf("failed to find parent SPK with ID %v: %w", *input.ReferenceID, err)
-			}
-			parentName = parentSpk.Name
-			nodeLabel = "SPK"
-		default:
-			nodeLabel = ""
-		}
-
-		if nodeLabel != "" {
-			parentParams := map[string]any{
-				"jobId":      data.ID,
-				"parentId":   *input.ReferenceID,
-				"parentName": parentName,
-			}
-
-			// Inisialisasi ulang builder untuk query referensi
-			refGraph := builder.NewGraphRepository()
-			mergeNodeQuery := fmt.Sprintf("(p:%s {id: $parentId})", nodeLabel)
-
-			if err := refGraph.
-				WithMatch("(j:Job {id: $jobId})").
-				WithMerge(mergeNodeQuery).
-				WithSet("p.name = $parentName", nil).
-				WithMerge("(j)-[:HAS_REFERENCE]->(p)").
-				WithParams(parentParams).
-				RunWrite(); err != nil {
-				return fmt.Errorf("failed to create HAS_REFERENCE relationship for %s: %w", nodeLabel, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s *sopJobService) updateGraphSopJob(data *models.SopJob) error {
-	params := map[string]any{
 		"id":          data.ID,
 		"name":        data.Name,
 		"alias":       data.Alias,
 		"type":        data.Type,
 		"code":        data.Code,
-		"description": data.Description,
+		"description": helper.ToJSONString(data.Description),
 		"titleId":     data.TitleID,
 		"sopId":       data.SopID,
-		"referenceId": data.ReferenceID,
-		"index":       data.Index,
-		"flowchartId": data.FlowchartID,
-		"nextIndex":   data.NextIndex,
-		"prevIndex":   data.PrevIndex,
-		"isPublished": data.IsPublished,
-		"isHide":      data.IsHide,
-	}
-
-	// 🔹 1. Update Properties
-	updateGraph := builder.NewGraphRepository()
-	if err := updateGraph.
-		WithMatch("(j:Job {id: $id})").
-		WithSet(`j.name = $name, j.alias = $alias, j.type = $type, 
-		j.code = $code, j.description = $description, 
-		j.title_id = $titleId, j.sop_id = $sopId, 
-		j.reference_id = $referenceId, j.index = $index, 
-		j.flowchart_id = $flowchartId, j.is_hide = $isHide,
-		j.next_index = $nextIndex, j.prev_index = $prevIndex, j.is_published = $isPublished`, nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update Job graph properties: %w", err)
-	}
-
-	// 🔹 2. Hapus Relasi Lama (HAS_JOB dari SOP & HAS_REFERENCE)
-	// Kita bisa gabung query delete ini menggunakan OPTIONAL MATCH
-	deleteGraph := builder.NewGraphRepository()
-	if err := deleteGraph.
-		WithMatch("(j:Job {id: $jobId})").
-		WithOptionalMatch("()-[r1:HAS_JOB]->(j)").
-		WithOptionalMatch("(j)-[r2:HAS_REFERENCE]->()").
-		WithDelete("r1, r2").
-		WithParams(map[string]any{"jobId": data.ID}).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete old relations: %w", err)
-	}
-
-	// 🔹 3. Buat Relasi HAS_JOB yang baru
-	if data.SopID != 0 {
-		jobRelGraph := builder.NewGraphRepository()
-		if err := jobRelGraph.
-			WithMatch("(j:Job {id: $jobId})").
-			WithMatch("(sop:SOP {id: $sopId})").
-			WithMerge("(sop)-[:HAS_JOB]->(j)").
-			WithParams(map[string]any{"jobId": data.ID, "sopId": data.SopID}).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to recreate HAS_JOB relation: %w", err)
-		}
-	}
-
-	// 🔹 4. Buat Relasi HAS_REFERENCE yang baru
-	if data.ReferenceID != nil && data.Type != nil {
-		refGraph := builder.NewGraphRepository()
-		
-		var label string
-		if *data.Type == "sop" {
-			label = "SOP"
-		} else if *data.Type == "spk" {
-			label = "SPK"
-		}
-
-		if label != "" {
-			mergeQuery := fmt.Sprintf("(j)-[:HAS_REFERENCE]->(p:%s {id: $refId})", label)
-			if err := refGraph.
-				WithMatch("(j:Job {id: $jobId})").
-				WithMatch(fmt.Sprintf("(p:%s {id: $refId})", label)).
-				WithMerge(mergeQuery).
-				WithParams(map[string]any{"jobId": data.ID, "refId": *data.ReferenceID}).
-				RunWrite(); err != nil {
-				return fmt.Errorf("failed to recreate HAS_REFERENCE relation to %s: %w", label, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s *sopJobService) deleteGraphSopJob(id int64) error {
-	graph := builder.NewGraphRepository()
-	params := map[string]any{
-		"docId":     id,
-		"deletedAt": time.Now().Format(time.RFC3339Nano), 
-	}
-
-	// Kita gunakan RunWrite(), tidak perlu RunWriteWithReturn() jika tidak mereturn data ke caller
-	if err := graph.
-		WithMatch("(j:Job {id: $docId})").
-		// Putuskan relasi referensi ke luar secara fisik agar bersih
-		WithOptionalMatch("(j)-[r:HAS_REFERENCE]->()").
-		WithDelete("r").
-		WithWith("DISTINCT j").
-		// APOC: Soft delete Job ini dan semua child-nya (seperti Step), 
-		// TAPI jangan sampai merusak node SOP atau SPK
-		WithCall(`
-			apoc.path.expandConfig(j, {
-				relationshipFilter: ">",
-				labelFilter: "-SOP|-SPK", // <-- SANGAT PENTING: Lindungi parent/reference node
-				minLevel: 0,
-				maxLevel: -1
-			})
-		`).
-		WithYield("path").
-		WithUnwind("nodes(path)", "n").
-		WithWith("DISTINCT n").
-		WithSet("n.deleted_at = $deletedAt", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to soft delete Job graph with id %d: %w", id, err)
-	}
-
-	return nil
-}
-
-func (s *sopJobService) bulkInsertGraphSopJobs(data []*models.SopJob) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	// Prepare batch data
-	jobNodes := make([]map[string]any, 0, len(data))
-	sopMap := make(map[int64]string) // sopId -> sopName
-
-	// Load SOP names in batch
-	sopIDs := make([]int64, 0, len(data))
-	for _, job := range data {
-		sopIDs = append(sopIDs, job.SopID)
-	}
-
-	var sops []models.Sop
-	if err := s.GetDB().Select("id, name").Where("id IN ?", sopIDs).Find(&sops).Error; err != nil {
-		return fmt.Errorf("failed to load SOP names: %w", err)
-	}
-
-	for _, sop := range sops {
-		sopMap[sop.ID] = sop.Name
-	}
-
-	// Prepare job nodes data
-	for _, job := range data {
-		jobNode := map[string]any{
-			"jobId":       job.ID,
-			"jobName":     job.Name,
-			"alias":       job.Alias,
-			"type":        job.Type,
-			"code":        job.Code,
-			"description": job.Description,
-			"titleId":     job.TitleID,
-			"sopId":       job.SopID,
-			"referenceId": job.ReferenceID,
-			"index":       job.Index,
-			"flowchartId": job.FlowchartID,
-			"nextIndex":   job.NextIndex,
-			"prevIndex":   job.PrevIndex,
-			"isPublished": job.IsPublished,
-			"isHide":      job.IsHide,
-		}
-		jobNodes = append(jobNodes, jobNode)
-	}
-
-	// 🔹 Step 1: Bulk merge Job nodes
-	jobParams := map[string]any{
-		"jobs": jobNodes,
+		"sopName":     sopName,
+		"createdAt":   data.CreatedAt.Format(time.RFC3339Nano),
+		"updatedAt":   data.UpdatedAt.Format(time.RFC3339Nano),
 	}
 
 	if err := graph.
-		WithUnwind("$jobs", "job").
-		WithMerge("(j:Job {id: job.jobId})").
-		WithSet(`j.name = job.jobName, j.alias = job.alias, j.type = job.type, 
-			j.code = job.code, j.description = job.description, 
-			j.title_id = job.titleId, j.sop_id = job.sopId, 
-			j.reference_id = job.referenceId, j.index = job.index, 
-			j.flowchart_id = job.flowchartId, j.is_hide = job.isHide,
-			j.next_index = job.nextIndex, j.prev_index = job.prevIndex, j.is_published = job.isPublished`, nil).
-		WithParams(jobParams).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to merge Job nodes: %w", err)
-	}
-
-	// 🔹 Step 2: Bulk merge SOP nodes
-	sopNodes := make([]map[string]any, 0, len(sopMap))
-	for sopID, sopName := range sopMap {
-		sopNodes = append(sopNodes, map[string]any{
-			"sopId":   sopID,
-			"sopName": sopName,
-		})
-	}
-
-	sopParams := map[string]any{
-		"sops": sopNodes,
-	}
-
-	if err := graph.
-		WithUnwind("$sops", "sop").
-		WithMerge("(s:SOP {id: sop.sopId})").
-		WithSet("s.name = sop.sopName", nil).
-		WithParams(sopParams).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to merge SOP nodes: %w", err)
-	}
-
-	// 🔹 Step 3: Bulk create HAS_JOB relationships
-	hasJobRels := make([]map[string]any, 0, len(data))
-	for _, job := range data {
-		hasJobRels = append(hasJobRels, map[string]any{
-			"jobId": job.ID,
-			"sopId": job.SopID,
-		})
-	}
-
-	hasJobParams := map[string]any{
-		"rels": hasJobRels,
-	}
-
-	if err := graph.
-		WithUnwind("$rels", "rel").
-		WithMatch("(j:Job {id: rel.jobId})").
-		WithMatch("(s:SOP {id: rel.sopId})").
+		WithMerge("(j:Job {id: $id})").
+		WithSet("j.name = $name, j.alias = $alias, j.type = $type, j.code = $code, j.description = $description, j.created_at = datetime($createdAt), j.updated_at = datetime($updatedAt)", nil).
+		WithMerge("(s:SOP {id: $sopId})").
+		WithSet("s.name = $sopName", nil).
 		WithMerge("(s)-[:HAS_JOB]->(j)").
-		WithParams(hasJobParams).
+		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to create HAS_JOB relationships: %w", err)
-	}
-
-	// 🔹 Step 4: Bulk create HAS_SOP relationships (for jobs with sop reference)
-	hasSopRels := make([]map[string]any, 0)
-	parentIDs := make([]int64, 0)
-
-	for _, job := range data {
-		if job.ReferenceID != nil && job.Type != nil && *job.Type == "sop" {
-			hasSopRels = append(hasSopRels, map[string]any{
-				"jobId":    job.ID,
-				"parentId": *job.ReferenceID,
-			})
-			parentIDs = append(parentIDs, *job.ReferenceID)
-		}
-	}
-
-	if len(hasSopRels) > 0 {
-		// Load parent SOP names
-		var parentSops []models.Sop
-		if err := s.GetDB().Select("id, name").Where("id IN ?", parentIDs).Find(&parentSops).Error; err != nil {
-			return fmt.Errorf("failed to load parent SOP names: %w", err)
-		}
-
-		parentSopMap := make(map[int64]string)
-		for _, sop := range parentSops {
-			parentSopMap[sop.ID] = sop.Name
-		}
-
-		// Add parent names to relationships
-		for i := range hasSopRels {
-			parentID := hasSopRels[i]["parentId"].(int64)
-			hasSopRels[i]["parentName"] = parentSopMap[parentID]
-		}
-
-		hasSopParams := map[string]any{
-			"rels": hasSopRels,
-		}
-
-		if err := graph.
-			WithUnwind("$rels", "rel").
-			WithMatch("(j:Job {id: rel.jobId})").
-			WithMerge("(p:SOP {id: rel.parentId})").
-			WithSet("p.name = rel.parentName", nil).
-			WithMerge("(j)-[:HAS_REFERENCE]->(p)").
-			WithParams(hasSopParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE relationships: %w", err)
-		}
+		return fmt.Errorf("failed to merge Job node: %w", err)
 	}
 
 	return nil
 }
 
-func (s *sopJobService) bulkUpdateGraphSopJobs(data []*models.SopJob) error {
-	if len(data) == 0 {
-		return nil
-	}
-
+func (s *sopJobService) removeDeletedAtFromGraph(sopJobID int64) error {
 	graph := builder.NewGraphRepository()
-
-	// Prepare job update data
-	jobNodes := make([]map[string]any, 0, len(data))
-	jobIDs := make([]int64, 0, len(data))
-
-	for _, job := range data {
-		jobIDs = append(jobIDs, job.ID)
-		jobNode := map[string]any{
-			"id":          job.ID,
-			"name":        job.Name,
-			"alias":       job.Alias,
-			"type":        job.Type,
-			"code":        job.Code,
-			"description": job.Description,
-			"titleId":     job.TitleID,
-			"sopId":       job.SopID,
-			"referenceId": job.ReferenceID,
-			"index":       job.Index,
-			"flowchartId": job.FlowchartID,
-			"nextIndex":   job.NextIndex,
-			"prevIndex":   job.PrevIndex,
-			"isPublished": job.IsPublished,
-			"isHide":      job.IsHide,
-		}
-		jobNodes = append(jobNodes, jobNode)
-	}
-
-	// 🔹 Step 1: Bulk update Job nodes properties
-	jobParams := map[string]any{
-		"jobs": jobNodes,
+	params := map[string]interface{}{
+		"jobId": sopJobID,
 	}
 
 	if err := graph.
-		WithUnwind("$jobs", "job").
-		WithMatch("(j:Job {id: job.id})").
-		WithSet(`j.name = job.name, j.alias = job.alias, j.type = job.type, 
-			j.code = job.code, j.description = job.description, 
-			j.title_id = job.titleId, j.sop_id = job.sopId, 
-			j.reference_id = job.referenceId, j.index = job.index, 
-			j.flowchart_id = job.flowchartId, j.is_hide = job.isHide,
-			j.next_index = job.nextIndex, j.prev_index = job.prevIndex, j.is_published = job.isPublished`, nil).
-		WithParams(jobParams).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update Job nodes: %w", err)
-	}
-
-	// 🔹 Step 2: Delete old relationships - SIMPLE dengan WHERE IN
-	deleteParams := map[string]any{
-		"jobIds": jobIDs,
-	}
-
-	// Delete HAS_JOB relationships
-	if err := graph.
-		WithMatch("()-[r:HAS_JOB]->(j:Job)").
-		WithWhere("j.id IN $jobIds", nil).
-		WithDelete("r").
-		WithParams(deleteParams).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete HAS_JOB relationships: %w", err)
-	}
-
-	// Delete HAS_REFERENCE relationships
-	if err := graph.
-		WithMatch("(j:Job)-[r:HAS_REFERENCE]->()").
-		WithWhere("j.id IN $jobIds", nil).
-		WithDelete("r").
-		WithParams(deleteParams).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete HAS_REFERENCE relationships: %w", err)
-	}
-
-	// 🔹 Step 3: Recreate HAS_JOB relationships
-	hasJobRels := make([]map[string]any, 0, len(data))
-	sopIDs := make([]int64, 0)
-
-	for _, job := range data {
-		if job.SopID != 0 {
-			hasJobRels = append(hasJobRels, map[string]any{
-				"jobId": job.ID,
-				"sopId": job.SopID,
-			})
-			sopIDs = append(sopIDs, job.SopID)
-		}
-	}
-
-	if len(hasJobRels) > 0 {
-		// Load SOP names
-		var sops []models.Sop
-		if err := s.GetDB().Select("id, name").Where("id IN ?", sopIDs).Find(&sops).Error; err != nil {
-			return fmt.Errorf("failed to load SOP names: %w", err)
-		}
-
-		sopMap := make(map[int64]string)
-		for _, sop := range sops {
-			sopMap[sop.ID] = sop.Name
-		}
-
-		// Merge SOP nodes first
-		sopNodes := make([]map[string]any, 0, len(sopMap))
-		for sopID, sopName := range sopMap {
-			sopNodes = append(sopNodes, map[string]any{
-				"sopId":   sopID,
-				"sopName": sopName,
-			})
-		}
-
-		sopParams := map[string]any{
-			"sops": sopNodes,
-		}
-
-		if err := graph.
-			WithUnwind("$sops", "sop").
-			WithMerge("(s:SOP {id: sop.sopId})").
-			WithSet("s.name = sop.sopName", nil).
-			WithParams(sopParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to merge SOP nodes: %w", err)
-		}
-
-		// Create HAS_JOB relationships
-		hasJobParams := map[string]any{
-			"rels": hasJobRels,
-		}
-
-		if err := graph.
-			WithUnwind("$rels", "rel").
-			WithMatch("(j:Job {id: rel.jobId})").
-			WithMatch("(s:SOP {id: rel.sopId})").
-			WithMerge("(s)-[:HAS_JOB]->(j)").
-			WithParams(hasJobParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_JOB relationships: %w", err)
-		}
-	}
-
-	// 🔹 Step 4: Recreate HAS_REFERENCE relationships
-	hasSopRefs := make([]map[string]any, 0)
-	hasSpkRefs := make([]map[string]any, 0)
-	parentSopIDs := make([]int64, 0)
-	parentSpkIDs := make([]int64, 0)
-
-	for _, job := range data {
-		if job.ReferenceID != nil && job.Type != nil {
-			if *job.Type == "sop" {
-				hasSopRefs = append(hasSopRefs, map[string]any{
-					"jobId": job.ID,
-					"refId": *job.ReferenceID,
-				})
-				parentSopIDs = append(parentSopIDs, *job.ReferenceID)
-			} else if *job.Type == "spk" {
-				hasSpkRefs = append(hasSpkRefs, map[string]any{
-					"jobId": job.ID,
-					"refId": *job.ReferenceID,
-				})
-				parentSpkIDs = append(parentSpkIDs, *job.ReferenceID)
-			}
-		}
-	}
-
-	// Handle SOP references
-	if len(hasSopRefs) > 0 {
-		var parentSops []models.Sop
-		if err := s.GetDB().Select("id, name").Where("id IN ?", parentSopIDs).Find(&parentSops).Error; err != nil {
-			return fmt.Errorf("failed to load parent SOP names: %w", err)
-		}
-
-		parentSopMap := make(map[int64]string)
-		for _, sop := range parentSops {
-			parentSopMap[sop.ID] = sop.Name
-		}
-
-		// Merge parent SOP nodes
-		parentSopNodes := make([]map[string]any, 0, len(parentSopMap))
-		for sopID, sopName := range parentSopMap {
-			parentSopNodes = append(parentSopNodes, map[string]any{
-				"sopId":   sopID,
-				"sopName": sopName,
-			})
-		}
-
-		parentSopParams := map[string]any{
-			"sops": parentSopNodes,
-		}
-
-		if err := graph.
-			WithUnwind("$sops", "sop").
-			WithMerge("(s:SOP {id: sop.sopId})").
-			WithSet("s.name = sop.sopName", nil).
-			WithParams(parentSopParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to merge parent SOP nodes: %w", err)
-		}
-
-		// Create HAS_REFERENCE to SOP
-		sopRefParams := map[string]any{
-			"rels": hasSopRefs,
-		}
-
-		if err := graph.
-			WithUnwind("$rels", "rel").
-			WithMatch("(j:Job {id: rel.jobId})").
-			WithMatch("(s:SOP {id: rel.refId})").
-			WithMerge("(j)-[:HAS_REFERENCE]->(s)").
-			WithParams(sopRefParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE to SOP: %w", err)
-		}
-	}
-
-	// Handle SPK references
-	if len(hasSpkRefs) > 0 {
-		spkRefParams := map[string]any{
-			"rels": hasSpkRefs,
-		}
-
-		if err := graph.
-			WithUnwind("$rels", "rel").
-			WithMatch("(j:Job {id: rel.jobId})").
-			WithMatch("(spk:SPK {id: rel.refId})").
-			WithMerge("(j)-[:HAS_REFERENCE]->(spk)").
-			WithParams(spkRefParams).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE to SPK: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (s *sopJobService) bulkDeleteGraphSopJobs(ids []int64) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	graph := builder.NewGraphRepository()
-	params := map[string]any{
-		"jobIds":    ids,
-		"deletedAt": time.Now().Unix(),
-	}
-	if err := graph.
-		WithMatch("(j:Job)").
-		WithWhere("j.id IN $jobIds", nil).
+		WithMatch("(j:Job {id: $jobId})").
 		WithCall(`
 			apoc.path.expandConfig(j, {
 				relationshipFilter: ">",
@@ -920,14 +501,34 @@ func (s *sopJobService) bulkDeleteGraphSopJobs(ids []int64) error {
 			})
 		`).
 		WithYield("path").
-		WithWith("collect(DISTINCT path) AS paths").
+		WithWith("j, collect(DISTINCT path) AS paths").
 		WithUnwind("paths", "p").
 		WithUnwind("nodes(p)", "n").
 		WithWith("DISTINCT n").
-		WithSet("n.deleted_at = $deletedAt", nil).
+		WithSet("n.deleted_at = NULL", nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete Job nodes: %w", err)
+		return fmt.Errorf("failed to remove deleted_at from Job graph with id %d: %w", sopJobID, err)
 	}
 	return nil
+}
+
+func GetSOPJobGraphs() (any, error) {
+	graph := builder.NewGraphRepository()
+
+	result, err := graph.
+		WithMatch("(j:Job)").
+		WithWhere("j.deleted_at IS NULL", nil).
+		WithOptionalMatch("(s:SOP)-[:HAS_JOB]->(j)").
+		WithWhere("s.deleted_at IS NULL", nil).
+		WithWith("j, collect(apoc.map.removeKey(apoc.convert.toMap(s), 'deleted_at')) AS sops").
+		WithWith("apoc.map.removeKey(apoc.convert.toMap(j), 'deleted_at') AS jMap").
+		WithWith("apoc.map.setKey(jMap, 'has_sop', sops) AS job").
+		WithReturn("job").
+		RunWriteWithReturn()
+	if err != nil {
+		return nil, err
+	}
+
+	return helper.Neo4jFormatter(result), nil
 }

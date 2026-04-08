@@ -38,12 +38,16 @@ type UpdateSopJobDto struct {
 
 // SopJobFilterDto is used to filter SopJob queries.
 type SopJobFilterDto struct {
-	Preload bool
-	Type    *string `json:"type"`     // filter by type if needed
-	SopID   int64   `json:"sop_id"`   // filter by sop_id
-	TitleID int64   `json:"title_id"` // filter by title
-	Page    int64   `json:"page"`     // pagination page
-	Limit   int64   `json:"limit"`    // pagination limit
+	Preload     bool
+	Type        *string `json:"type"`         // filter by type if needed
+	SopID       int64   `json:"sop_id"`       // filter by sop_id
+	TitleID     int64   `json:"title_id"`     // filter by title
+	Page        int64   `json:"page"`         // pagination page
+	Limit       int64   `json:"limit"`        // pagination limit
+	Name        string  `json:"name"`         // filter by name
+	ShowDeleted bool    `json:"show_deleted"` // show deleted records
+	Sort        string  `json:"sort"`         // sort field
+	Order       string  `json:"order"`        // sort order
 }
 
 // SopJobResponseDto represents a detailed view of SopJob with related data.

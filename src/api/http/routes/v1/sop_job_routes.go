@@ -16,10 +16,24 @@ func SopJobRoutes(router fiber.Router, c *container.AppContainer) {
 	app.Post("/bulk-create", controllers.BulkCreateSopJobs(c))
 	app.Put("/bulk-update", controllers.BulkUpdateSopJobs(c))
 	app.Delete("/bulk-delete", controllers.BulkDeleteSopJobs(c))
-	app.Get("/:id", controllers.GetSopJobByID(c))
+
+	app.Get("/graph/", controllers.GetGraphSopJobs(c))
+	app.Get("/graph/:id", controllers.GetGraphSopJobByID(c))
+	app.Post("/graph/", controllers.CreateGraphSopJobs(c))
+	app.Put("/graph/:id", controllers.UpdateGraphSopJobs(c))
+	app.Delete("/graph/:id", controllers.DeleteGraphSopJobs(c))
+
+	app.Get("/sql/", controllers.GetSopJobs(c))
+	app.Get("/sql/:id", controllers.GetSopJobByID(c))
+	app.Post("/sql/", controllers.CreateSqlSopJobs(c))
+	app.Put("/sql/:id", controllers.UpdateSqlSopJobs(c))
+	app.Delete("/sql/:id", controllers.DeleteSqlSopJobs(c))
+
 	app.Get("/", controllers.GetSopJobs(c))
 	app.Post("/", controllers.CreateSopJobs(c))
-	app.Put("/:id/reorder", controllers.ReorderSopJob(c))
+
+	app.Get("/:id", controllers.GetSopJobByID(c))
 	app.Put("/:id", controllers.UpdateSopJobs(c))
+	app.Put("/:id/reorder", controllers.ReorderSopJob(c))
 	app.Delete("/:id", controllers.DeleteSopJobs(c))
 }
