@@ -41,6 +41,8 @@ type SopFilterDto struct {
 	Name        string
 	Restore     bool
 	ExcludeID   int64
+	Sort        string
+	Order       string
 }
 
 type BulkCreateSopsDto struct {

@@ -8,6 +8,7 @@ import (
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/repository/sql"
 	"jk-api/internal/shared/helper"
 	"jk-api/pkg/errors/gorm_err"
@@ -30,21 +31,33 @@ type SopService interface {
 	BulkUpdateSops(ids []int64, updates map[string]interface{}) error
 	BulkDeleteSops(ids []int64, isPermanent bool) error
 	CountSops(filter dto.SopFilterDto) (int64, error)
+
+	GetAllGraphSops(filter dto.SopFilterDto) ([]*graphdb.SopNode, error)
+	GetGraphSopByID(id int64) (*graphdb.SopNode, error)
+	InsertGraphSop(data *graphdb.SopNode) error
+	UpdateGraphSop(data *graphdb.SopNode) error
+	DeleteGraphSop(sopId int64) error
+	BulkInsertGraphSops(data []*graphdb.SopNode) error
+	BulkUpdateGraphSops(data []*graphdb.SopNode) error
+	BulkDeleteGraphSops(ids []int64) error
+	CountGraphSops(filter dto.SopFilterDto) (int64, error)
 }
 
 type sopService struct {
-	repo sql.SopRepository
-	tx   *gorm.DB
+	repo      sql.SopRepository
+	graphRepo graphdb.SopRepository
+	tx        *gorm.DB
 }
 
-func NewSopService(repo sql.SopRepository) SopService {
-	return &sopService{repo: repo}
+func NewSopService(repo sql.SopRepository, graphRepo graphdb.SopRepository) SopService {
+	return &sopService{repo: repo, graphRepo: graphRepo}
 }
 
 func (s *sopService) WithTx(tx *gorm.DB) SopService {
 	return &sopService{
-		repo: s.repo.WithTx(tx),
-		tx:   tx,
+		repo:      s.repo.WithTx(tx),
+		graphRepo: s.graphRepo,
+		tx:        tx,
 	}
 }
 
@@ -64,7 +77,7 @@ func (s *sopService) CreateSop(input *models.Sop) (*models.Sop, error) {
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	if err := s.insertGraphSop(data); err != nil {
+	if err := s.InsertGraphSop(toSopNode(data)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 	return data, nil
@@ -87,7 +100,7 @@ func (s *sopService) UpdateSop(id int64, updates map[string]interface{}, associa
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	if err := s.updateGraphSop(data); err != nil {
+	if err := s.UpdateGraphSop(toSopNode(data)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 	return data, nil
@@ -114,33 +127,12 @@ func (s *sopService) DeleteSop(id int64, isPermanent bool) (err error) {
 		return gorm_err.TranslateGormError(err)
 	}
 
-	if err := s.deleteGraphSop(id); err != nil {
+	if err := s.DeleteGraphSop(id); err != nil {
 		return fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
 	err = repo.RemoveSop(id)
 	return gorm_err.TranslateGormError(err)
-}
-
-func GetSOPGraphs() (any, error) {
-	graph := builder.NewGraphRepository()
-
-	// for i, record := range payload {
-	result, err := graph.
-		WithMatch("(s:SOP)").
-		WithWhere("s.deleted_at IS NULL", nil).
-		WithOptionalMatch("(s)-[:HAS_JOB]->(j:Job)").
-		WithWhere("j.deleted_at IS NULL", nil).
-		WithWith("s, collect(apoc.map.removeKey(apoc.convert.toMap(j), 'deleted_at')) AS jobs").
-		WithWith("apoc.map.removeKey(apoc.convert.toMap(s), 'deleted_at') AS sMap").
-		WithWith("apoc.map.setKey(sMap, 'has_job', jobs) AS sop").
-		WithReturn("sop").
-		RunWriteWithReturn()
-	if err != nil {
-		return nil, err
-	}
-
-	return helper.Neo4jFormatter(result), nil
 }
 
 func (s *sopService) GetAllSops(filter dto.SopFilterDto) ([]models.Sop, error) {
@@ -202,18 +194,14 @@ func (s *sopService) BulkCreateSops(data []*models.Sop) ([]*models.Sop, error) {
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
 	}
-	for _, singleData := range data {
-		if err := s.insertGraphSop(singleData); err != nil {
-			return nil, fmt.Errorf("neo4j sync failed: %w", err)
-		}
+	if err := s.BulkInsertGraphSops(toSopNodeSlice(datas)); err != nil {
+		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 	return datas, nil
 }
 
 func (s *sopService) BulkUpdateSops(ids []int64, updates map[string]interface{}) error {
 	repo := s.repo
-
-	var name string
 
 	if _, ok := updates["deleted_at"]; ok {
 		repo = repo.WithUnscoped()
@@ -226,7 +214,6 @@ func (s *sopService) BulkUpdateSops(ids []int64, updates map[string]interface{})
 		case *time.Time:
 			shouldRestore = (v == nil)
 		case time.Time:
-			// biasanya time.Time zero berarti restore
 			shouldRestore = v.IsZero()
 		default:
 			shouldRestore = false
@@ -236,45 +223,21 @@ func (s *sopService) BulkUpdateSops(ids []int64, updates map[string]interface{})
 			if err := s.sopRestore(ids); err != nil {
 				return err
 			}
-			// Skip graph update karena sudah di-handle di sopRestore
 			err := repo.UpdateManySops(ids, updates)
 			return gorm_err.TranslateGormError(err)
 		}
 	}
 
-	// filepath: [sop_service.go](http://_vscodecontentref_/1)
-	for _, id := range ids {
-		if v, ok := updates["name"].(string); ok {
-			name = v
-		}
-
-		var description string
-		if v, ok := updates["description"].(string); ok {
-			description = v
-		}
-
-		var code string
-		if v, ok := updates["code"].(string); ok {
-			code = v
-		}
-
-		var parentJobID *int64
-		if v, ok := updates["parent_job_id"].(*int64); ok {
-			parentJobID = v
-		}
-
-		sop := models.Sop{
-			ID:          id,
-			Name:        name,
-			Description: &description,
-			Code:        code,
-			ParentJobID: parentJobID,
-		}
-		if err := s.updateGraphSop(&sop); err != nil {
-			return fmt.Errorf("neo4j sync failed: %w", err)
-		}
+	updatedSops, err := s.repo.FindSopsByIDs(ids)
+	if err != nil {
+		return gorm_err.TranslateGormError(err)
 	}
-	err := repo.UpdateManySops(ids, updates)
+
+	if err := s.BulkUpdateGraphSops(toSopNodeSlice(updatedSops)); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
+	}
+
+	err = repo.UpdateManySops(ids, updates)
 	return gorm_err.TranslateGormError(err)
 }
 
@@ -295,27 +258,10 @@ func (s *sopService) BulkDeleteSops(ids []int64, isPermanent bool) (err error) {
 		return gorm_err.TranslateGormError(err)
 	}
 
-	// Fetch data before soft delete (similar to single delete)
-	var sops []models.Sop
-	if err := s.GetDB().Where("id IN ? AND deleted_at IS NULL", ids).Find(&sops).Error; err != nil {
-		return gorm_err.TranslateGormError(err)
+	if err := s.BulkDeleteGraphSops(ids); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
-	// Update names and delete from graph before soft delete
-	for _, sop := range sops {
-		payload := map[string]any{
-			"name": fmt.Sprintf("DELETED-%s", sop.Name),
-		}
-		if _, err = s.UpdateSop(sop.ID, payload, nil); err != nil {
-			return gorm_err.TranslateGormError(err)
-		}
-
-		if err := s.deleteGraphSop(sop.ID); err != nil {
-			return fmt.Errorf("neo4j sync failed: %w", err)
-		}
-	}
-
-	// Now perform soft delete
 	err = repo.RemoveManySops(ids)
 	return gorm_err.TranslateGormError(err)
 }
@@ -335,169 +281,100 @@ func (s *sopService) CountSops(filter dto.SopFilterDto) (int64, error) {
 	return data, nil
 }
 
-func (s *sopService) insertGraphSop(data *models.Sop) error {
-	graph := builder.NewGraphRepository()
-
-	params := map[string]any{
-		"name":        data.Name,
-		"code":        data.Code,
-		"description": helper.ToJSONString(data.Description),
-		"id":          data.ID,
-		"parentJobId": data.ParentJobID,
-		"createdAt":   data.CreatedAt.Format(time.RFC3339Nano),
-		"updatedAt":   data.UpdatedAt.Format(time.RFC3339Nano),
-	}
-
-	if err := graph.
-		WithMerge("(s:SOP {id: $id, name: $name, code: $code, description: $description, id: $id})").
-		WithSet("s.created_at = datetime($createdAt), s.updated_at = datetime($updatedAt)", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to merge SOP node: %w", err)
-	}
-
-	if data.ParentJobID != nil {
-		if err := graph.
-			WithMatch("(s:SOP), (j:Job)").
-			WithWhere("j.id = $parentJobId AND s.id = $id", nil).
-			WithRelate("s", "HAS_JOB", "j", nil).
-			WithParams(params).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create relationship: %w", err)
-		}
-	}
-
-	if len(data.HasDivisions) > 0 {
-		// 1. Kumpulkan semua ID divisi ke dalam satu slice
-		divisionIDs := make([]int64, 0, len(data.HasDivisions))
-		for _, division := range data.HasDivisions {
-			divisionIDs = append(divisionIDs, division.ID)
-		}
-
-		// 2. Siapkan parameter untuk batch query
-		params := map[string]any{
-			"sopId":       data.ID,
-			"divisionIds": divisionIDs,
-		}
-
-		// 3. Eksekusi SATU kali query menggunakan UNWIND
-		if err := graph.
-			WithMatch("(s:SOP {id: $sopId})").
-			WithUnwind("$divisionIds", "divId").
-			WithMatch("(d:Division {id: divId})").
-			WithMerge("(s)-[:HAS_DIVISION]->(d)"). // Hapus alias 'r' jika tidak digunakan untuk SET properti relasi
-			WithParams(params).
-			RunWrite(); err != nil {
-			// Pesan error diperbaiki agar lebih akurat (relationship, bukan node)
-			return fmt.Errorf("failed to create HAS_DIVISION relationships for SOP %d: %w", data.ID, err)
-		}
-	}
-
-	return nil
+func (s *sopService) GetAllGraphSops(filter dto.SopFilterDto) ([]*graphdb.SopNode, error) {
+	return s.graphRepo.GetAllGraphSops(filter)
 }
 
-func (s *sopService) updateGraphSop(data *models.Sop) error {
-    // ==========================================
-    // 1. UPDATE NODE PROPERTIES
-    // ==========================================
-    graph := builder.NewGraphRepository()
-
-    params := map[string]any{
-        "name":        data.Name,
-        "code":        data.Code,
-        "description": helper.ToJSONString(data.Description),
-        "id":          data.ID,
-        "parentJobId": data.ParentJobID,
-    }
-
-    if err := graph.
-        WithMatch("(s:SOP {id: $id})").
-        WithSet("s.name = $name, s.code = $code, s.description = $description, s.parent_job_id = $parentJobId", nil).
-        WithParams(params).
-        RunWrite(); err != nil {
-        return fmt.Errorf("failed to update SOP graph properties with id %d: %w", data.ID, err)
-    }
-
-    // ==========================================
-    // 2. BONGKAR PASANG RELASI (SYNC ASSOCIATIONS)
-    // ==========================================
-    // Hanya lakukan sinkronisasi jika data.HasDivisions dikirim (tidak nil)
-    if data.HasDivisions != nil {
-        
-        // --- A. BONGKAR (Hapus Relasi Lama) ---
-        deleteGraph := builder.NewGraphRepository()
-        if err := deleteGraph.
-            WithMatch("(s:SOP {id: $sopId})-[r:HAS_DIVISION]->()").
-            WithDelete("r").
-            WithParams(map[string]any{"sopId": data.ID}).
-            RunWrite(); err != nil {
-            return fmt.Errorf("failed to delete old HAS_DIVISION relationships for SOP %d: %w", data.ID, err)
-        }
-
-        // --- B. PASANG (Buat Relasi Baru Jika Ada) ---
-        if len(data.HasDivisions) > 0 {
-            insertGraph := builder.NewGraphRepository()
-
-            // Kumpulkan ID divisi
-            divisionIDs := make([]int64, 0, len(data.HasDivisions))
-            for _, div := range data.HasDivisions {
-                divisionIDs = append(divisionIDs, div.ID)
-            }
-
-            // Eksekusi pembuatan relasi menggunakan UNWIND agar cepat
-            if err := insertGraph.
-                WithMatch("(s:SOP {id: $sopId})").
-                WithUnwind("$divisionIds", "divId").
-                WithMatch("(d:Division {id: divId})").
-                WithMerge("(s)-[:HAS_DIVISION]->(d)").
-                WithParams(map[string]any{
-                    "sopId":       data.ID,
-                    "divisionIds": divisionIDs,
-                }).
-                RunWrite(); err != nil {
-                return fmt.Errorf("failed to recreate HAS_DIVISION relationships for SOP %d: %w", data.ID, err)
-            }
-        }
-    }
-
-    return nil
+func (s *sopService) GetGraphSopByID(id int64) (*graphdb.SopNode, error) {
+	return s.graphRepo.GetGraphSopByID(id)
 }
 
-func (s *sopService) deleteGraphSop(id int64) error {
-	graph := builder.NewGraphRepository()
+func (s *sopService) InsertGraphSop(data *graphdb.SopNode) error {
+	return s.graphRepo.InsertGraphSop(data)
+}
 
-	params := map[string]interface{}{
-		"docId":     id,
-		// Kita kembalikan ke RFC3339Nano agar format string konsisten dengan insert/update di node lain
-		"deletedAt": time.Now().Format(time.RFC3339Nano), 
+func (s *sopService) UpdateGraphSop(data *graphdb.SopNode) error {
+	return s.graphRepo.UpdateGraphSop(data)
+}
+
+func (s *sopService) DeleteGraphSop(sopId int64) error {
+	return s.graphRepo.DeleteGraphSop(sopId)
+}
+
+func (s *sopService) BulkInsertGraphSops(data []*graphdb.SopNode) error {
+	return s.graphRepo.BulkInsertGraphSops(data)
+}
+
+func (s *sopService) BulkUpdateGraphSops(data []*graphdb.SopNode) error {
+	return s.graphRepo.BulkUpdateGraphSops(data)
+}
+
+func (s *sopService) BulkDeleteGraphSops(ids []int64) error {
+	return s.graphRepo.BulkDeleteGraphSops(ids)
+}
+
+func (s *sopService) CountGraphSops(filter dto.SopFilterDto) (int64, error) {
+	return s.graphRepo.CountGraphSops(filter)
+}
+
+func toSopNode(m *models.Sop) *graphdb.SopNode {
+	return &graphdb.SopNode{
+		ID:          m.ID,
+		Name:        m.Name,
+		Code:        m.Code,
+		Description: helper.ToJSONString(m.Description),
+		ParentJobID: m.ParentJobID,
+		CreatedAt:   m.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339Nano),
+	}
+}
+
+func toSopNodeSlice(m []*models.Sop) []*graphdb.SopNode {
+	result := make([]*graphdb.SopNode, 0, len(m))
+	for _, sop := range m {
+		result = append(result, toSopNode(sop))
+	}
+	return result
+}
+
+func (s *sopService) sopRestore(ids []int64) error {
+	var sops []models.Sop
+	if err := s.GetDB().Unscoped().Preload("HasJobs").Preload("HasDivisions").Where("id IN ? AND deleted_at IS NOT NULL", ids).Find(&sops).Error; err != nil {
+		return err
 	}
 
-	if err := graph.
-		WithMatch("(s:SOP {id: $docId})").
-		// 1. Tangkap dan hapus relasi ke Division (Hard delete untuk relasinya saja)
-		WithOptionalMatch("(s)-[r:HAS_DIVISION]->(:Division)").
-		WithDelete("r").
-		// Gunakan DISTINCT agar s tidak terduplikasi jika relasi HAS_DIVISION ada banyak
-		WithWith("DISTINCT s").
-		// 2. Lakukan APOC traversal untuk child nodes (Job, Step, dll), TAPI abaikan node Division
-		WithCall(`
-			apoc.path.expandConfig(s, {
-				relationshipFilter: ">",
-				labelFilter: "-Division", // <-- Kunci Utama: Node Division kebal dari traversal ini
-				minLevel: 0,
-				maxLevel: -1
-			})
-		`).
-		WithYield("path").
-		// Unwind langsung dari nodes(path) lebih efisien dari collect()
-		WithUnwind("nodes(path)", "n").
-		WithWith("DISTINCT n").
-		WithSet("n.deleted_at = $deletedAt", nil).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to soft delete SOP graph with id %d: %w", id, err)
-	}
+	for _, sop := range sops {
+		sop.Name = strings.TrimPrefix(sop.Name, "DELETED-")
+		var divisionID int64
+		if len(sop.HasDivisions) > 0 {
+			divisionID = sop.HasDivisions[0].ID
+		}
+		newCode := sop.GenerateSopCode(s.GetDB(), divisionID, sop.ID)
+		if newCode != "" {
+			if err := s.GetDB().Unscoped().Model(&sop).Where("id = ?", sop.ID).Update("code", newCode).Update("name", sop.Name).Error; err != nil {
+				return err
+			}
+			sop.Code = newCode
+		}
 
+		var updatedSop models.Sop
+		if err := s.GetDB().Unscoped().Preload("HasJobs").Where("id = ?", sop.ID).First(&updatedSop).Error; err != nil {
+			return err
+		}
+
+		if updatedSop.CreatedAt.IsZero() {
+			updatedSop.CreatedAt = time.Now()
+		}
+		updatedSop.UpdatedAt = time.Now()
+
+		if err := s.removeDeletedAtFromGraph(updatedSop.ID); err != nil {
+			return fmt.Errorf("failed to remove deleted_at from graph: %w", err)
+		}
+
+		if err := s.insertGraphSopWithJobs(&updatedSop); err != nil {
+			return fmt.Errorf("failed to restore SOP graph: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -514,7 +391,6 @@ func (s *sopService) insertGraphSopWithJobs(data *models.Sop) error {
 		"updatedAt":   data.UpdatedAt.Format(time.RFC3339Nano),
 	}
 
-	// Create SOP node
 	if err := graph.
 		WithMerge("(s:SOP {id: $id})").
 		WithSet("s.name = $name, s.code = $code, s.description = $description, s.created_at = datetime($createdAt), s.updated_at = datetime($updatedAt)", nil).
@@ -523,7 +399,6 @@ func (s *sopService) insertGraphSopWithJobs(data *models.Sop) error {
 		return fmt.Errorf("failed to merge SOP node: %w", err)
 	}
 
-	// Create Job nodes and relationships
 	if len(data.HasJobs) > 0 {
 		fmt.Printf("Creating relationships for %d jobs\n", len(data.HasJobs))
 		for _, job := range data.HasJobs {
@@ -540,7 +415,6 @@ func (s *sopService) insertGraphSopWithJobs(data *models.Sop) error {
 				"jobIndex":   job.Index,
 			}
 
-			// Create Job node first, then create relationship
 			if err := graph.
 				WithMerge("(j:Job {id: $jobId})").
 				WithSet("j.name = $jobName, j.index = $jobIndex, j.code = $jobCode, j.description = $jobDesc, j.created_at = datetime($jobCreated), j.updated_at = datetime($jobUpdated)", nil).
@@ -557,51 +431,6 @@ func (s *sopService) insertGraphSopWithJobs(data *models.Sop) error {
 		fmt.Println("No jobs found to create relationships")
 	}
 
-	return nil
-}
-
-func (s *sopService) sopRestore(ids []int64) error {
-	var sops []models.Sop
-	if err := s.GetDB().Unscoped().Preload("HasJobs").Preload("HasDivisions").Where("id IN ? AND deleted_at IS NOT NULL", ids).Find(&sops).Error; err != nil {
-		return err
-	}
-
-	for _, sop := range sops {
-		sop.Name = strings.TrimPrefix(sop.Name, "DELETED-")
-		// Get first division ID for code generation (if any)
-		var divisionID int64
-		if len(sop.HasDivisions) > 0 {
-			divisionID = sop.HasDivisions[0].ID
-		}
-		newCode := sop.GenerateSopCode(s.GetDB(), divisionID, sop.ID)
-		if newCode != "" {
-			if err := s.GetDB().Unscoped().Model(&sop).Where("id = ?", sop.ID).Update("code", newCode).Update("name", sop.Name).Error; err != nil {
-				return err
-			}
-			sop.Code = newCode
-		}
-
-		// Fetch complete SOP data after update
-		var updatedSop models.Sop
-		if err := s.GetDB().Unscoped().Preload("HasJobs").Where("id = ?", sop.ID).First(&updatedSop).Error; err != nil {
-			return err
-		}
-
-		if updatedSop.CreatedAt.IsZero() {
-			updatedSop.CreatedAt = time.Now()
-		}
-		updatedSop.UpdatedAt = time.Now()
-
-		// Remove deleted_at property from SOP and related Jobs in graph
-		if err := s.removeDeletedAtFromGraph(updatedSop.ID); err != nil {
-			return fmt.Errorf("failed to remove deleted_at from graph: %w", err)
-		}
-
-		// Recreate SOP in graph database with complete data
-		if err := s.insertGraphSopWithJobs(&updatedSop); err != nil {
-			return fmt.Errorf("failed to restore SOP graph: %w", err)
-		}
-	}
 	return nil
 }
 
@@ -631,4 +460,24 @@ func (s *sopService) removeDeletedAtFromGraph(sopID int64) error {
 		return fmt.Errorf("failed to remove deleted_at from SOP graph with id %d: %w", sopID, err)
 	}
 	return nil
+}
+
+func GetSOPGraphs() (any, error) {
+	graph := builder.NewGraphRepository()
+
+	result, err := graph.
+		WithMatch("(s:SOP)").
+		WithWhere("s.deleted_at IS NULL", nil).
+		WithOptionalMatch("(s)-[:HAS_JOB]->(j:Job)").
+		WithWhere("j.deleted_at IS NULL", nil).
+		WithWith("s, collect(apoc.map.removeKey(apoc.convert.toMap(j), 'deleted_at')) AS jobs").
+		WithWith("apoc.map.removeKey(apoc.convert.toMap(s), 'deleted_at') AS sMap").
+		WithWith("apoc.map.setKey(sMap, 'has_job', jobs) AS sop").
+		WithReturn("sop").
+		RunWriteWithReturn()
+	if err != nil {
+		return nil, err
+	}
+
+	return helper.Neo4jFormatter(result), nil
 }

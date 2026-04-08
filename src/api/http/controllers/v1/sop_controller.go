@@ -65,6 +65,39 @@ func GetSops(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func GetGraphSops(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		titleId, _ := helper.ParseQueryInt64(c, "title_id")
+		divisionId, _ := helper.ParseQueryInt64(c, "division_id")
+		divisionIds, _ := helper.ParseQueryInt64Array(c, "division_ids")
+		cursor, _ := helper.ParseQueryInt64(c, "cursor")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
+		excludeId, _ := helper.ParseQueryInt64(c, "exclude_id")
+		code := c.Query("code")
+		name := c.Query("name")
+		deleted := c.Query("show_deleted", "false") == "true"
+
+		filter := dto.SopFilterDto{
+			TitleID:     titleId,
+			DivisionID:  divisionId,
+			DivisionIDs: divisionIds,
+			Preload:     c.Query("preload", "false") == "true",
+			Cursor:      cursor,
+			ShowDeleted: deleted,
+			Limit:       limit,
+			Code:        &code,
+			Name:        name,
+			ExcludeID:   excludeId,
+		}
+
+		data, total, err := cn.SopHandler.GetAllSopsGraphHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
 // GetSopByID godoc
 //
 //	@Summary		Get SOP by ID
@@ -91,6 +124,21 @@ func GetSopByID(cn *container.AppContainer) fiber.Handler {
 		}
 
 		data, err := cn.SopHandler.GetSopByIDHandler(id, filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
+func GetGraphSopByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.SopHandler.GetSopByIdGraphHandler(id)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -154,6 +202,36 @@ func CreateSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+func CreateSqlSop(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateSopDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.SopHandler.CreateSopSqlHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func CreateGraphSop(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.CreateSopDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+		}
+
+		result, err := cn.SopHandler.CreateSopGraphHandler(&input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
 // UpdateSop godoc
 //
 //	@Summary		Update an existing SOP
@@ -172,7 +250,7 @@ func UpdateSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.UpdateSopDto
 		if err := c.BodyParser(&input); err != nil {
-			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid request")
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
 		}
 
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -181,6 +259,46 @@ func UpdateSop(cn *container.AppContainer) fiber.Handler {
 		}
 
 		result, err := cn.SopHandler.UpdateSopHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func UpdateSqlSop(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.UpdateSopDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		result, err := cn.SopHandler.UpdateSopSqlHandler(id, &input)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, result)
+	}
+}
+
+func UpdateGraphSop(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var input dto.UpdateSopDto
+		if err := c.BodyParser(&input); err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
+		}
+
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		result, err := cn.SopHandler.UpdateSopGraphHandler(id, &input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -215,6 +333,37 @@ func DeleteSop(cn *container.AppContainer) fiber.Handler {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
 		return presenters.SendSuccessResponse(c, nil)
+	}
+}
+
+func DeleteSqlSop(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		isPermanent := c.Query("isPermanent", "false") == "true"
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		err = cn.SopHandler.DeleteSopSqlHandler(id, isPermanent)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, nil)
+	}
+}
+
+func DeleteGraphSop(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		err = cn.SopHandler.DeleteSopGraphHandler(id)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponseWithMessage(c, "SOP deleted successfully from graph", nil)
 	}
 }
 
