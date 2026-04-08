@@ -24,220 +24,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/activity-logs": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of activity logs with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "activity-logs"
-                ],
-                "summary": "Get all activity logs",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Table reference filter",
-                        "name": "table_ref",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Table reference ID filter",
-                        "name": "table_ref_id",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new activity log entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "activity-logs"
-                ],
-                "summary": "Create a new activity log",
-                "parameters": [
-                    {
-                        "description": "Activity log data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateActivityLogDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/activity-logs/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific activity log by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "activity-logs"
-                ],
-                "summary": "Get activity log by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Activity Log ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Table reference filter",
-                        "name": "table_ref",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete activity log by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "activity-logs"
-                ],
-                "summary": "Delete an activity log",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Activity Log ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/login": {
             "post": {
                 "description": "Authenticate user and return token",
@@ -288,7 +74,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get current user profile",
@@ -324,1852 +110,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/backlogs": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of backlogs with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Get all backlogs",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Squad ID filter",
-                        "name": "squad_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Epic ID filter",
-                        "name": "epic_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Limit for pagination",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "PIC filter",
-                        "name": "pic",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Show deleted backlogs",
-                        "name": "show_deleted",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new backlog entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Create a new backlog",
-                "parameters": [
-                    {
-                        "description": "Backlog data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateBacklogDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/backlogs/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple backlogs at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Bulk create backlogs",
-                "parameters": [
-                    {
-                        "description": "Bulk backlog data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateBacklogDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/backlogs/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple backlogs at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Bulk delete backlogs",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteBacklogDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/backlogs/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple backlogs at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Bulk update backlogs",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateBacklogDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/backlogs/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific backlog by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Get backlog by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Backlog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update backlog by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Update an existing backlog",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Backlog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated backlog data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateBacklogDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete backlog by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "backlogs"
-                ],
-                "summary": "Delete a backlog",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Backlog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/cms-articles": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of CMS articles with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "cms-articles"
-                ],
-                "summary": "Get all CMS articles",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "User ID filter",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new CMS article entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "cms-articles"
-                ],
-                "summary": "Create a new CMS article",
-                "parameters": [
-                    {
-                        "description": "CMS article data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateCmsArticleDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/cms-articles/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update CMS article by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "cms-articles"
-                ],
-                "summary": "Update an existing CMS article",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "CMS article ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated CMS article data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateCmsArticleDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete CMS article by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "cms-articles"
-                ],
-                "summary": "Delete a CMS article",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "CMS article ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/cms-articles/{slug}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific CMS article by its slug",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "cms-articles"
-                ],
-                "summary": "Get CMS article by slug",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Article slug",
-                        "name": "slug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/comments": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of comments with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "comments"
-                ],
-                "summary": "Get all comments",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Table reference filter",
-                        "name": "table_ref",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Table reference ID filter",
-                        "name": "table_ref_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new comment entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "comments"
-                ],
-                "summary": "Create a new comment",
-                "parameters": [
-                    {
-                        "description": "Comment data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateCommentDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/comments/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific comment by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "comments"
-                ],
-                "summary": "Get comment by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Comment ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update comment by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "comments"
-                ],
-                "summary": "Update an existing comment",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Comment ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated comment data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateCommentDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete comment by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "comments"
-                ],
-                "summary": "Delete a comment",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Comment ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer-services": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of customer services with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Get all customer services",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new customer service entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Create a new customer service",
-                "parameters": [
-                    {
-                        "description": "Customer Service data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateCustomerServiceDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer-services/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple customer services at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Bulk create customer services",
-                "parameters": [
-                    {
-                        "description": "Bulk customer service data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateCustomerServiceDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer-services/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple customer services at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Bulk delete customer services",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteCustomerServiceDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer-services/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple customer services at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Bulk update customer services",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateCustomerServiceDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer-services/by-user/{user_id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific customer service by User ID with optional log shifts details",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Get customer service by User ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "User ID",
-                        "name": "user_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations (User, LogShifts with Shift details)",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer-services/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific customer service by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Get customer service by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Customer Service ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update customer service by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Update an existing customer service",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Customer Service ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated customer service data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateCustomerServiceDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete customer service by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customer-services"
-                ],
-                "summary": "Delete a customer service",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Customer Service ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/departments": {
-            "get": {
-                "description": "Get list of departments with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Get all departments",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Sort field",
-                        "name": "sort",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sort order",
-                        "name": "order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Limit for pagination",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Show deleted departments",
-                        "name": "show_deleted",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new department entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Create a new department",
-                "parameters": [
-                    {
-                        "description": "Department data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateDepartmentDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/departments/bulk-create": {
-            "post": {
-                "description": "Create multiple departments at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Bulk create departments",
-                "parameters": [
-                    {
-                        "description": "Bulk department data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateDepartments"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/departments/bulk-delete": {
-            "delete": {
-                "description": "Delete multiple departments at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Bulk delete departments",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteDepartmentDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/departments/bulk-update": {
-            "put": {
-                "description": "Update multiple departments at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Bulk update departments",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateDepartmentDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/departments/{id}": {
-            "get": {
-                "description": "Get a specific department by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Get department by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Department ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update department by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Update an existing department",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Department ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated department data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateDepartmentDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete department by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "departments"
-                ],
-                "summary": "Delete a department",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Department ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/divisions": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get list of divisions with optional filters",
@@ -2261,7 +206,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Create a new division entry",
@@ -2312,7 +257,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Create multiple divisions at once",
@@ -2363,7 +308,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Delete multiple divisions at once",
@@ -2414,7 +359,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Update multiple divisions at once",
@@ -2465,7 +410,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get a specific division by its ID",
@@ -2519,7 +464,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Update division by ID",
@@ -2576,7 +521,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Delete division by ID",
@@ -2622,3023 +567,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/epics": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of epics with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Get all epics",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Product ID filter",
-                        "name": "product_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Limit for pagination",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    },
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "Fields to select (comma separated)",
-                        "name": "fields",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new epic entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Create a new epic",
-                "parameters": [
-                    {
-                        "description": "Epic data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateEpicDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/epics/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple epics at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Bulk create epics",
-                "parameters": [
-                    {
-                        "description": "Bulk epic data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateEpics"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/epics/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple epics at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Bulk delete epics",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteEpicDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/epics/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple epics at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Bulk update epics",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateEpicDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/epics/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific epic by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Get epic by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Epic ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    },
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "Fields to select (comma separated)",
-                        "name": "fields",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update epic by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Update an existing epic",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Epic ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated epic data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateEpicDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete epic by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "epics"
-                ],
-                "summary": "Delete an epic",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Epic ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/files/upload": {
-            "post": {
-                "description": "Upload multiple files to storage",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Upload files",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "File to upload (multiple allowed)",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/files/{name}": {
-            "get": {
-                "description": "Retrieve a file by its name",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/octet-stream"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Get file by name",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "File name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete file by name",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Delete a file",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "File name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/holidays": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of holidays with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Get all holidays",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new holiday entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Create a new holiday",
-                "parameters": [
-                    {
-                        "description": "Holiday data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateHolidayDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/holidays/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple holidays at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Bulk create holidays",
-                "parameters": [
-                    {
-                        "description": "Bulk holiday data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateHolidayDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/holidays/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple holidays at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Bulk delete holidays",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteHolidayDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/holidays/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple holidays at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Bulk update holidays",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateHolidayDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/holidays/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific holiday by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Get holiday by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Holiday ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update holiday by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Update an existing holiday",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Holiday ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated holiday data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateHolidayDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete holiday by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "holidays"
-                ],
-                "summary": "Delete a holiday",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Holiday ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/languages": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of languages with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Get all languages",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new language entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Create a new language",
-                "parameters": [
-                    {
-                        "description": "Language data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLanguageDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/languages/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple languages at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Bulk create languages",
-                "parameters": [
-                    {
-                        "description": "Bulk language data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateLanguageDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/languages/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple languages at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Bulk delete languages",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteLanguageDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/languages/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple languages at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Bulk update languages",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateLanguageDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/languages/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific language by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Get language by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Language ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update language by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Update an existing language",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Language ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated language data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLanguageDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete language by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Delete a language",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Language ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/leaves": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of leaves with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Get all leaves",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new leave entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Create a new leave",
-                "parameters": [
-                    {
-                        "description": "Leave data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLeaveDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/leaves/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple leaves at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Bulk create leaves",
-                "parameters": [
-                    {
-                        "description": "Bulk leave data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateLeaveDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/leaves/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple leaves at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Bulk delete leaves",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteLeaveDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/leaves/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple leaves at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Bulk update leaves",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateLeaveDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/leaves/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific leave by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Get leave by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Leave ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update leave by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Update an existing leave",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Leave ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated leave data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLeaveDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete leave by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaves"
-                ],
-                "summary": "Delete a leave",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Leave ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/levels": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of levels with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Get all levels",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Sort field",
-                        "name": "sort",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sort order",
-                        "name": "order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Limit for pagination",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Show deleted levels",
-                        "name": "show_deleted",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new level entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Create a new level",
-                "parameters": [
-                    {
-                        "description": "Level data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLevelDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/levels/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple levels at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Bulk create levels",
-                "parameters": [
-                    {
-                        "description": "Bulk level data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateLevelDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/levels/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple levels at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Bulk delete levels",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteLevelDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/levels/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple levels at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Bulk update levels",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateLevelDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/levels/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific level by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Get level by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Level ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update level by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Update an existing level",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Level ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated level data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLevelDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete level by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "levels"
-                ],
-                "summary": "Delete a level",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Level ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/log-shifts": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of log shifts with optional filters (reference, date range)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Get all log shifts",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by reference (technical or customer_service)",
-                        "name": "reference",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Filter by user ID",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by start date (YYYY-MM-DD)",
-                        "name": "date_from",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by end date (YYYY-MM-DD)",
-                        "name": "date_to",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new log shift entry with validation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Create a new log shift",
-                "parameters": [
-                    {
-                        "description": "Log Shift data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLogShiftDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/log-shifts/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple log shifts at once with validation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Bulk create log shifts",
-                "parameters": [
-                    {
-                        "description": "Bulk log shift data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateLogShiftDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/log-shifts/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple log shifts at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Bulk delete log shifts",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteLogShiftDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/log-shifts/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple log shifts at once with validation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Bulk update log shifts",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateLogShiftDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/log-shifts/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific log shift by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Get log shift by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Log Shift ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update log shift by ID with validation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Update an existing log shift",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Log Shift ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated log shift data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLogShiftDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete log shift by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "log-shifts"
-                ],
-                "summary": "Delete a log shift",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Log Shift ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/notifications": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of notifications with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Get all notifications",
-                "parameters": [
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "format": "int64"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "User target ID filter",
-                        "name": "user_target_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new notification entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Create a new notification",
-                "parameters": [
-                    {
-                        "description": "Notification data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateNotificationDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/notifications/mark-as-read": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Mark specific notifications as read for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Mark notifications as read",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "User ID",
-                        "name": "user_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "description": "Notification IDs",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "integer",
-                                    "format": "int64"
-                                }
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/notifications/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific notification by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Get notification by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Notification ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update notification by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Update an existing notification",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Notification ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated notification data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateNotificationDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete notification by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Delete a notification",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Notification ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/permissions": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get list of permissions with optional filters",
@@ -5685,7 +618,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Create a new permission entry",
@@ -5736,7 +669,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get a specific permission by its ID",
@@ -5790,7 +723,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Update permission by ID",
@@ -5847,7 +780,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Delete permission by ID",
@@ -5893,1724 +826,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/positions": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of positions with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Get all positions",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Division ID filter",
-                        "name": "division_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "SOP ID filter",
-                        "name": "sop_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sort field",
-                        "name": "sort",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sort order",
-                        "name": "order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Limit for pagination",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Show deleted positions",
-                        "name": "show_deleted",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new position entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Create a new position",
-                "parameters": [
-                    {
-                        "description": "Position data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreatePositionDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/positions/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple positions at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Bulk create positions",
-                "parameters": [
-                    {
-                        "description": "Bulk position data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreatePositionDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/positions/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple positions at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Bulk delete positions",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeletePositionDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/positions/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple positions at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Bulk update positions",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdatePositionDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/positions/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific position by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Get position by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Position ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update position by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Update an existing position",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Position ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated position data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdatePositionDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete position by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "positions"
-                ],
-                "summary": "Delete a position",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Position ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/products": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of products with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Get all products",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Limit for pagination",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Project ID filter",
-                        "name": "projectId",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new product entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Create a new product",
-                "parameters": [
-                    {
-                        "description": "Product data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateProductDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/products/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple products at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Bulk create products",
-                "parameters": [
-                    {
-                        "description": "Bulk product data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateProducts"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/products/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple products at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Bulk delete products",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteProductDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/products/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple products at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Bulk update products",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateProductDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/products/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific product by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Get product by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Product ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update product by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Update an existing product",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Product ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated product data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateProductDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete product by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Delete a product",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Product ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/projects": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of projects with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Get all projects",
-                "parameters": [
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "format": "int64"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "Project IDs filter",
-                        "name": "project_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new project entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Create a new project",
-                "parameters": [
-                    {
-                        "description": "Project data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateProjectDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/projects/bulk-create": {
-            "post": {
-                "description": "Create multiple projects at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Bulk create projects",
-                "parameters": [
-                    {
-                        "description": "Bulk project data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateProjects"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/projects/bulk-delete": {
-            "delete": {
-                "description": "Delete multiple projects at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Bulk delete projects",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteProjectDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/projects/bulk-update": {
-            "put": {
-                "description": "Update multiple projects at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Bulk update projects",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateProjectDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/projects/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific project by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Get project by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Project ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update project by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Update an existing project",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Project ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated project data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateProjectDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete project by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "projects"
-                ],
-                "summary": "Delete a project",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Project ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/retro-items": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of retro items with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Get all retro items",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Sprint ID filter",
-                        "name": "sprint_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Sprint retro ID filter",
-                        "name": "sprint_retro_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new retro item entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Create a new retro item",
-                "parameters": [
-                    {
-                        "description": "Retro item data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateRetroItemDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/retro-items/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple retro items at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Bulk create retro items",
-                "parameters": [
-                    {
-                        "description": "Bulk retro item data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateRetroItemDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/retro-items/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple retro items at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Bulk delete retro items",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteRetroItemDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/retro-items/bulk-update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple retro items at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Bulk update retro items",
-                "parameters": [
-                    {
-                        "description": "Bulk update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateRetroItemDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/retro-items/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific retro item by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Get retro item by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Retro item ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Sprint ID filter",
-                        "name": "sprint_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Sprint retro ID filter",
-                        "name": "sprint_retro_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update retro item by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Update an existing retro item",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Retro item ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated retro item data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateRetroItemDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete retro item by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "retro-items"
-                ],
-                "summary": "Delete a retro item",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Retro item ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/roles": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get list of roles with optional filters",
@@ -7650,7 +870,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Create a new role entry",
@@ -7701,7 +921,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get a specific role by its ID",
@@ -7755,7 +975,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Update role by ID",
@@ -7812,7 +1032,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Delete role by ID",
@@ -7858,14 +1078,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/shifts": {
+        "/sop-jobs": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Get list of shifts with optional filters",
+                "description": "Get all SOP Jobs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -7873,10 +1093,50 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shifts"
+                    "SOP-Job"
                 ],
-                "summary": "Get all shifts",
+                "summary": "Get all SOP Jobs (Hybrid)",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "sop_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Page for pagination",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
+                        "in": "query"
+                    },
                     {
                         "type": "boolean",
                         "description": "Preload relations",
@@ -7902,10 +1162,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Create a new shift entry",
+                "description": "Create a new SOP Job in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -7913,23 +1173,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shifts"
+                    "SOP-Job"
                 ],
-                "summary": "Create a new shift",
+                "summary": "Create SOP Job (Hybrid)",
                 "parameters": [
                     {
-                        "description": "Shift data",
+                        "description": "SOP Job data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateShiftDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopJobDto"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -7949,14 +1209,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/shifts/bulk-create": {
+        "/sop-jobs/bulk-create": {
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Create multiple shifts at once",
+                "description": "Create multiple SOP Jobs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -7964,23 +1224,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shifts"
+                    "SOP-Job"
                 ],
-                "summary": "Bulk create shifts",
+                "summary": "Bulk create SOP Jobs (Hybrid)",
                 "parameters": [
                     {
-                        "description": "Bulk shift data",
+                        "description": "Bulk SOP Job data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateShiftDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateSopJobs"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -8000,14 +1260,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/shifts/bulk-delete": {
+        "/sop-jobs/bulk-delete": {
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Delete multiple shifts at once",
+                "description": "Delete multiple SOP Jobs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8015,17 +1275,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shifts"
+                    "SOP-Job"
                 ],
-                "summary": "Bulk delete shifts",
+                "summary": "Bulk delete SOP Jobs (Hybrid)",
                 "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
+                    },
                     {
                         "description": "Bulk delete data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteShiftDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteSopJobDto"
                         }
                     }
                 ],
@@ -8051,14 +1317,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/shifts/bulk-update": {
+        "/sop-jobs/bulk-update": {
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Update multiple shifts at once",
+                "description": "Update multiple SOP Jobs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8066,9 +1332,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shifts"
+                    "SOP-Job"
                 ],
-                "summary": "Bulk update shifts",
+                "summary": "Bulk update SOP Jobs (Hybrid)",
                 "parameters": [
                     {
                         "description": "Bulk update data",
@@ -8076,7 +1342,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateShiftDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateSopJobDto"
                         }
                     }
                 ],
@@ -8102,14 +1368,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/shifts/{id}": {
+        "/sop-jobs/graph": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Get a specific shift by its ID",
+                "description": "Get all SOP Jobs from Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8117,213 +1383,34 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shifts"
+                    "SOP-Job"
                 ],
-                "summary": "Get shift by ID",
+                "summary": "Get all SOP Jobs (Graph only)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Shift ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update shift by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "shifts"
-                ],
-                "summary": "Update an existing shift",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Shift ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated shift data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateShiftDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete shift by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "shifts"
-                ],
-                "summary": "Delete a shift",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Shift ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/sop-menus": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of SOP menus with optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "sop-menus"
-                ],
-                "summary": "Get all SOP menus",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Division ID filter",
-                        "name": "division_id",
+                        "description": "SOP ID",
+                        "name": "sop_id",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Master ID filter",
-                        "name": "master_id",
+                        "description": "Title ID",
+                        "name": "title_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Type filter",
-                        "name": "type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name filter (case-insensitive search)",
+                        "description": "Filter by name",
                         "name": "name",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Parent filter",
-                        "name": "parent",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Is master filter",
-                        "name": "is_master",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
                         "in": "query"
                     }
                 ],
@@ -8345,10 +1432,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Create a new SOP menu entry",
+                "description": "Create a new SOP Job in Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8356,25 +1443,170 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sop-menus"
+                    "SOP-Job"
                 ],
-                "summary": "Create new SOP menu",
+                "summary": "Create SOP Job (Graph only)",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Project ID",
-                        "name": "project_id",
-                        "in": "query"
-                    },
-                    {
-                        "description": "SOP Menu data",
+                        "description": "SOP Job data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopMenuDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopJobDto"
                         }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sop-jobs/graph/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a single SOP Job by ID from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Get SOP Job by ID (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing SOP Job in Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Update SOP Job (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "SOP Job update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a SOP Job from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Delete SOP Job (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -8399,14 +1631,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/sop-menus/{id}": {
+        "/sop-jobs/sql": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Get a specific SOP menu by its ID",
+                "description": "Get all SOP Jobs from SQL database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8414,20 +1646,145 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sop-menus"
+                    "SOP-Job"
                 ],
-                "summary": "Get SOP menu by ID",
+                "summary": "Get all SOP Jobs (SQL only)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "SOP Menu ID",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "sop_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Page for pagination",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new SOP Job in SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Create SOP Job (SQL only)",
+                "parameters": [
+                    {
+                        "description": "SOP Job data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sop-jobs/sql/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a single SOP Job by ID from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Get SOP Job by ID (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Preload relations",
+                        "description": "Preload associations",
                         "name": "preload",
                         "in": "query"
                     }
@@ -8456,10 +1813,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing SOP menu by ID",
+                "description": "Update an existing SOP Job in SQL database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8467,24 +1824,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sop-menus"
+                    "SOP-Job"
                 ],
-                "summary": "Update SOP menu",
+                "summary": "Update SOP Job (SQL only)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "SOP Menu ID",
+                        "description": "SOP Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated SOP Menu data",
+                        "description": "SOP Job update data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopMenuDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopJobDto"
                         }
                     }
                 ],
@@ -8512,10 +1869,10 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Delete a SOP menu by ID",
+                "description": "Delete a SOP Job from SQL database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8523,16 +1880,244 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sop-menus"
+                    "SOP-Job"
                 ],
-                "summary": "Delete SOP menu",
+                "summary": "Delete SOP Job (SQL only)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "SOP Menu ID",
+                        "description": "SOP Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sop-jobs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a single SOP Job by ID from both SQL and Graph database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Get SOP Job by ID (Hybrid)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Preload associations",
+                        "name": "preload",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing SOP Job in both SQL and Graph database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Update SOP Job (Hybrid)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "SOP Job update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a SOP Job from both SQL and Graph database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Delete SOP Job (Hybrid)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sop-jobs/{id}/reorder": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reorder SOP Job index within an SOP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP-Job"
+                ],
+                "summary": "Reorder SOP Job",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SOP Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reorder data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.ReorderSopJobDto"
+                        }
                     }
                 ],
                 "responses": {
@@ -8561,10 +2146,10 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Get list of SOPs with optional filters",
+                "description": "Get list of SOPs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8572,9 +2157,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Get all SOPs",
+                "summary": "Get all SOPs (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -8602,19 +2187,6 @@ const docTemplate = `{
                         "format": "int64",
                         "description": "Limit for pagination",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Exclude ID filter",
-                        "name": "exclude_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Code filter",
-                        "name": "code",
                         "in": "query"
                     },
                     {
@@ -8654,10 +2226,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Create a new SOP entry",
+                "description": "Create a new SOP in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8665,9 +2237,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Create a new SOP",
+                "summary": "Create SOP (Hybrid)",
                 "parameters": [
                     {
                         "description": "SOP data",
@@ -8680,8 +2252,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -8705,10 +2277,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Create multiple SOPs at once",
+                "description": "Create multiple SOPs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8716,9 +2288,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Bulk create SOPs",
+                "summary": "Bulk create SOPs (Hybrid)",
                 "parameters": [
                     {
                         "description": "Bulk SOP data",
@@ -8731,8 +2303,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -8756,10 +2328,10 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Delete multiple SOPs at once",
+                "description": "Delete multiple SOPs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8767,9 +2339,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Bulk delete SOPs",
+                "summary": "Bulk delete SOPs (Hybrid)",
                 "parameters": [
                     {
                         "description": "Bulk delete data",
@@ -8813,10 +2385,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Update multiple SOPs at once",
+                "description": "Update multiple SOPs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -8824,9 +2396,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Bulk update SOPs",
+                "summary": "Bulk update SOPs (Hybrid)",
                 "parameters": [
                     {
                         "description": "Bulk update data",
@@ -8864,7 +2436,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get count of SOPs with optional filters",
@@ -8875,7 +2447,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
                 "summary": "Count SOPs",
                 "parameters": [
@@ -8903,14 +2475,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/sops/{id}": {
+        "/sops/graph": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Get a specific SOP by its ID",
+                "description": "Get list of SOPs from Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8918,9 +2490,127 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Get SOP by ID",
+                "summary": "Get all SOPs (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID filter",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name filter",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted SOPs",
+                        "name": "show_deleted",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new SOP in Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Create SOP (Graph only)",
+                "parameters": [
+                    {
+                        "description": "SOP data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sops/graph/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific SOP by its ID from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Get SOP by ID (Graph only)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -8929,12 +2619,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -8961,10 +2645,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Update SOP by ID",
+                "description": "Update an existing SOP in Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -8972,9 +2656,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Update an existing SOP",
+                "summary": "Update SOP (Graph only)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -9018,10 +2702,10 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Delete SOP by ID (soft or permanent)",
+                "description": "Delete SOP from Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -9029,9 +2713,301 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sops"
+                    "SOP"
                 ],
-                "summary": "Delete an SOP",
+                "summary": "Delete SOP (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sops/sql": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get list of SOPs from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Get all SOPs (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID filter",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Division ID filter",
+                        "name": "division_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name filter",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted SOPs",
+                        "name": "show_deleted",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Preload relations",
+                        "name": "preload",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new SOP in SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Create SOP (SQL only)",
+                "parameters": [
+                    {
+                        "description": "SOP data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sops/sql/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific SOP by its ID from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Get SOP by ID (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Preload relations",
+                        "name": "preload",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing SOP in SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Update SOP (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated SOP data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete SOP from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SOP"
+                ],
+                "summary": "Delete SOP (SQL only)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -9070,14 +3046,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/squads": {
+        "/sops/{id}": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Get list of squads with optional filters",
+                "description": "Get a specific SOP by its ID from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9085,231 +3061,14 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "squads"
+                    "SOP"
                 ],
-                "summary": "Get all squads",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Code filter",
-                        "name": "code",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "User ID filter",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "integer",
-                            "format": "int64"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "Squad IDs filter",
-                        "name": "squad_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new squad entry",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "squads"
-                ],
-                "summary": "Create a new squad",
-                "parameters": [
-                    {
-                        "description": "Squad data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSquadDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/squads/bulk-create": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple squads at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "squads"
-                ],
-                "summary": "Bulk create squads",
-                "parameters": [
-                    {
-                        "description": "Bulk squad data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateSquadDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/squads/bulk-delete": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple squads at once",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "squads"
-                ],
-                "summary": "Bulk delete squads",
-                "parameters": [
-                    {
-                        "description": "Bulk delete data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteSquadDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/squads/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific squad by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "squads"
-                ],
-                "summary": "Get squad by ID",
+                "summary": "Get SOP by ID (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Squad ID",
+                        "description": "SOP ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -9345,10 +3104,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Update squad by ID",
+                "description": "Update an existing SOP in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9356,25 +3115,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "squads"
+                    "SOP"
                 ],
-                "summary": "Update an existing squad",
+                "summary": "Update SOP (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Squad ID",
+                        "description": "SOP ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated squad data",
+                        "description": "Updated SOP data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSquadDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopDto"
                         }
                     }
                 ],
@@ -9402,10 +3161,10 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Delete squad by ID",
+                "description": "Delete SOP from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9413,17 +3172,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "squads"
+                    "SOP"
                 ],
-                "summary": "Delete a squad",
+                "summary": "Delete SOP (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Squad ID",
+                        "description": "SOP ID",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete",
+                        "name": "isPermanent",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -9448,14 +3213,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/statuses": {
+        "/spk-jobs": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of statuses with optional filters",
+                "description": "Get all SPK Jobs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9463,34 +3223,42 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Get all statuses",
+                "summary": "Get all SPK Jobs (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Position ID filter",
-                        "name": "position_id",
+                        "description": "SPK ID",
+                        "name": "spk_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "sop_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Category filter",
-                        "name": "category",
+                        "description": "Filter by name",
+                        "name": "name",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Show deleted statuses",
+                        "description": "Show deleted records",
                         "name": "show_deleted",
                         "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -9509,12 +3277,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new status entry",
+                "description": "Create a new SPK Job in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9522,23 +3285,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Create a new status",
+                "summary": "Create SPK Job (Hybrid)",
                 "parameters": [
                     {
-                        "description": "Status data",
+                        "description": "SPK Job data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateStatusDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkJobDto"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -9558,14 +3321,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/statuses/bulk-create": {
+        "/spk-jobs/bulk-create": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple statuses at once",
+                "description": "Create multiple SPK Jobs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9573,23 +3331,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Bulk create statuses",
+                "summary": "Bulk create SPK Jobs (Hybrid)",
                 "parameters": [
                     {
-                        "description": "Bulk status data",
+                        "description": "Bulk SPK Job data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateStatusDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateSpkJobsDto"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -9609,14 +3367,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/statuses/bulk-delete": {
+        "/spk-jobs/bulk-delete": {
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple statuses at once",
+                "description": "Delete multiple SPK Jobs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9624,17 +3377,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Bulk delete statuses",
+                "summary": "Bulk delete SPK Jobs (Hybrid)",
                 "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
+                    },
                     {
                         "description": "Bulk delete data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteStatusDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteSpkJobDto"
                         }
                     }
                 ],
@@ -9660,14 +3419,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/statuses/bulk-update": {
+        "/spk-jobs/bulk-update": {
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple statuses at once",
+                "description": "Update multiple SPK Jobs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9675,9 +3429,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Bulk update statuses",
+                "summary": "Bulk update SPK Jobs (Hybrid)",
                 "parameters": [
                     {
                         "description": "Bulk update data",
@@ -9685,7 +3439,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateStatusDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateSpkJobDto"
                         }
                     }
                 ],
@@ -9711,14 +3465,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/statuses/{id}": {
+        "/spk-jobs/graph/": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific status by its ID",
+                "description": "Get all SPK Jobs from Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -9726,21 +3475,380 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Get status by ID",
+                "summary": "Get all SPK Jobs (Graph only)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "Status ID",
+                        "description": "SPK ID",
+                        "name": "spk_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "sop_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new SPK Job in Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Create SPK Job (Graph only)",
+                "parameters": [
+                    {
+                        "description": "SPK Job data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spk-jobs/graph/{id}": {
+            "get": {
+                "description": "Get a single SPK Job by ID from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Get SPK Job by ID (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing SPK Job in Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Update SPK Job (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
+                        "description": "SPK Job update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a SPK Job from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Delete SPK Job (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spk-jobs/sql/": {
+            "get": {
+                "description": "Get all SPK Jobs from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Get all SPK Jobs (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SPK ID",
+                        "name": "spk_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SOP ID",
+                        "name": "sop_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
                         "type": "boolean",
-                        "description": "Preload relations",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new SPK Job in SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Create SPK Job (SQL only)",
+                "parameters": [
+                    {
+                        "description": "SPK Job data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spk-jobs/sql/{id}": {
+            "get": {
+                "description": "Get a single SPK Job by ID from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Get SPK Job by ID (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "SPK ID",
+                        "name": "spk_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Preload associations",
                         "name": "preload",
                         "in": "query"
                     }
@@ -9767,12 +3875,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update status by ID",
+                "description": "Update an existing SPK Job in SQL database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -9780,25 +3883,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Update an existing status",
+                "summary": "Update SPK Job (SQL only)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "format": "int64",
-                        "description": "Status ID",
+                        "description": "SPK Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated status data",
+                        "description": "SPK Job update data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateStatusDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkJobDto"
                         }
                     }
                 ],
@@ -9824,12 +3926,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete status by ID",
+                "description": "Delete a SPK Job from SQL database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -9837,17 +3934,22 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Delete a status",
+                "summary": "Delete SPK Job (SQL only)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "format": "int64",
-                        "description": "Status ID",
+                        "description": "SPK Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -9872,14 +3974,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/statuses/{id}/reorder": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Reorder a status by ID",
+        "/spk-jobs/{id}": {
+            "get": {
+                "description": "Get a single SPK Job by ID from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9887,14 +3984,169 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statuses"
+                    "SPK-Job"
                 ],
-                "summary": "Reorder status",
+                "summary": "Get SPK Job by ID (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
+                        "description": "SPK Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
                         "format": "int64",
-                        "description": "Status ID",
+                        "description": "SPK ID",
+                        "name": "spk_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Preload associations",
+                        "name": "preload",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing SPK Job in both SQL and Graph database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Update SPK Job (Hybrid)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "SPK Job update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkJobDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a SPK Job from both SQL and Graph database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Delete SPK Job (Hybrid)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spk-jobs/{id}/reorder": {
+            "post": {
+                "description": "Reorder SPK Job index within an SPK",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK-Job"
+                ],
+                "summary": "Reorder SPK Job",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -9905,7 +4157,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.ReorderStatusDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.ReorderSpkJobDto"
                         }
                     }
                 ],
@@ -9931,14 +4183,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/technical-supports": {
+        "/spks": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of technical supports with optional filters",
+                "description": "Get all SPKs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9946,14 +4193,41 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Get all technical supports",
+                "summary": "Get all SPKs (Hybrid)",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
                         "type": "boolean",
-                        "description": "Preload relations",
-                        "name": "preload",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
                         "in": "query"
                     }
                 ],
@@ -9973,12 +4247,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new technical support entry",
+                "description": "Create a new SPK in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -9986,23 +4255,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Create a new technical support",
+                "summary": "Create SPK (Hybrid)",
                 "parameters": [
                     {
-                        "description": "Technical Support data",
+                        "description": "SPK data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateTechnicalSupportDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkDto"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -10022,14 +4291,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/technical-supports/bulk-create": {
+        "/spks/bulk-create": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create multiple technical supports at once",
+                "description": "Create multiple SPKs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -10037,23 +4301,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Bulk create technical supports",
+                "summary": "Bulk create SPKs (Hybrid)",
                 "parameters": [
                     {
-                        "description": "Bulk technical support data",
+                        "description": "Bulk SPK data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateTechnicalSupportDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkCreateSpksDto"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
                         }
@@ -10073,14 +4337,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/technical-supports/bulk-delete": {
+        "/spks/bulk-delete": {
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete multiple technical supports at once",
+                "description": "Delete multiple SPKs from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -10088,17 +4347,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Bulk delete technical supports",
+                "summary": "Bulk delete SPKs (Hybrid)",
                 "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
+                    },
                     {
                         "description": "Bulk delete data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteTechnicalSupportDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkDeleteSpkDto"
                         }
                     }
                 ],
@@ -10124,14 +4389,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/technical-supports/bulk-update": {
+        "/spks/bulk-update": {
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update multiple technical supports at once",
+                "description": "Update multiple SPKs in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -10139,9 +4399,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Bulk update technical supports",
+                "summary": "Bulk update SPKs (Hybrid)",
                 "parameters": [
                     {
                         "description": "Bulk update data",
@@ -10149,7 +4409,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateTechnicalSupportDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.BulkUpdateSpkDto"
                         }
                     }
                 ],
@@ -10175,14 +4435,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/technical-supports/by-user/{user_id}": {
+        "/spks/graph/": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific technical support by User ID with optional log shifts details",
+                "description": "Get all SPKs from Graph database only",
                 "consumes": [
                     "application/json"
                 ],
@@ -10190,22 +4445,425 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Get technical support by User ID",
+                "summary": "Get all SPKs (Graph only)",
                 "parameters": [
                     {
                         "type": "integer",
                         "format": "int64",
-                        "description": "User ID",
-                        "name": "user_id",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new SPK in Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Create SPK (Graph only)",
+                "parameters": [
+                    {
+                        "description": "SPK data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spks/graph/{id}": {
+            "get": {
+                "description": "Get a single SPK by ID from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Get SPK by ID (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing SPK in Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Update SPK (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "SPK update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an SPK from Graph database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Delete SPK (Graph only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spks/sql/": {
+            "get": {
+                "description": "Get all SPKs from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Get all SPKs (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Title ID",
+                        "name": "title_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Limit for pagination",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show deleted records",
+                        "name": "show_deleted",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new SPK in SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Create SPK (SQL only)",
+                "parameters": [
+                    {
+                        "description": "SPK data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/spks/sql/{id}": {
+            "put": {
+                "description": "Update an existing SPK in SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Update SPK (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "SPK update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jk-api_api_http_presenters.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an SPK from SQL database only",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SPK"
+                ],
+                "summary": "Delete SPK (SQL only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SPK ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Preload relations (User, LogShifts with Shift details)",
-                        "name": "preload",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
                         "in": "query"
                     }
                 ],
@@ -10231,14 +4889,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/technical-supports/{id}": {
+        "/spks/{id}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get a specific technical support by its ID",
+                "description": "Get a single SPK by ID from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -10246,21 +4899,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Get technical support by ID",
+                "summary": "Get SPK by ID (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "format": "int64",
-                        "description": "Technical Support ID",
+                        "description": "SPK ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Preload relations",
+                        "description": "Preload associations",
                         "name": "preload",
                         "in": "query"
                     }
@@ -10287,12 +4939,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update technical support by ID",
+                "description": "Update an existing SPK in both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -10300,25 +4947,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Update an existing technical support",
+                "summary": "Update SPK (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "format": "int64",
-                        "description": "Technical Support ID",
+                        "description": "SPK ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated technical support data",
+                        "description": "SPK update data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateTechnicalSupportDto"
+                            "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkDto"
                         }
                     }
                 ],
@@ -10344,12 +4990,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete technical support by ID",
+                "description": "Delete an SPK from both SQL and Graph database",
                 "consumes": [
                     "application/json"
                 ],
@@ -10357,17 +4998,22 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "technical-supports"
+                    "SPK"
                 ],
-                "summary": "Delete a technical support",
+                "summary": "Delete SPK (Hybrid)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "format": "int64",
-                        "description": "Technical Support ID",
+                        "description": "SPK ID",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Permanent delete (default: false)",
+                        "name": "isPermanent",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -11223,52 +5869,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "datatypes.JSONMap": {
-            "type": "object",
-            "additionalProperties": true
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateBacklogDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateBacklogDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateCustomerServiceDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateCustomerServiceDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateDepartments": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateDepartmentDto"
-                    }
-                }
-            }
-        },
         "jk-api_api_http_controllers_v1_dto.BulkCreateDivisionDto": {
             "type": "object",
             "required": [
@@ -11283,7 +5883,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateEpics": {
+        "jk-api_api_http_controllers_v1_dto.BulkCreateSopJobs": {
             "type": "object",
             "required": [
                 "data"
@@ -11292,147 +5892,7 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateEpicDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateHolidayDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateHolidayDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateLanguageDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLanguageDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateLeaveDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLeaveDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateLevelDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLevelDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateLogShiftDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateLogShiftDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreatePositionDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreatePositionDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateProducts": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateProductDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateProjects": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateProjectDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateRetroItemDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateRetroItemDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateShiftDto": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateShiftDto"
+                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSopJobDto"
                     }
                 }
             }
@@ -11451,7 +5911,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateSquadDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkCreateSpkJobsDto": {
             "type": "object",
             "required": [
                 "data"
@@ -11460,26 +5920,12 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSquadDto"
+                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkJobDto"
                     }
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateStatusDto": {
-            "type": "object",
-            "required": [
-                "status"
-            ],
-            "properties": {
-                "status": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateStatusDto"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkCreateTechnicalSupportDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkCreateSpksDto": {
             "type": "object",
             "required": [
                 "data"
@@ -11488,7 +5934,7 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateTechnicalSupportDto"
+                        "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.CreateSpkDto"
                     }
                 }
             }
@@ -11521,223 +5967,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteBacklogDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2,
-                        3
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteCustomerServiceDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteDepartmentDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2,
-                        3
-                    ]
-                }
-            }
-        },
         "jk-api_api_http_controllers_v1_dto.BulkDeleteDivisionDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteEpicDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2,
-                        3
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteHolidayDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteLanguageDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteLeaveDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteLevelDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteLogShiftDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeletePositionDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteProductDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteProjectDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2,
-                        3
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteRetroItemDto": {
-            "type": "object",
-            "required": [
-                "ids"
-            ],
-            "properties": {
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteShiftDto": {
             "type": "object",
             "required": [
                 "ids"
@@ -11765,7 +5995,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteSquadDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkDeleteSopJobDto": {
             "type": "object",
             "required": [
                 "ids"
@@ -11779,7 +6009,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteStatusDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkDeleteSpkDto": {
             "type": "object",
             "required": [
                 "ids"
@@ -11793,7 +6023,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkDeleteTechnicalSupportDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkDeleteSpkJobDto": {
             "type": "object",
             "required": [
                 "ids"
@@ -11845,68 +6075,6 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateBacklogDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateBacklogDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateCustomerServiceDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateCustomerServiceDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateDepartmentDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateDepartmentDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2
-                    ]
-                }
-            }
-        },
         "jk-api_api_http_controllers_v1_dto.BulkUpdateDivisionDto": {
             "type": "object",
             "required": [
@@ -11916,212 +6084,6 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateDivisionDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateEpicDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateEpicDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateHolidayDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateHolidayDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateLanguageDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLanguageDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateLeaveDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLeaveDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateLevelDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLevelDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateLogShiftDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateLogShiftDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdatePositionDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdatePositionDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateProductDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateProductDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateProjectDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateProjectDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateRetroItemDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateRetroItemDto"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateShiftDto": {
-            "type": "object",
-            "required": [
-                "data",
-                "ids"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateShiftDto"
                 },
                 "ids": {
                     "type": "array",
@@ -12148,7 +6110,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateStatusDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkUpdateSopJobDto": {
             "type": "object",
             "required": [
                 "data",
@@ -12156,7 +6118,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateStatusDto"
+                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSopJobDto"
                 },
                 "ids": {
                     "type": "array",
@@ -12166,7 +6128,7 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.BulkUpdateTechnicalSupportDto": {
+        "jk-api_api_http_controllers_v1_dto.BulkUpdateSpkDto": {
             "type": "object",
             "required": [
                 "data",
@@ -12174,7 +6136,25 @@ const docTemplate = `{
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateTechnicalSupportDto"
+                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkDto"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "jk-api_api_http_controllers_v1_dto.BulkUpdateSpkJobDto": {
+            "type": "object",
+            "required": [
+                "data",
+                "ids"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/jk-api_api_http_controllers_v1_dto.UpdateSpkJobDto"
                 },
                 "ids": {
                     "type": "array",
@@ -12237,353 +6217,14 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.CreateActivityLogDto": {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string"
-                },
-                "details": {
-                    "description": "\u003c- JSON",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "new_data": {
-                    "description": "\u003c- JSON",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "old_data": {
-                    "description": "\u003c- JSON",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "origins": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "table_ref": {
-                    "type": "string"
-                },
-                "table_ref_id": {
-                    "type": "integer"
-                },
-                "user_agent": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateBacklogDto": {
-            "type": "object",
-            "properties": {
-                "description": {},
-                "end_date": {
-                    "type": "string",
-                    "example": "2024-12-31"
-                },
-                "epic_id": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "name": {
-                    "type": "string",
-                    "example": "New Feature"
-                },
-                "pic": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "priority": {
-                    "type": "string",
-                    "example": "high"
-                },
-                "squad_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "start_date": {
-                    "type": "string",
-                    "example": "2024-01-01"
-                },
-                "url": {
-                    "type": "string",
-                    "example": "https://example.com"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateCmsArticleDto": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2
-                    ]
-                },
-                "content": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "excerpt": {
-                    "type": "string",
-                    "example": "This is a sample excerpt"
-                },
-                "image": {
-                    "type": "string",
-                    "example": "https://example.com/image.jpg"
-                },
-                "published_at": {
-                    "type": "string",
-                    "example": "2024-01-01"
-                },
-                "slug": {
-                    "type": "string",
-                    "example": "sample-article"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "published"
-                },
-                "tag": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        3
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "example": "Sample Article"
-                },
-                "user_id": {
-                    "type": "integer",
-                    "example": 1
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateCommentDto": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "parent": {
-                    "type": "integer"
-                },
-                "squad_members": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "table_ref": {
-                    "type": "string"
-                },
-                "table_ref_id": {
-                    "type": "integer"
-                },
-                "url": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                },
-                "user_target_id": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateCustomerServiceDto": {
-            "type": "object",
-            "required": [
-                "status",
-                "user_id"
-            ],
-            "properties": {
-                "status": {
-                    "type": "boolean"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateDepartmentDto": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "example": "ENG"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Engineering"
-                }
-            }
-        },
         "jk-api_api_http_controllers_v1_dto.CreateDivisionDto": {
             "type": "object",
             "properties": {
                 "code": {
                     "type": "string"
                 },
-                "department_id": {
-                    "type": "integer"
-                },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateEpicDto": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "example": "User Authentication"
-                },
-                "product_id": {
-                    "type": "integer",
-                    "example": 1
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateHolidayDto": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateLanguageDto": {
-            "type": "object",
-            "properties": {
-                "ens": {
-                    "type": "string"
-                },
-                "ids": {
-                    "type": "string"
-                },
-                "prefix": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateLeaveDto": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateLevelDto": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateLogShiftDto": {
-            "type": "object",
-            "required": [
-                "date",
-                "reference",
-                "shift_id",
-                "user_id"
-            ],
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "reference": {
-                    "type": "string",
-                    "enum": [
-                        "technical",
-                        "customer_service"
-                    ]
-                },
-                "shift_id": {
-                    "type": "integer"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateNotificationDto": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "example": "This is a notification content"
-                },
-                "priority": {
-                    "type": "string",
-                    "example": "high"
-                },
-                "title": {
-                    "type": "string",
-                    "example": "New Notification"
-                },
-                "user_origin_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "user_target_id": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        2,
-                        3
-                    ]
                 }
             }
         },
@@ -12592,85 +6233,6 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreatePositionDto": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "color": {
-                    "type": "string"
-                },
-                "division_id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateProductDto": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateProjectDto": {
-            "type": "object",
-            "properties": {
-                "end_date": {
-                    "type": "string",
-                    "example": "2024-12-31"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "New Project"
-                },
-                "start_date": {
-                    "type": "string",
-                    "example": "2024-01-01"
-                },
-                "team": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2,
-                        3
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateRetroItemDto": {
-            "type": "object",
-            "properties": {
-                "color": {
-                    "type": "string"
-                },
-                "sprint_id": {
-                    "type": "integer"
-                },
-                "sprint_retro_id": {
-                    "type": "integer"
-                },
-                "text": {
-                    "type": "string"
-                },
-                "user": {
-                    "type": "string"
-                },
-                "vote": {
-                    "type": "integer"
                 }
             }
         },
@@ -12688,23 +6250,6 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.CreateShiftDto": {
-            "type": "object",
-            "properties": {
-                "end_time": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "start_time": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "jk-api_api_http_controllers_v1_dto.CreateSopDto": {
             "type": "object",
             "required": [
@@ -12717,15 +6262,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
-                    "$ref": "#/definitions/datatypes.JSONMap"
+                    "type": "string"
                 },
                 "has_divisions": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "has_titles": {
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -12739,70 +6278,67 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.CreateSopMenuDto": {
+        "jk-api_api_http_controllers_v1_dto.CreateSopJobDto": {
             "type": "object",
             "properties": {
-                "division_id": {
-                    "type": "integer"
+                "alias": {
+                    "type": "string"
                 },
-                "is_master": {
-                    "type": "boolean"
+                "description": {
+                    "type": "string"
                 },
-                "master_id": {
-                    "type": "integer"
-                },
-                "multiple": {
+                "is_published": {
                     "type": "boolean"
                 },
                 "name": {
                     "type": "string"
                 },
-                "parent_id": {
+                "reference_id": {
                     "type": "integer"
                 },
                 "sop_id": {
                     "type": "integer"
                 },
+                "title_id": {
+                    "type": "integer"
+                },
                 "type": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.CreateSquadDto": {
+        "jk-api_api_http_controllers_v1_dto.CreateSpkDto": {
             "type": "object",
+            "required": [
+                "code",
+                "description",
+                "name"
+            ],
             "properties": {
-                "name": {
+                "code": {
                     "type": "string"
                 },
-                "project_id": {
-                    "type": "integer"
+                "description": {
+                    "type": "string"
                 },
-                "squad_members": {
+                "has_title": {
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.CreateStatusDto": {
+        "jk-api_api_http_controllers_v1_dto.CreateSpkJobDto": {
             "type": "object",
-            "required": [
-                "category",
-                "name",
-                "position_id"
-            ],
             "properties": {
-                "category": {
-                    "type": "string",
-                    "enum": [
-                        "To-Do",
-                        "In",
-                        "Progress",
-                        "Complete"
-                    ]
-                },
-                "color": {
+                "description": {
                     "type": "string"
                 },
                 "index": {
@@ -12811,23 +6347,17 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "position_id": {
+                "sop_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.CreateTechnicalSupportDto": {
-            "type": "object",
-            "required": [
-                "status",
-                "user_id"
-            ],
-            "properties": {
-                "status": {
-                    "type": "boolean"
                 },
-                "user_id": {
+                "spk_id": {
                     "type": "integer"
+                },
+                "title_id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
@@ -12842,17 +6372,9 @@ const docTemplate = `{
                     "type": "string",
                     "example": "#FF0000"
                 },
-                "level_id": {
-                    "type": "integer",
-                    "example": 2
-                },
                 "name": {
                     "type": "string",
                     "example": "Software Engineer"
-                },
-                "position_id": {
-                    "type": "integer",
-                    "example": 1
                 }
             }
         },
@@ -12898,160 +6420,35 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.ReorderStatusDto": {
+        "jk-api_api_http_controllers_v1_dto.ReorderSopJobDto": {
             "type": "object",
             "required": [
-                "new_index"
+                "new_index",
+                "sop_id"
             ],
             "properties": {
                 "new_index": {
                     "type": "integer",
                     "minimum": 1
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateBacklogDto": {
-            "type": "object",
-            "properties": {
-                "deleted_at": {
-                    "type": "string"
                 },
-                "description": {},
-                "end_date": {
-                    "type": "string",
-                    "example": "2024-11-30"
-                },
-                "epic_id": {
-                    "type": "integer",
-                    "example": 3
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Updated Feature"
-                },
-                "pic": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "priority": {
-                    "type": "string",
-                    "example": "medium"
-                },
-                "squad_id": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "start_date": {
-                    "type": "string",
-                    "example": "2024-02-01"
-                },
-                "url": {
-                    "type": "string",
-                    "example": "https://updated.com"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateCmsArticleDto": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        2
-                    ]
-                },
-                "content": {
-                    "type": "string",
-                    "example": "Updated content"
-                },
-                "excerpt": {
-                    "type": "string",
-                    "example": "Updated excerpt"
-                },
-                "image": {
-                    "type": "string",
-                    "example": "https://example.com/updated.jpg"
-                },
-                "published_at": {
-                    "type": "string",
-                    "example": "2024-02-01"
-                },
-                "slug": {
-                    "type": "string",
-                    "example": "updated-article"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "draft"
-                },
-                "tag": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        2,
-                        4
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "example": "Updated Article"
-                },
-                "user_id": {
-                    "type": "integer",
-                    "example": 2
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateCommentDto": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "parent": {
-                    "type": "integer"
-                },
-                "table_ref": {
-                    "type": "string"
-                },
-                "table_ref_id": {
-                    "type": "integer"
-                },
-                "user_id": {
+                "sop_id": {
                     "type": "integer"
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.UpdateCustomerServiceDto": {
+        "jk-api_api_http_controllers_v1_dto.ReorderSpkJobDto": {
             "type": "object",
+            "required": [
+                "new_index",
+                "spk_id"
+            ],
             "properties": {
-                "status": {
-                    "type": "boolean"
+                "new_index": {
+                    "type": "integer",
+                    "minimum": 1
                 },
-                "user_id": {
+                "spk_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateDepartmentDto": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "example": "ENG_UPDATED"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Updated Engineering"
                 }
             }
         },
@@ -13064,107 +6461,8 @@ const docTemplate = `{
                 "deleted_at": {
                     "type": "string"
                 },
-                "department_id": {
-                    "type": "integer"
-                },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateEpicDto": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "example": "Updated User Authentication"
-                },
-                "product_id": {
-                    "type": "integer",
-                    "example": 2
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateHolidayDto": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateLanguageDto": {
-            "type": "object",
-            "properties": {
-                "ens": {
-                    "type": "string"
-                },
-                "ids": {
-                    "type": "string"
-                },
-                "prefix": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateLeaveDto": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateLevelDto": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateLogShiftDto": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "reference": {
-                    "type": "string",
-                    "enum": [
-                        "technical",
-                        "customer_service"
-                    ]
-                },
-                "shift_id": {
-                    "type": "integer"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateNotificationDto": {
-            "type": "object",
-            "properties": {
-                "read_by_users": {
-                    "type": "boolean",
-                    "example": true
                 }
             }
         },
@@ -13173,84 +6471,6 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdatePositionDto": {
-            "type": "object",
-            "properties": {
-                "color": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "division_id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateProductDto": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateProjectDto": {
-            "type": "object",
-            "properties": {
-                "end_date": {
-                    "type": "string",
-                    "example": "2024-11-30"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Updated Project"
-                },
-                "start_date": {
-                    "type": "string",
-                    "example": "2024-02-01"
-                },
-                "team": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2
-                    ]
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateRetroItemDto": {
-            "type": "object",
-            "properties": {
-                "color": {
-                    "type": "string"
-                },
-                "sprint_id": {
-                    "type": "integer"
-                },
-                "sprint_retro_id": {
-                    "type": "integer"
-                },
-                "text": {
-                    "type": "string"
-                },
-                "user": {
-                    "type": "string"
-                },
-                "vote": {
-                    "type": "integer"
                 }
             }
         },
@@ -13274,23 +6494,6 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.UpdateShiftDto": {
-            "type": "object",
-            "properties": {
-                "end_time": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "start_time": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "jk-api_api_http_controllers_v1_dto.UpdateSopDto": {
             "type": "object",
             "required": [
@@ -13306,15 +6509,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
-                    "$ref": "#/definitions/datatypes.JSONMap"
+                    "type": "string"
                 },
                 "has_divisions": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "has_titles": {
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -13328,69 +6525,84 @@ const docTemplate = `{
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.UpdateSopMenuDto": {
+        "jk-api_api_http_controllers_v1_dto.UpdateSopJobDto": {
             "type": "object",
             "properties": {
-                "division_id": {
+                "alias": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "flowchart_id": {
                     "type": "integer"
                 },
-                "is_master": {
+                "is_hide": {
                     "type": "boolean"
                 },
-                "master_id": {
-                    "type": "integer"
-                },
-                "multiple": {
+                "is_published": {
                     "type": "boolean"
                 },
                 "name": {
                     "type": "string"
                 },
-                "parent_id": {
+                "next_index": {
+                    "type": "integer"
+                },
+                "prev_index": {
+                    "type": "integer"
+                },
+                "reference_id": {
                     "type": "integer"
                 },
                 "sop_id": {
                     "type": "integer"
                 },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateSquadDto": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "project_id": {
+                "title_id": {
                     "type": "integer"
                 },
-                "squad_members": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
-        "jk-api_api_http_controllers_v1_dto.UpdateStatusDto": {
+        "jk-api_api_http_controllers_v1_dto.UpdateSpkDto": {
             "type": "object",
+            "required": [
+                "code"
+            ],
             "properties": {
-                "category": {
-                    "type": "string",
-                    "enum": [
-                        "To-Do",
-                        "In",
-                        "Progress",
-                        "Complete"
-                    ]
-                },
-                "color": {
+                "code": {
                     "type": "string"
                 },
                 "deleted_at": {
                     "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "has_title": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "jk-api_api_http_controllers_v1_dto.UpdateSpkJobDto": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "flowchart_id": {
+                    "type": "integer"
                 },
                 "index": {
                     "type": "integer"
@@ -13398,19 +6610,20 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "position_id": {
+                "next_index": {
                     "type": "integer"
-                }
-            }
-        },
-        "jk-api_api_http_controllers_v1_dto.UpdateTechnicalSupportDto": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "boolean"
                 },
-                "user_id": {
+                "prev_index": {
                     "type": "integer"
+                },
+                "sop_id": {
+                    "type": "integer"
+                },
+                "title_id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
@@ -13428,17 +6641,9 @@ const docTemplate = `{
                 "deleted_at": {
                     "type": "string"
                 },
-                "level_id": {
-                    "type": "integer",
-                    "example": 3
-                },
                 "name": {
                     "type": "string",
                     "example": "Senior Software Engineer"
-                },
-                "position_id": {
-                    "type": "integer",
-                    "example": 2
                 }
             }
         },
@@ -13523,7 +6728,8 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
+        "BearerAuth": {
+            "description": "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
@@ -13535,7 +6741,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "JK API",
 	Description:      "JalanKerja API Server",

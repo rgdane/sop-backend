@@ -21,8 +21,8 @@ func SpkJobRoutes(router fiber.Router, c *container.AppContainer) {
 	app.Put("/graph/:id", controllers.UpdateGraphSpkJobs(c))
 	app.Delete("/graph/:id", controllers.DeleteGraphSpkJob(c))
 
-	app.Get("/sql/", controllers.GetSpkJobs(c))
-	app.Get("/sql/:id", controllers.GetSpkJobByID(c))
+	app.Get("/sql/", controllers.GetSqlSpkJobs(c))
+	app.Get("/sql/:id", controllers.GetSqlSpkJobByID(c))
 	app.Post("/sql/", controllers.CreateSqlSpkJob(c))
 	app.Put("/sql/:id", controllers.UpdateSqlSpkJobs(c))
 	app.Delete("/sql/:id", controllers.DeleteSqlSpkJob(c))

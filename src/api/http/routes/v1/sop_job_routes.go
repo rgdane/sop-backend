@@ -23,8 +23,8 @@ func SopJobRoutes(router fiber.Router, c *container.AppContainer) {
 	app.Put("/graph/:id", controllers.UpdateGraphSopJobs(c))
 	app.Delete("/graph/:id", controllers.DeleteGraphSopJobs(c))
 
-	app.Get("/sql/", controllers.GetSopJobs(c))
-	app.Get("/sql/:id", controllers.GetSopJobByID(c))
+	app.Get("/sql/", controllers.GetSqlSopJobs(c))
+	app.Get("/sql/:id", controllers.GetSqlSopJobByID(c))
 	app.Post("/sql/", controllers.CreateSqlSopJobs(c))
 	app.Put("/sql/:id", controllers.UpdateSqlSopJobs(c))
 	app.Delete("/sql/:id", controllers.DeleteSqlSopJobs(c))

@@ -21,7 +21,7 @@ func SpkRoutes(router fiber.Router, c *container.AppContainer) {
 	app.Put("/graph/:id", controllers.UpdateGraphSpk(c))
 	app.Delete("/graph/:id", controllers.DeleteGraphSpk(c))
 
-	app.Get("/sql/", controllers.GetSpks(c))
+	app.Get("/sql/", controllers.GetSqlSpks(c))
 	app.Get("/sql/:id", controllers.GetSpkByID(c))
 	app.Post("/sql/", controllers.CreateSqlSpk(c))
 	app.Put("/sql/:id", controllers.UpdateSqlSpk(c))

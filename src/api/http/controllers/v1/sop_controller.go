@@ -14,21 +14,19 @@ import (
 
 // GetSops godoc
 //
-//	@Summary		Get all SOPs
-//	@Description	Get list of SOPs with optional filters
-//	@Tags			sops
+//	@Summary		Get all SOPs (Hybrid)
+//	@Description	Get list of SOPs from both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			title_id		query	int64	false	"Title ID filter"
-//	@Param			division_id		query	int64	false	"Division ID filter"
-//	@Param			cursor			query	int64	false	"Cursor for pagination"
-//	@Param			limit			query	int64	false	"Limit for pagination"
-//	@Param			exclude_id		query	int64	false	"Exclude ID filter"
-//	@Param			code			query	string	false	"Code filter"
-//	@Param			name			query	string	false	"Name filter"
+//	@Param			division_id	query	int64	false	"Division ID filter"
+//	@Param			cursor		query	int64	false	"Cursor for pagination"
+//	@Param			limit		query	int64	false	"Limit for pagination"
+//	@Param			name		query	string	false	"Name filter"
 //	@Param			show_deleted	query	bool	false	"Show deleted SOPs"
-//	@Param			preload			query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Param			preload		query	bool	false	"Preload relations"
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/sops [get]
@@ -65,6 +63,73 @@ func GetSops(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// GetSqlSops godoc
+//
+//	@Summary		Get all SOPs (SQL only)
+//	@Description	Get list of SOPs from SQL database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			title_id		query	int64	false	"Title ID filter"
+//	@Param			division_id	query	int64	false	"Division ID filter"
+//	@Param			cursor		query	int64	false	"Cursor for pagination"
+//	@Param			limit		query	int64	false	"Limit for pagination"
+//	@Param			name		query	string	false	"Name filter"
+//	@Param			show_deleted	query	bool	false	"Show deleted SOPs"
+//	@Param			preload		query	bool	false	"Preload relations"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/sql [get]
+func GetSqlSops(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		titleId, _ := helper.ParseQueryInt64(c, "title_id")
+		divisionId, _ := helper.ParseQueryInt64(c, "division_id")
+		divisionIds, _ := helper.ParseQueryInt64Array(c, "division_ids")
+		cursor, _ := helper.ParseQueryInt64(c, "cursor")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
+		excludeId, _ := helper.ParseQueryInt64(c, "exclude_id")
+		code := c.Query("code")
+		name := c.Query("name")
+		deleted := c.Query("show_deleted", "false") == "true"
+
+		filter := dto.SopFilterDto{
+			TitleID:     titleId,
+			DivisionID:  divisionId,
+			DivisionIDs: divisionIds,
+			Preload:     c.Query("preload", "false") == "true",
+			Cursor:      cursor,
+			ShowDeleted: deleted,
+			Limit:       limit,
+			Code:        &code,
+			Name:        name,
+			ExcludeID:   excludeId,
+		}
+
+		data, total, err := cn.SopHandler.GetAllSopsHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetGraphSops godoc
+//
+//	@Summary		Get all SOPs (Graph only)
+//	@Description	Get list of SOPs from Graph database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			title_id		query	int64	false	"Title ID filter"
+//	@Param			cursor		query	int64	false	"Cursor for pagination"
+//	@Param			limit		query	int64	false	"Limit for pagination"
+//	@Param			name		query	string	false	"Name filter"
+//	@Param			show_deleted	query	bool	false	"Show deleted SOPs"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/graph [get]
 func GetGraphSops(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		titleId, _ := helper.ParseQueryInt64(c, "title_id")
@@ -100,14 +165,14 @@ func GetGraphSops(cn *container.AppContainer) fiber.Handler {
 
 // GetSopByID godoc
 //
-//	@Summary		Get SOP by ID
-//	@Description	Get a specific SOP by its ID
-//	@Tags			sops
+//	@Summary		Get SOP by ID (Hybrid)
+//	@Description	Get a specific SOP by its ID from both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path	int64	true	"SOP ID"
 //	@Param			preload	query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -131,6 +196,52 @@ func GetSopByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// GetSqlSopByID godoc
+//
+//	@Summary		Get SOP by ID (SQL only)
+//	@Description	Get a specific SOP by its ID from SQL database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int64	true	"SOP ID"
+//	@Param			preload	query	bool	false	"Preload relations"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/sql/{id} [get]
+func GetSqlSopByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		filter := dto.SopFilterDto{
+			Preload: c.Query("preload", "false") == "true",
+		}
+
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.SopHandler.GetSopByIDHandler(id, filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
+// GetGraphSopByID godoc
+//
+//	@Summary		Get SOP by ID (Graph only)
+//	@Description	Get a specific SOP by its ID from Graph database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int64	true	"SOP ID"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/graph/{id} [get]
 func GetGraphSopByID(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -150,11 +261,11 @@ func GetGraphSopByID(cn *container.AppContainer) fiber.Handler {
 //
 //	@Summary		Count SOPs
 //	@Description	Get count of SOPs with optional filters
-//	@Tags			sops
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			title_id	query	int64	false	"Title ID filter"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/sops/count [get]
@@ -176,14 +287,14 @@ func CountSops(cn *container.AppContainer) fiber.Handler {
 
 // CreateSop godoc
 //
-//	@Summary		Create a new SOP
-//	@Description	Create a new SOP entry
-//	@Tags			sops
+//	@Summary		Create SOP (Hybrid)
+//	@Description	Create a new SOP in both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.CreateSopDto	true	"SOP data"
-//	@Security		ApiKeyAuth
-//	@Success		200	{object}	presenters.SuccessResponse
+//	@Security		BearerAuth
+//	@Success		201	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/sops [post]
@@ -202,6 +313,19 @@ func CreateSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// CreateSqlSop godoc
+//
+//	@Summary		Create SOP (SQL only)
+//	@Description	Create a new SOP in SQL database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body	dto.CreateSopDto	true	"SOP data"
+//	@Security		BearerAuth
+//	@Success		201	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/sql [post]
 func CreateSqlSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSopDto
@@ -217,6 +341,19 @@ func CreateSqlSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// CreateGraphSop godoc
+//
+//	@Summary		Create SOP (Graph only)
+//	@Description	Create a new SOP in Graph database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body	dto.CreateSopDto	true	"SOP data"
+//	@Security		BearerAuth
+//	@Success		201	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/graph [post]
 func CreateGraphSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSopDto
@@ -234,14 +371,14 @@ func CreateGraphSop(cn *container.AppContainer) fiber.Handler {
 
 // UpdateSop godoc
 //
-//	@Summary		Update an existing SOP
-//	@Description	Update SOP by ID
-//	@Tags			sops
+//	@Summary		Update SOP (Hybrid)
+//	@Description	Update an existing SOP in both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path	int64				true	"SOP ID"
 //	@Param			request	body	dto.UpdateSopDto	true	"Updated SOP data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -266,6 +403,20 @@ func UpdateSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// UpdateSqlSop godoc
+//
+//	@Summary		Update SOP (SQL only)
+//	@Description	Update an existing SOP in SQL database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int64				true	"SOP ID"
+//	@Param			request	body	dto.UpdateSopDto	true	"Updated SOP data"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/sql/{id} [put]
 func UpdateSqlSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.UpdateSopDto
@@ -286,6 +437,20 @@ func UpdateSqlSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// UpdateGraphSop godoc
+//
+//	@Summary		Update SOP (Graph only)
+//	@Description	Update an existing SOP in Graph database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int64				true	"SOP ID"
+//	@Param			request	body	dto.UpdateSopDto	true	"Updated SOP data"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/graph/{id} [put]
 func UpdateGraphSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.UpdateSopDto
@@ -308,14 +473,14 @@ func UpdateGraphSop(cn *container.AppContainer) fiber.Handler {
 
 // DeleteSop godoc
 //
-//	@Summary		Delete an SOP
-//	@Description	Delete SOP by ID (soft or permanent)
-//	@Tags			sops
+//	@Summary		Delete SOP (Hybrid)
+//	@Description	Delete SOP from both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			id			path	int64	true	"SOP ID"
 //	@Param			isPermanent	query	bool	false	"Permanent delete"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -336,6 +501,20 @@ func DeleteSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// DeleteSqlSop godoc
+//
+//	@Summary		Delete SOP (SQL only)
+//	@Description	Delete SOP from SQL database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path	int64	true	"SOP ID"
+//	@Param			isPermanent	query	bool	false	"Permanent delete"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/sql/{id} [delete]
 func DeleteSqlSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -352,6 +531,19 @@ func DeleteSqlSop(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// DeleteGraphSop godoc
+//
+//	@Summary		Delete SOP (Graph only)
+//	@Description	Delete SOP from Graph database only
+//	@Tags			SOP
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int64	true	"SOP ID"
+//	@Security		BearerAuth
+//	@Success		200	{object}	presenters.SuccessResponse
+//	@Failure		400	{object}	presenters.ErrorResponse
+//	@Failure		500	{object}	presenters.ErrorResponse
+//	@Router			/sops/graph/{id} [delete]
 func DeleteGraphSop(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -369,14 +561,14 @@ func DeleteGraphSop(cn *container.AppContainer) fiber.Handler {
 
 // BulkCreateSops godoc
 //
-//	@Summary		Bulk create SOPs
-//	@Description	Create multiple SOPs at once
-//	@Tags			sops
+//	@Summary		Bulk create SOPs (Hybrid)
+//	@Description	Create multiple SOPs in both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.BulkCreateSopsDto	true	"Bulk SOP data"
-//	@Security		ApiKeyAuth
-//	@Success		200	{object}	presenters.SuccessResponse
+//	@Security		BearerAuth
+//	@Success		201	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/sops/bulk-create [post]
@@ -400,13 +592,13 @@ func BulkCreateSops(cn *container.AppContainer) fiber.Handler {
 
 // BulkUpdateSops godoc
 //
-//	@Summary		Bulk update SOPs
-//	@Description	Update multiple SOPs at once
-//	@Tags			sops
+//	@Summary		Bulk update SOPs (Hybrid)
+//	@Description	Update multiple SOPs in both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.BulkUpdateSopDto	true	"Bulk update data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -434,14 +626,14 @@ func BulkUpdateSops(cn *container.AppContainer) fiber.Handler {
 
 // BulkDeleteSops godoc
 //
-//	@Summary		Bulk delete SOPs
-//	@Description	Delete multiple SOPs at once
-//	@Tags			sops
+//	@Summary		Bulk delete SOPs (Hybrid)
+//	@Description	Delete multiple SOPs from both SQL and Graph database
+//	@Tags			SOP
 //	@Accept			json
 //	@Produce		json
 //	@Param			request		body	dto.BulkDeleteSopDto	true	"Bulk delete data"
 //	@Param			isPermanent	query	bool					false	"Permanent delete"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse

@@ -26,7 +26,7 @@ func NewAuthController(h *handlers.AuthHandler) *AuthController {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		401	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse

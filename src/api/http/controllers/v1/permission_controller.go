@@ -21,7 +21,7 @@ import (
 //	@Produce		json
 //	@Param			role_id	query	int64	false	"Role ID filter"
 //	@Param			preload	query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/permissions [get]
@@ -50,7 +50,7 @@ func GetPermissions(cn *container.AppContainer) fiber.Handler {
 //	@Produce		json
 //	@Param			id		path	int64	true	"Permission ID"
 //	@Param			preload	query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -82,7 +82,7 @@ func GetPermissionByID(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.CreatePermissionDto	true	"Permission data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -111,7 +111,7 @@ func CreatePermissions(cn *container.AppContainer) fiber.Handler {
 //	@Produce		json
 //	@Param			id		path	int64					true	"Permission ID"
 //	@Param			request	body	dto.UpdatePermissionDto	true	"Updated permission data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -144,7 +144,7 @@ func UpdatePermissions(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path	int64	true	"Permission ID"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse

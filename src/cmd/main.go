@@ -16,11 +16,12 @@ import (
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-//	@BasePath	/
+//	@BasePath	/api/v1
 
-// @securityDefinitions.apikey	ApiKeyAuth
+// @securityDefinitions.apikey	BearerAuth
 // @in							header
 // @name						Authorization
+// @description					JWT Authorization header using the Bearer scheme. Example: "Bearer {token}"
 func main() {
 	bootstrap.Setup()
 }

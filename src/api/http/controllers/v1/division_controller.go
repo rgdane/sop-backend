@@ -27,7 +27,7 @@ import (
 //	@Param			name			query	string	false	"Name filter"
 //	@Param			show_deleted	query	bool	false	"Show deleted divisions"
 //	@Param			preload			query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/divisions [get]
@@ -41,14 +41,14 @@ func GetDivisions(cn *container.AppContainer) fiber.Handler {
 		name := c.Query("name")
 
 		filter := dto.DivisionFilterDto{
-			SopId:        sopId,
-			Preload:      c.Query("preload", "false") == "true",
-			Sort:         sort,
-			Order:        order,
-			Cursor:       cursor,
-			Limit:        limit,
-			Name:         name,
-			ShowDeleted:  c.Query("show_deleted", "false") == "true",
+			SopId:       sopId,
+			Preload:     c.Query("preload", "false") == "true",
+			Sort:        sort,
+			Order:       order,
+			Cursor:      cursor,
+			Limit:       limit,
+			Name:        name,
+			ShowDeleted: c.Query("show_deleted", "false") == "true",
 		}
 
 		data, total, err := cn.DivisionHandler.GetAllDivisionsHandler(filter)
@@ -69,14 +69,14 @@ func GetGraphDivisions(cn *container.AppContainer) fiber.Handler {
 		name := c.Query("name")
 
 		filter := dto.DivisionFilterDto{
-			SopId:        sopId,
-			Preload:      c.Query("preload", "false") == "true",
-			Sort:         sort,
-			Order:        order,
-			Cursor:       cursor,
-			Limit:        limit,
-			Name:         name,
-			ShowDeleted:  c.Query("show_deleted", "false") == "true",
+			SopId:       sopId,
+			Preload:     c.Query("preload", "false") == "true",
+			Sort:        sort,
+			Order:       order,
+			Cursor:      cursor,
+			Limit:       limit,
+			Name:        name,
+			ShowDeleted: c.Query("show_deleted", "false") == "true",
 		}
 
 		data, total, err := cn.DivisionHandler.GetAllDivisionsGraphHandler(filter)
@@ -96,7 +96,7 @@ func GetGraphDivisions(cn *container.AppContainer) fiber.Handler {
 //	@Produce		json
 //	@Param			id		path	int64	true	"Division ID"
 //	@Param			preload	query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -142,7 +142,7 @@ func GetGraphDivisionByID(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.CreateDivisionDto	true	"Division data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -201,7 +201,7 @@ func CreateGraphDivision(cn *container.AppContainer) fiber.Handler {
 //	@Produce		json
 //	@Param			id		path	int64					true	"Division ID"
 //	@Param			request	body	dto.UpdateDivisionDto	true	"Updated division data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -274,7 +274,7 @@ func UpdateGraphDivision(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path	int64	true	"Division ID"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -329,7 +329,7 @@ func DeleteGraphDivision(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.BulkCreateDivisionDto	true	"Bulk division data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -360,7 +360,7 @@ func BulkCreateDivisions(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.BulkUpdateDivisionDto	true	"Bulk update data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -394,7 +394,7 @@ func BulkUpdateDivisions(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.BulkDeleteDivisionDto	true	"Bulk delete data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse

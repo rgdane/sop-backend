@@ -13,6 +13,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// GetSopJobs godoc
+// @Summary Get all SOP Jobs (Hybrid)
+// @Description Get all SOP Jobs from both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param sop_id query int64 false "SOP ID"
+// @Param title_id query int64 false "Title ID"
+// @Param page query int64 false "Page for pagination"
+// @Param limit query int64 false "Limit for pagination"
+// @Param name query string false "Filter by name"
+// @Param show_deleted query bool false "Show deleted records"
+// @Param preload query bool false "Preload relations"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs [get]
 func GetSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sopID, _ := helper.ParseQueryInt64(c, "sop_id")
@@ -39,6 +56,62 @@ func GetSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// GetSqlSopJobs godoc
+// @Summary Get all SOP Jobs (SQL only)
+// @Description Get all SOP Jobs from SQL database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param sop_id query int64 false "SOP ID"
+// @Param title_id query int64 false "Title ID"
+// @Param page query int64 false "Page for pagination"
+// @Param limit query int64 false "Limit for pagination"
+// @Param name query string false "Filter by name"
+// @Param show_deleted query bool false "Show deleted records"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/sql [get]
+func GetSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		sopID, _ := helper.ParseQueryInt64(c, "sop_id")
+		titleID, _ := helper.ParseQueryInt64(c, "title_id")
+		page, _ := helper.ParseQueryInt64(c, "page")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
+		name := c.Query("name", "")
+
+		filter := dto.SopJobFilterDto{
+			Preload:     c.Query("preload", "false") == "true",
+			SopID:       sopID,
+			TitleID:     titleID,
+			Page:        page,
+			Limit:       limit,
+			Name:        name,
+			ShowDeleted: c.Query("show_deleted", "false") == "true",
+		}
+
+		data, total, err := cn.SopJobHandler.GetAllSopJobsHandler(filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetGraphSopJobs godoc
+// @Summary Get all SOP Jobs (Graph only)
+// @Description Get all SOP Jobs from Graph database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param sop_id query int64 false "SOP ID"
+// @Param title_id query int64 false "Title ID"
+// @Param name query string false "Filter by name"
+// @Param show_deleted query bool false "Show deleted records"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/graph [get]
 func GetGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sopID, _ := helper.ParseQueryInt64(c, "sop_id")
@@ -62,6 +135,19 @@ func GetGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// GetSopJobByID godoc
+// @Summary Get SOP Job by ID (Hybrid)
+// @Description Get a single SOP Job by ID from both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param preload query bool false "Preload associations"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/{id} [get]
 func GetSopJobByID(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		filter := dto.SopJobFilterDto{
@@ -81,6 +167,50 @@ func GetSopJobByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// GetSqlSopJobByID godoc
+// @Summary Get SOP Job by ID (SQL only)
+// @Description Get a single SOP Job by ID from SQL database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param preload query bool false "Preload associations"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/sql/{id} [get]
+func GetSqlSopJobByID(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		filter := dto.SopJobFilterDto{
+			Preload: c.Query("preload", "false") == "true",
+		}
+
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid ID")
+		}
+
+		data, err := cn.SopJobHandler.GetSopJobByIDHandler(id, filter)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data)
+	}
+}
+
+// GetGraphSopJobByID godoc
+// @Summary Get SOP Job by ID (Graph only)
+// @Description Get a single SOP Job by ID from Graph database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/graph/{id} [get]
 func GetGraphSopJobByID(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -96,6 +226,18 @@ func GetGraphSopJobByID(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// CreateSopJobs godoc
+// @Summary Create SOP Job (Hybrid)
+// @Description Create a new SOP Job in both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateSopJobDto true "SOP Job data"
+// @Security BearerAuth
+// @Success 201 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs [post]
 func CreateSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSopJobDto
@@ -111,6 +253,18 @@ func CreateSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// CreateSqlSopJobs godoc
+// @Summary Create SOP Job (SQL only)
+// @Description Create a new SOP Job in SQL database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateSopJobDto true "SOP Job data"
+// @Security BearerAuth
+// @Success 201 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/sql [post]
 func CreateSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSopJobDto
@@ -126,6 +280,18 @@ func CreateSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// CreateGraphSopJobs godoc
+// @Summary Create SOP Job (Graph only)
+// @Description Create a new SOP Job in Graph database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateSopJobDto true "SOP Job data"
+// @Security BearerAuth
+// @Success 201 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/graph [post]
 func CreateGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.CreateSopJobDto
@@ -141,6 +307,19 @@ func CreateGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// UpdateSopJobs godoc
+// @Summary Update SOP Job (Hybrid)
+// @Description Update an existing SOP Job in both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param request body dto.UpdateSopJobDto true "SOP Job update data"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/{id} [put]
 func UpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -161,6 +340,19 @@ func UpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// UpdateSqlSopJobs godoc
+// @Summary Update SOP Job (SQL only)
+// @Description Update an existing SOP Job in SQL database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param request body dto.UpdateSopJobDto true "SOP Job update data"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/sql/{id} [put]
 func UpdateSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -181,6 +373,19 @@ func UpdateSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// UpdateGraphSopJobs godoc
+// @Summary Update SOP Job (Graph only)
+// @Description Update an existing SOP Job in Graph database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param request body dto.UpdateSopJobDto true "SOP Job update data"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/graph/{id} [put]
 func UpdateGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -201,6 +406,19 @@ func UpdateGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// DeleteSopJobs godoc
+// @Summary Delete SOP Job (Hybrid)
+// @Description Delete a SOP Job from both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param isPermanent query bool false "Permanent delete (default: false)"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/{id} [delete]
 func DeleteSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -216,6 +434,19 @@ func DeleteSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// DeleteSqlSopJobs godoc
+// @Summary Delete SOP Job (SQL only)
+// @Description Delete a SOP Job from SQL database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param isPermanent query bool false "Permanent delete (default: false)"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/sql/{id} [delete]
 func DeleteSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -231,6 +462,18 @@ func DeleteSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// DeleteGraphSopJobs godoc
+// @Summary Delete SOP Job (Graph only)
+// @Description Delete a SOP Job from Graph database only
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/graph/{id} [delete]
 func DeleteGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
@@ -245,6 +488,18 @@ func DeleteGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// BulkCreateSopJobs godoc
+// @Summary Bulk create SOP Jobs (Hybrid)
+// @Description Create multiple SOP Jobs in both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param request body dto.BulkCreateSopJobs true "Bulk SOP Job data"
+// @Security BearerAuth
+// @Success 201 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/bulk-create [post]
 func BulkCreateSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.BulkCreateSopJobs
@@ -263,6 +518,18 @@ func BulkCreateSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// BulkUpdateSopJobs godoc
+// @Summary Bulk update SOP Jobs (Hybrid)
+// @Description Update multiple SOP Jobs in both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param request body dto.BulkUpdateSopJobDto true "Bulk update data"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/bulk-update [put]
 func BulkUpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.BulkUpdateSopJobDto
@@ -284,6 +551,19 @@ func BulkUpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// BulkDeleteSopJobs godoc
+// @Summary Bulk delete SOP Jobs (Hybrid)
+// @Description Delete multiple SOP Jobs from both SQL and Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param isPermanent query bool false "Permanent delete (default: false)"
+// @Param request body dto.BulkDeleteSopJobDto true "Bulk delete data"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/bulk-delete [delete]
 func BulkDeleteSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var input dto.BulkDeleteSopJobDto
@@ -305,6 +585,19 @@ func BulkDeleteSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// ReorderSopJob godoc
+// @Summary Reorder SOP Job
+// @Description Reorder SOP Job index within an SOP
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param id path int true "SOP Job ID"
+// @Param request body dto.ReorderSopJobDto true "Reorder data"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/{id}/reorder [put]
 func ReorderSopJob(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)

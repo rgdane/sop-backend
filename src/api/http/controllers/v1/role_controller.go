@@ -19,7 +19,7 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Param			preload	query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
 //	@Router			/roles [get]
@@ -46,7 +46,7 @@ func GetRoles(cn *container.AppContainer) fiber.Handler {
 //	@Produce		json
 //	@Param			id		path	int64	true	"Role ID"
 //	@Param			preload	query	bool	false	"Preload relations"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -78,7 +78,7 @@ func GetRoleByID(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	dto.CreateRoleDto	true	"Role data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -107,7 +107,7 @@ func CreateRoles(cn *container.AppContainer) fiber.Handler {
 //	@Produce		json
 //	@Param			id		path	int64				true	"Role ID"
 //	@Param			request	body	dto.UpdateRoleDto	true	"Updated role data"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse
@@ -140,7 +140,7 @@ func UpdateRoles(cn *container.AppContainer) fiber.Handler {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path	int64	true	"Role ID"
-//	@Security		ApiKeyAuth
+//	@Security		BearerAuth
 //	@Success		200	{object}	presenters.SuccessResponse
 //	@Failure		400	{object}	presenters.ErrorResponse
 //	@Failure		500	{object}	presenters.ErrorResponse

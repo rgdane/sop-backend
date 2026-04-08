@@ -111,6 +111,6 @@ go run src/cmd/main.go
 
 2. Buka browser dan akses:
 ```
-http://localhost:8080/swagger/index.html
+http://localhost:5000/swagger/index.html
 ```
 
