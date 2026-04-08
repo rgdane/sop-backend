@@ -2,14 +2,16 @@ package service
 
 import (
 	"fmt"
+	"time"
+
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
-	"jk-api/pkg/errors/gorm_err"
-	"jk-api/internal/shared/helper"
+	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/repository/sql"
+	"jk-api/internal/shared/helper"
+	"jk-api/pkg/errors/gorm_err"
 	"jk-api/pkg/neo4j/builder"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,30 +21,43 @@ type SpkJobService interface {
 
 	CreateSpkJob(input *models.SpkJob) (*models.SpkJob, error)
 	UpdateSpkJob(id int64, updates map[string]interface{}) (*models.SpkJob, error)
-	DeleteSpkJob(id int64) error
+	DeleteSpkJob(id int64, isPermanent bool) error
 	GetAllSpkJobs(filter dto.SpkJobFilterDto) ([]models.SpkJob, error)
 	GetSpkJobByID(id int64, filter dto.SpkJobFilterDto) (*models.SpkJob, error)
 	GetSpkJobsByIDs(ids []int64) ([]*models.SpkJob, error)
 	GetDB() *gorm.DB
 	BulkCreateSpkJobs(data []*models.SpkJob) ([]*models.SpkJob, error)
 	BulkUpdateSpkJobs(ids []int64, updates map[string]interface{}) error
-	BulkDeleteSpkJobs(ids []int64) error
+	BulkDeleteSpkJobs(ids []int64, isPermanent bool) error
 	ReorderSpkJob(spkJobID int64, newIndex int, spkID int64) error
+	CountSpkJobs(filter dto.SpkJobFilterDto) (int64, error)
+
+	GetAllGraphSpkJobs(filter dto.SpkJobFilterDto) ([]*graphdb.SpkJobNode, error)
+	GetGraphSpkJobByID(id int64) (*graphdb.SpkJobNode, error)
+	InsertGraphSpkJob(data *graphdb.SpkJobNode) error
+	UpdateGraphSpkJob(data *graphdb.SpkJobNode) error
+	DeleteGraphSpkJob(spkJobId int64) error
+	BulkInsertGraphSpkJobs(data []*graphdb.SpkJobNode) error
+	BulkUpdateGraphSpkJobs(data []*graphdb.SpkJobNode) error
+	BulkDeleteGraphSpkJobs(ids []int64) error
+	CountGraphSpkJobs(filter dto.SpkJobFilterDto) (int64, error)
 }
 
 type spkJobService struct {
-	repo sql.SpkJobRepository
-	tx   *gorm.DB
+	repo      sql.SpkJobRepository
+	graphRepo graphdb.SpkJobRepository
+	tx        *gorm.DB
 }
 
-func NewSpkJobService(repo sql.SpkJobRepository) SpkJobService {
-	return &spkJobService{repo: repo}
+func NewSpkJobService(repo sql.SpkJobRepository, graphRepo graphdb.SpkJobRepository) SpkJobService {
+	return &spkJobService{repo: repo, graphRepo: graphRepo}
 }
 
 func (s *spkJobService) WithTx(tx *gorm.DB) SpkJobService {
 	return &spkJobService{
-		repo: s.repo.WithTx(tx),
-		tx:   tx,
+		repo:      s.repo.WithTx(tx),
+		graphRepo: s.graphRepo,
+		tx:        tx,
 	}
 }
 
@@ -59,8 +74,7 @@ func (s *spkJobService) CreateSpkJob(input *models.SpkJob) (*models.SpkJob, erro
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	// Sync to Neo4j - create Job node and relate to SPK Document
-	if err := s.insertGraphSpkJob(data); err != nil {
+	if err := s.InsertGraphSpkJob(toSpkJobNode(data)); err != nil {
 		return nil, fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
@@ -79,28 +93,31 @@ func (s *spkJobService) UpdateSpkJob(id int64, updates map[string]interface{}) (
 		return nil, gorm_err.TranslateGormError(err)
 	}
 
-	// Sync to Neo4j after SQL update
-	if err := s.updateGraphSpkJob(data); err != nil {
-		return nil, fmt.Errorf("neo4j sync failed: %w", err)
+	if err := s.UpdateGraphSpkJob(toSpkJobNode(data)); err != nil {
+		return nil, gorm_err.TranslateGormError(err)
 	}
 
 	return data, nil
 }
 
-func (s *spkJobService) DeleteSpkJob(id int64) error {
-	// Get SPK Job data before deletion for Neo4j cleanup
-	spkJob, err := s.repo.FindSpkJobByID(id)
+func (s *spkJobService) DeleteSpkJob(id int64, isPermanent bool) (err error) {
+	repo := s.repo
+	if isPermanent {
+		repo = repo.WithUnscoped()
+		err = repo.RemoveSpkJob(id)
+		return gorm_err.TranslateGormError(err)
+	}
+
+	_, err = s.repo.FindSpkJobByID(id)
 	if err != nil {
 		return gorm_err.TranslateGormError(err)
 	}
 
-	// Delete from Neo4j graph first
-	if err := s.deleteGraphSpkJob(spkJob); err != nil {
+	if err := s.DeleteGraphSpkJob(id); err != nil {
 		return fmt.Errorf("neo4j sync failed: %w", err)
 	}
 
-	// Then delete from SQL
-	err = s.repo.RemoveSpkJob(id)
+	err = repo.RemoveSpkJob(id)
 	return gorm_err.TranslateGormError(err)
 }
 
@@ -115,6 +132,15 @@ func (s *spkJobService) GetAllSpkJobs(filter dto.SpkJobFilterDto) ([]models.SpkJ
 	}
 	if filter.SpkID != 0 {
 		repo = repo.WithWhere("spk_id = ?", filter.SpkID)
+	}
+	if filter.SopID != 0 {
+		repo = repo.WithWhere("sop_id = ?", filter.SopID)
+	}
+	if filter.Name != "" {
+		repo = repo.WithWhere("name ILIKE ?", "%"+filter.Name+"%")
+	}
+	if filter.ShowDeleted {
+		repo = repo.WithUnscoped().WithWhere("deleted_at IS NOT NULL")
 	}
 
 	data, err := repo.FindSpkJobs()
@@ -136,40 +162,6 @@ func (s *spkJobService) GetSpkJobByID(id int64, filter dto.SpkJobFilterDto) (*mo
 	return data, nil
 }
 
-func (s *spkJobService) BulkUpdateSpkJobs(ids []int64, updates map[string]interface{}) error {
-	err := s.repo.UpdateManySpkJobs(ids, updates)
-	if err != nil {
-		return gorm_err.TranslateGormError(err)
-	}
-
-	// Sync to Neo4j using batch - reload SPK Jobs and update graph
-	spkJobs, err := s.repo.FindSpkJobsByIDs(ids)
-	if err != nil {
-		fmt.Printf("Failed to load SPK Jobs for graph sync: %v\n", err)
-		return nil
-	}
-
-	if err := s.batchUpdateGraphSpkJobs(spkJobs); err != nil {
-		fmt.Printf("Failed to batch update SPK Jobs in graph: %v\n", err)
-	}
-
-	return nil
-}
-
-func (s *spkJobService) BulkCreateSpkJobs(input []*models.SpkJob) ([]*models.SpkJob, error) {
-	datas, err := s.repo.InsertManySpkJobs(input)
-	if err != nil {
-		return nil, gorm_err.TranslateGormError(err)
-	}
-
-	// Sync to Neo4j using batch
-	if err := s.batchInsertGraphSpkJobs(datas); err != nil {
-		fmt.Printf("Failed to batch sync SPK Jobs to graph: %v\n", err)
-	}
-
-	return datas, nil
-}
-
 func (s *spkJobService) GetSpkJobsByIDs(ids []int64) ([]*models.SpkJob, error) {
 	data, err := s.repo.FindSpkJobsByIDs(ids)
 	if err != nil {
@@ -178,14 +170,72 @@ func (s *spkJobService) GetSpkJobsByIDs(ids []int64) ([]*models.SpkJob, error) {
 	return data, nil
 }
 
-func (s *spkJobService) BulkDeleteSpkJobs(ids []int64) error {
-	// Delete from Neo4j first using batch
-	if err := s.batchDeleteGraphSpkJobs(ids); err != nil {
-		fmt.Printf("Failed to batch delete SPK Jobs from graph: %v\n", err)
+func (s *spkJobService) BulkCreateSpkJobs(input []*models.SpkJob) ([]*models.SpkJob, error) {
+	datas, err := s.repo.InsertManySpkJobs(input)
+	if err != nil {
+		return nil, gorm_err.TranslateGormError(err)
+	}
+	if err := s.BulkInsertGraphSpkJobs(toSpkJobNodeSlice(datas)); err != nil {
+		return nil, fmt.Errorf("neo4j sync failed: %w", err)
+	}
+	return datas, nil
+}
+
+func (s *spkJobService) BulkUpdateSpkJobs(ids []int64, updates map[string]interface{}) error {
+	repo := s.repo
+
+	if _, ok := updates["deleted_at"]; ok {
+		repo = repo.WithUnscoped()
+		deletedAtValue := updates["deleted_at"]
+		shouldRestore := false
+
+		switch v := deletedAtValue.(type) {
+		case nil:
+			shouldRestore = true
+		case *time.Time:
+			shouldRestore = (v == nil)
+		case time.Time:
+			shouldRestore = v.IsZero()
+		default:
+			shouldRestore = false
+		}
+
+		if shouldRestore {
+			if err := s.spkJobRestore(ids); err != nil {
+				return err
+			}
+			err := repo.UpdateManySpkJobs(ids, updates)
+			return gorm_err.TranslateGormError(err)
+		}
 	}
 
-	// Then delete from SQL
-	err := s.repo.RemoveManySpkJobs(ids)
+	updatedJobs, err := s.repo.FindSpkJobsByIDs(ids)
+	if err != nil {
+		return gorm_err.TranslateGormError(err)
+	}
+
+	if err := s.BulkUpdateGraphSpkJobs(toSpkJobNodeSlice(updatedJobs)); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
+	}
+
+	err = repo.UpdateManySpkJobs(ids, updates)
+	return gorm_err.TranslateGormError(err)
+}
+
+func (s *spkJobService) BulkDeleteSpkJobs(ids []int64, isPermanent bool) (err error) {
+	repo := s.repo
+
+	if isPermanent {
+		repo = repo.WithUnscoped()
+		err = repo.RemoveManySpkJobs(ids)
+		return gorm_err.TranslateGormError(err)
+	}
+
+	if err := s.BulkDeleteGraphSpkJobs(ids); err != nil {
+		return fmt.Errorf("neo4j sync failed: %w", err)
+	}
+
+	err = repo.RemoveManySpkJobs(ids)
 	return gorm_err.TranslateGormError(err)
 }
 
@@ -206,359 +256,181 @@ func (s *spkJobService) ReorderSpkJob(spkJobID int64, newIndex int, spkID int64)
 	return db.Commit().Error
 }
 
-// insertGraphSpkJob creates Job node in Neo4j and relates to SPK node
-func (s *spkJobService) insertGraphSpkJob(data *models.SpkJob) error {
-	jobParam := map[string]interface{}{
-		"spkId":       data.SpkID,
-		"id":          data.ID,
-		"name":        data.Name,
-		"description": helper.ToJSONString(data.Description),
-		"index":       data.Index,
-		"sopId":       data.SopID,
-		// Asumsi ada ikId jika menggunakan Instruksi Kerja
-		// "ikId":        data.IkID, 
-		"titleId":     data.TitleID,
-		"flowchartId": data.FlowchartID,
-		"nextIndex":   data.NextIndex,
-		"prevIndex":   data.PrevIndex,
+func (s *spkJobService) CountSpkJobs(filter dto.SpkJobFilterDto) (int64, error) {
+	repo := s.repo
+	if filter.SpkID != 0 {
+		repo = repo.WithWhere("spk_id = ?", filter.SpkID)
 	}
 
-	// 🔹 1. Create Job node & Relasi dari SPK
-	insertGraph := builder.NewGraphRepository()
-	if err := insertGraph.
-		WithMatch("(s:SPK {id: $spkId})").
-		WithMerge("(s)-[:HAS_JOB]->(j:Job {id: $id})").
-		WithSet(`j.name = $name, 
-			j.description = $description, 
-			j.index = $index,
-			j.sop_id = $sopId,
-			j.title_id = $titleId,
-			j.flowchart_id = $flowchartId,
-			j.next_index = $nextIndex,
-			j.prev_index = $prevIndex`, nil).
-		WithParams(jobParam).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to create SPK Job node: %w", err)
+	data, err := repo.CountSpkJobs()
+	if err != nil {
+		return 0, gorm_err.TranslateGormError(err)
 	}
 
-	// 🔹 2. Create HAS_REFERENCE Relation (Hanya SOP atau IK)
-	if data.SopID != nil && *data.SopID != 0 {
-		refGraph := builder.NewGraphRepository()
-		if err := refGraph.
-			WithMatch("(j:Job {id: $id})").
-			WithMatch("(sop:SOP {id: $sopId})").
-			WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-			WithParams(map[string]any{"id": data.ID, "sopId": *data.SopID}).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE to SOP: %w", err)
+	return data, nil
+}
+
+func (s *spkJobService) GetAllGraphSpkJobs(filter dto.SpkJobFilterDto) ([]*graphdb.SpkJobNode, error) {
+	return s.graphRepo.GetAllGraphSpkJobs(filter)
+}
+
+func (s *spkJobService) GetGraphSpkJobByID(id int64) (*graphdb.SpkJobNode, error) {
+	return s.graphRepo.GetGraphSpkJobByID(id)
+}
+
+func (s *spkJobService) InsertGraphSpkJob(data *graphdb.SpkJobNode) error {
+	return s.graphRepo.InsertGraphSpkJob(data)
+}
+
+func (s *spkJobService) UpdateGraphSpkJob(data *graphdb.SpkJobNode) error {
+	return s.graphRepo.UpdateGraphSpkJob(data)
+}
+
+func (s *spkJobService) DeleteGraphSpkJob(spkJobId int64) error {
+	return s.graphRepo.DeleteGraphSpkJob(spkJobId)
+}
+
+func (s *spkJobService) BulkInsertGraphSpkJobs(data []*graphdb.SpkJobNode) error {
+	return s.graphRepo.BulkInsertGraphSpkJobs(data)
+}
+
+func (s *spkJobService) BulkUpdateGraphSpkJobs(data []*graphdb.SpkJobNode) error {
+	return s.graphRepo.BulkUpdateGraphSpkJobs(data)
+}
+
+func (s *spkJobService) BulkDeleteGraphSpkJobs(ids []int64) error {
+	return s.graphRepo.BulkDeleteGraphSpkJobs(ids)
+}
+
+func (s *spkJobService) CountGraphSpkJobs(filter dto.SpkJobFilterDto) (int64, error) {
+	return s.graphRepo.CountGraphSpkJobs(filter)
+}
+
+func toSpkJobNode(m *models.SpkJob) *graphdb.SpkJobNode {
+	return &graphdb.SpkJobNode{
+		ID:          m.ID,
+		Name:        m.Name,
+		Description: helper.ToJSONString(m.Description),
+		SpkID:       m.SpkID,
+		SopID:       m.SopID,
+		TitleID:     m.TitleID,
+		Index:       m.Index,
+		FlowchartID: m.FlowchartID,
+		NextIndex:   m.NextIndex,
+		PrevIndex:   m.PrevIndex,
+		CreatedAt:   m.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339Nano),
+	}
+}
+
+func toSpkJobNodeSlice(m []*models.SpkJob) []*graphdb.SpkJobNode {
+	result := make([]*graphdb.SpkJobNode, 0, len(m))
+	for _, spkJob := range m {
+		result = append(result, toSpkJobNode(spkJob))
+	}
+	return result
+}
+
+func (s *spkJobService) spkJobRestore(ids []int64) error {
+	var spkJobs []models.SpkJob
+	if err := s.GetDB().Unscoped().Where("id IN ? AND deleted_at IS NOT NULL", ids).Find(&spkJobs).Error; err != nil {
+		return err
+	}
+
+	for _, spkJob := range spkJobs {
+		var updatedSpkJob models.SpkJob
+		if err := s.GetDB().Unscoped().Where("id = ?", spkJob.ID).First(&updatedSpkJob).Error; err != nil {
+			return err
 		}
-	} 
-    // ELSE IF untuk Instruksi Kerja (IK) - Uncomment & sesuaikan jika ada di modelmu
-    /* else if data.IkID != nil && *data.IkID != 0 {
-		ikGraph := builder.NewGraphRepository()
-		if err := ikGraph.
-			WithMatch("(j:Job {id: $id})").
-			WithMatch("(ik:IK {id: $ikId})"). // Pastikan Label Instruksi Kerja di Neo4j
-			WithMerge("(j)-[:HAS_REFERENCE]->(ik)").
-			WithParams(map[string]any{"id": data.ID, "ikId": *data.IkID}).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to create HAS_REFERENCE to IK: %w", err)
+
+		if updatedSpkJob.CreatedAt.IsZero() {
+			updatedSpkJob.CreatedAt = time.Now()
+		}
+		updatedSpkJob.UpdatedAt = time.Now()
+
+		if err := s.removeDeletedAtFromGraph(updatedSpkJob.ID); err != nil {
+			return fmt.Errorf("failed to remove deleted_at from graph: %w", err)
+		}
+
+		if err := s.insertGraphSpkJobWithRelations(&updatedSpkJob); err != nil {
+			return fmt.Errorf("failed to restore SPK Job graph: %w", err)
 		}
 	}
-    */
-
 	return nil
 }
 
-// updateGraphSpkJob updates Job node in Neo4j
-func (s *spkJobService) updateGraphSpkJob(data *models.SpkJob) error {
-	jobParam := map[string]interface{}{
-		"id":          data.ID,
-		"name":        data.Name,
-		"description": helper.ToJSONString(data.Description),
-		"index":       data.Index,
-		"sopId":       data.SopID,
-		"titleId":     data.TitleID,
-		"flowchartId": data.FlowchartID,
-		"nextIndex":   data.NextIndex,
-		"prevIndex":   data.PrevIndex,
-	}
-
-	// 🔹 1. Update Properties
-	updateGraph := builder.NewGraphRepository()
-	if err := updateGraph.
-		WithMatch("(j:Job {id: $id})").
-		WithSet(`j.name = $name, 
-			j.description = $description, 
-			j.index = $index,
-			j.sop_id = $sopId,
-			j.title_id = $titleId,
-			j.flowchart_id = $flowchartId,
-			j.next_index = $nextIndex,
-			j.prev_index = $prevIndex`, nil).
-		WithParams(jobParam).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to update SPK Job node properties: %w", err)
-	}
-
-	// 🔹 2. Hapus Relasi HAS_REFERENCE yang lama
-	deleteRefGraph := builder.NewGraphRepository()
-	if err := deleteRefGraph.
-		WithMatch("(j:Job {id: $jobId})-[r:HAS_REFERENCE]->()").
-		WithDelete("r").
-		WithParams(map[string]any{"jobId": data.ID}).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to delete old reference: %w", err)
-	}
-
-	// 🔹 3. Buat ulang Relasi HAS_REFERENCE (SOP atau IK)
-	if data.SopID != nil && *data.SopID != 0 {
-		refGraph := builder.NewGraphRepository()
-		if err := refGraph.
-			WithMatch("(j:Job {id: $jobId})").
-			WithMatch("(sop:SOP {id: $sopId})").
-			WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-			WithParams(map[string]any{"jobId": data.ID, "sopId": *data.SopID}).
-			RunWrite(); err != nil {
-			return fmt.Errorf("failed to recreate HAS_REFERENCE to SOP: %w", err)
-		}
-	}
-    // Jika ada logika IK, tambahkan blok Else-If serupa dengan Insert di sini.
-
-	return nil
-}
-
-// deleteGraphSpkJob removes Job node from Neo4j
-func (s *spkJobService) deleteGraphSpkJob(data *models.SpkJob) error {
-	return s.deleteGraphSpkJobByID(data.ID)
-}
-
-func (s *spkJobService) deleteGraphSpkJobByID(jobId int64) error {
+func (s *spkJobService) insertGraphSpkJobWithRelations(data *models.SpkJob) error {
 	graph := builder.NewGraphRepository()
 
+	params := map[string]any{
+		"id":          data.ID,
+		"name":        data.Name,
+		"description": helper.ToJSONString(data.Description),
+		"spkId":       data.SpkID,
+		"sopId":       data.SopID,
+		"titleId":     data.TitleID,
+		"index":       data.Index,
+		"createdAt":   data.CreatedAt.Format(time.RFC3339Nano),
+		"updatedAt":   data.UpdatedAt.Format(time.RFC3339Nano),
+	}
+
+	if err := graph.
+		WithMerge("(j:Job {id: $id})").
+		WithSet("j.name = $name, j.description = $description, j.created_at = datetime($createdAt), j.updated_at = datetime($updatedAt)", nil).
+		WithMerge("(s:SPK {id: $spkId})").
+		WithMerge("(s)-[:HAS_JOB]->(j)").
+		WithParams(params).
+		RunWrite(); err != nil {
+		return fmt.Errorf("failed to merge Job node: %w", err)
+	}
+
+	return nil
+}
+
+func (s *spkJobService) removeDeletedAtFromGraph(spkJobID int64) error {
+	graph := builder.NewGraphRepository()
 	params := map[string]interface{}{
-		"jobId":     jobId,
-		"deletedAt": time.Now().Format(time.RFC3339Nano), // Konsisten RFC3339Nano
+		"jobId": spkJobID,
 	}
 
 	if err := graph.
 		WithMatch("(j:Job {id: $jobId})").
-		// 1. Putuskan referensi ke luar (Hard delete hanya relasinya)
-		WithOptionalMatch("(j)-[r:HAS_REFERENCE]->()").
-		WithDelete("r").
-		WithWith("DISTINCT j").
-		// 2. APOC Traversal Soft Delete
 		WithCall(`
 			apoc.path.expandConfig(j, {
 				relationshipFilter: ">",
-				labelFilter: "-SPK|-SOP|-IK", // <-- SUPER PENTING: Lindungi Node SPK, SOP, dan IK
 				minLevel: 0,
 				maxLevel: -1
 			})
 		`).
 		WithYield("path").
-		WithUnwind("nodes(path)", "n").
+		WithWith("j, collect(DISTINCT path) AS paths").
+		WithUnwind("paths", "p").
+		WithUnwind("nodes(p)", "n").
 		WithWith("DISTINCT n").
-		WithSet("n.deleted_at = $deletedAt", nil).
+		WithSet("n.deleted_at = NULL", nil).
 		WithParams(params).
 		RunWrite(); err != nil {
-		return fmt.Errorf("failed to soft delete SPK Job graph with id %d: %w", jobId, err)
+		return fmt.Errorf("failed to remove deleted_at from Job graph with id %d: %w", spkJobID, err)
 	}
-
 	return nil
 }
 
-// batchInsertGraphSpkJobs creates multiple SPK Job nodes in Neo4j using UNWIND batch operation
-func (s *spkJobService) batchInsertGraphSpkJobs(data []*models.SpkJob) error {
-	if len(data) == 0 {
-		return nil
-	}
-
+func GetSPKJobGraphs() (any, error) {
 	graph := builder.NewGraphRepository()
 
-	// Prepare batch data for Job nodes with all properties
-	var jobList []map[string]interface{}
-	for _, job := range data {
-		jobList = append(jobList, map[string]interface{}{
-			"id":          job.ID,
-			"name":        job.Name,
-			"description": helper.ToJSONString(job.Description),
-			"spkId":       job.SpkID,
-			"index":       job.Index,
-			"sopId":       job.SopID,
-			"titleId":     job.TitleID,
-			"flowchartId": job.FlowchartID,
-			"nextIndex":   job.NextIndex,
-			"prevIndex":   job.PrevIndex,
-		})
+	result, err := graph.
+		WithMatch("(j:Job)").
+		WithWhere("j.deleted_at IS NULL", nil).
+		WithOptionalMatch("(s:SPK)-[:HAS_JOB]->(j)").
+		WithWhere("s.deleted_at IS NULL", nil).
+		WithWith("j, collect(apoc.map.removeKey(apoc.convert.toMap(s), 'deleted_at')) AS spks").
+		WithWith("apoc.map.removeKey(apoc.convert.toMap(j), 'deleted_at') AS jMap").
+		WithWith("apoc.map.setKey(jMap, 'has_spk', spks) AS job").
+		WithReturn("job").
+		RunWriteWithReturn()
+	if err != nil {
+		return nil, err
 	}
 
-	params := map[string]interface{}{
-		"jobs": jobList,
-	}
-
-	// Use UNWIND to batch match SPK and create Job nodes with HAS_JOB relationship
-	// This matches the pattern: (s:SPK)-[:HAS_JOB]->(j:Job)
-	if err := graph.
-		WithUnwind("$jobs", "jobData").
-		WithMatch("(s:SPK {id: jobData.spkId})").
-		WithMerge("(s)-[:HAS_JOB]->(j:Job {id: jobData.id})").
-		WithSet(`j.name = jobData.name, 
-			j.description = jobData.description, 
-			j.index = jobData.index,
-			j.sopId = jobData.sopId,
-			j.titleId = jobData.titleId,
-			j.flowchartId = jobData.flowchartId,
-			j.nextIndex = jobData.nextIndex,
-			j.prevIndex = jobData.prevIndex`, params).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to batch insert SPK Job nodes with HAS_JOB relationship: %w", err)
-	}
-
-	// Create HAS_REFERENCE relationships for jobs with SOP reference (sop_id)
-	var sopRefList []map[string]interface{}
-	for _, job := range data {
-		if job.SopID != nil && *job.SopID != 0 {
-			sopRefList = append(sopRefList, map[string]interface{}{
-				"jobId": job.ID,
-				"sopId": *job.SopID,
-			})
-		}
-	}
-
-	if len(sopRefList) > 0 {
-		sopRefParams := map[string]interface{}{
-			"refs": sopRefList,
-		}
-
-		// Create HAS_REFERENCE to SOP
-		if err := graph.
-			WithUnwind("$refs", "refData").
-			WithMatch("(j:Job {id: refData.jobId}), (sop:SOP {id: refData.sopId})").
-			WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-			WithParams(sopRefParams).
-			RunWrite(); err != nil {
-			fmt.Printf("Warning: failed to batch create HAS_REFERENCE to SOP: %v\n", err)
-		}
-	}
-
-	return nil
-}
-
-// batchUpdateGraphSpkJobs updates multiple SPK Job nodes in Neo4j using UNWIND batch operation
-func (s *spkJobService) batchUpdateGraphSpkJobs(data []*models.SpkJob) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	// Prepare batch data with all properties
-	var jobList []map[string]interface{}
-	var jobIds []int64
-	for _, job := range data {
-		jobList = append(jobList, map[string]interface{}{
-			"id":          job.ID,
-			"name":        job.Name,
-			"description": helper.ToJSONString(job.Description),
-			"index":       job.Index,
-			"sopId":       job.SopID,
-			"titleId":     job.TitleID,
-			"flowchartId": job.FlowchartID,
-			"nextIndex":   job.NextIndex,
-			"prevIndex":   job.PrevIndex,
-		})
-		jobIds = append(jobIds, job.ID)
-	}
-
-	params := map[string]interface{}{
-		"jobs": jobList,
-	}
-
-	// Use UNWIND to batch update Job nodes with all properties
-	if err := graph.
-		WithUnwind("$jobs", "jobData").
-		WithMatch("(j:Job {id: jobData.id})").
-		WithSet(`j.name = jobData.name, 
-			j.description = jobData.description, 
-			j.index = jobData.index,
-			j.sopId = jobData.sopId,
-			j.titleId = jobData.titleId,
-			j.flowchartId = jobData.flowchartId,
-			j.nextIndex = jobData.nextIndex,
-			j.prevIndex = jobData.prevIndex`, params).
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to batch update SPK Job nodes: %w", err)
-	}
-
-	// Delete existing HAS_REFERENCE relations for all jobs in batch
-	deleteParams := map[string]interface{}{
-		"jobIds": jobIds,
-	}
-
-	if err := graph.
-		WithUnwind("$jobIds", "jobId").
-		WithMatch("(j:Job {id: jobId})-[r:HAS_REFERENCE]->()").
-		WithDelete("r").
-		WithParams(deleteParams).
-		RunWrite(); err != nil {
-		// Ignore error if no relations exist
-	}
-
-	// Recreate HAS_REFERENCE relationships for jobs with SOP reference
-	var sopRefList []map[string]interface{}
-	for _, job := range data {
-		if job.SopID != nil && *job.SopID != 0 {
-			sopRefList = append(sopRefList, map[string]interface{}{
-				"jobId": job.ID,
-				"sopId": *job.SopID,
-			})
-		}
-	}
-
-	if len(sopRefList) > 0 {
-		sopRefParams := map[string]interface{}{
-			"refs": sopRefList,
-		}
-
-		// Create HAS_REFERENCE to SOP in batch
-		if err := graph.
-			WithUnwind("$refs", "refData").
-			WithMatch("(j:Job {id: refData.jobId}), (sop:SOP {id: refData.sopId})").
-			WithMerge("(j)-[:HAS_REFERENCE]->(sop)").
-			WithParams(sopRefParams).
-			RunWrite(); err != nil {
-			fmt.Printf("Warning: failed to batch create HAS_REFERENCE to SOP: %v\n", err)
-		}
-	}
-
-	return nil
-}
-
-// batchDeleteGraphSpkJobs deletes multiple SPK Job nodes from Neo4j using UNWIND batch operation
-func (s *spkJobService) batchDeleteGraphSpkJobs(ids []int64) error {
-	if len(ids) == 0 {
-		return nil
-	}
-
-	graph := builder.NewGraphRepository()
-
-	params := map[string]interface{}{
-		"jobIds": ids,
-	}
-
-	// Use UNWIND to batch delete Job nodes and their children
-	if err := graph.
-		WithUnwind("$jobIds", "jobId").
-		WithMatch("(j:Job {id: jobId})").
-		WithOptionalMatch("(j)-[*]->(child)").
-		WithDetachDelete("j, child").
-		WithParams(params).
-		RunWrite(); err != nil {
-		return fmt.Errorf("failed to batch delete SPK Job nodes: %w", err)
-	}
-
-	return nil
+	return helper.Neo4jFormatter(result), nil
 }

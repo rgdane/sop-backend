@@ -40,9 +40,14 @@ type BulkDeleteSpkJobDto struct {
 }
 
 type SpkJobFilterDto struct {
-	Preload bool
-	SpkID   int64 `json:"spk_id"`
-	TitleID int64 `json:"title_id"`
+	Preload     bool
+	SpkID       int64  `json:"spk_id"`
+	SopID       int64  `json:"sop_id"`
+	TitleID     int64  `json:"title_id"`
+	Name        string `json:"name"`
+	ShowDeleted bool   `json:"show_deleted"`
+	Sort        string `json:"sort"`
+	Order       string `json:"order"`
 }
 
 type SpkJobResponseDto struct {

@@ -20,6 +20,7 @@ type SpkJobRepository interface {
 	WithOrder(order string) SpkJobRepository
 	WithLimit(limit int) SpkJobRepository
 	WithCursor(cursor int) SpkJobRepository
+	WithUnscoped() SpkJobRepository
 
 	InsertSpkJob(data *models.SpkJob) (*models.SpkJob, error)
 	InsertManySpkJobs(data []*models.SpkJob) ([]*models.SpkJob, error)
@@ -33,6 +34,7 @@ type SpkJobRepository interface {
 	FindSpkJobsByIDs(ids []int64) ([]*models.SpkJob, error)
 
 	ReorderSpkJob(spkJobID int64, newIndex int, spkID int64) error
+	CountSpkJobs() (int64, error)
 }
 
 type spkJobRepository struct {
@@ -45,6 +47,7 @@ type spkJobRepository struct {
 	order        string
 	limit        *int
 	cursor       *int
+	unscoped     bool
 }
 
 func NewSpkJobRepository() SpkJobRepository {
@@ -112,8 +115,19 @@ func (repo *spkJobRepository) WithCursor(cursor int) SpkJobRepository {
 	return clone
 }
 
+func (repo *spkJobRepository) WithUnscoped() SpkJobRepository {
+	clone := repo.clone()
+	clone.unscoped = true
+	return clone
+}
+
 func (repo *spkJobRepository) getQueryBuilder() *builder.QueryBuilder[models.SpkJob] {
-	qb := builder.NewQueryBuilder[models.SpkJob](repo.db).
+	db := repo.db
+	if repo.unscoped {
+		db = db.Unscoped()
+	}
+
+	qb := builder.NewQueryBuilder[models.SpkJob](db).
 		WithPreloads(repo.preloads...).
 		WithAssociations(repo.associations...).
 		WithReplacements(repo.replacements).
@@ -167,9 +181,8 @@ func (repo *spkJobRepository) RemoveManySpkJobs(ids []int64) error {
 func (repo *spkJobRepository) FindSpkJobs() ([]models.SpkJob, error) {
 	r := repo
 	if r.order == "" {
-		if casted, ok := r.WithOrder("index ASC").(*spkJobRepository); ok {
-			r = casted
-		}
+		r = repo.clone()
+		r.order = "index ASC"
 	}
 	return repo.getQueryBuilder().FindAll()
 }
@@ -258,4 +271,19 @@ func (repo *spkJobRepository) ReorderSpkJob(spkJobID int64, newIndex int, spkID 
 
 	fmt.Printf("Updated target job: SpkJobID=%d to Index=%d\n", spkJobID, newIndex)
 	return nil
+}
+
+func (repo *spkJobRepository) CountSpkJobs() (int64, error) {
+	var count int64
+	db := repo.db
+	if repo.unscoped {
+		db = db.Unscoped()
+	}
+	err := db.Model(&models.SpkJob{}).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
