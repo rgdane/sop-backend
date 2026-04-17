@@ -2,14 +2,13 @@ package routes
 
 import (
 	"jk-api/api/http/controllers/v1"
-	"jk-api/api/http/middleware"
 	"jk-api/internal/container"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func DivisionRoutes(router fiber.Router, c *container.AppContainer) {
-	app := router.Group("/divisions", middleware.JWTMiddleware())
+	app := router.Group("/divisions")
 
 	// 1. RUTE KHUSUS / STATIS (Daftarkan paling atas)
 	app.Post("/bulk-create", controllers.BulkCreateDivisions(c))

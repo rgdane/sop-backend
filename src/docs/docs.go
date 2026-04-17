@@ -6412,11 +6412,11 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string",
-                    "example": "user@example.com"
+                    "example": "admin@mail.com"
                 },
                 "password": {
                     "type": "string",
-                    "example": "password123"
+                    "example": "admin123"
                 }
             }
         },

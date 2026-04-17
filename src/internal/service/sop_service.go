@@ -145,7 +145,7 @@ func (s *sopService) GetAllSops(filter dto.SopFilterDto) ([]models.Sop, error) {
 		repo = repo.WithCursor(int(filter.Cursor))
 	}
 	if filter.Preload {
-		repo = repo.WithPreloads("HasJobs", "HasDivisions.Positions.Titles")
+		repo = repo.WithPreloads("HasJobs", "HasDivisions")
 	}
 	if filter.Name != "" {
 		repo = repo.WithWhere("name ILIKE ?", "%"+filter.Name+"%")
@@ -180,7 +180,7 @@ func (s *sopService) GetAllSops(filter dto.SopFilterDto) ([]models.Sop, error) {
 func (s *sopService) GetSopByID(id int64, filter dto.SopFilterDto) (*models.Sop, error) {
 	repo := s.repo
 	if filter.Preload {
-		repo = repo.WithPreloads("HasTitles", "HasJobs", "HasDivisions")
+		repo = repo.WithPreloads("HasJobs", "HasDivisions")
 	}
 	data, err := repo.FindSopByID(id)
 	if err != nil {

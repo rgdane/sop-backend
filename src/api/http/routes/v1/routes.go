@@ -28,4 +28,7 @@ func Setup(app *fiber.App, c *container.AppContainer) {
 	TitleRoutes(api, c)
 	UserRoutes(api, c)
 	GraphRoutes(api, c)
+
+	//Benchmark route
+	BenchmarkRoutes(api, c)
 }

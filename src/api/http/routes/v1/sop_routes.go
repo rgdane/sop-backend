@@ -2,14 +2,13 @@ package routes
 
 import (
 	"jk-api/api/http/controllers/v1"
-	"jk-api/api/http/middleware"
 	"jk-api/internal/container"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func SopRoutes(router fiber.Router, c *container.AppContainer) {
-	app := router.Group("/sops", middleware.JWTMiddleware())
+	app := router.Group("/sops")
 
 	app.Post("/bulk-create", controllers.BulkCreateSops(c))
 	app.Put("/bulk-update", controllers.BulkUpdateSops(c))
