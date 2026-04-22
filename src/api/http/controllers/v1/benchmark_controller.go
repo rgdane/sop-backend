@@ -1,42 +1,111 @@
 package controllers
 
 import (
+	"jk-api/api/http/controllers/v1/dto"
+	"jk-api/internal/container"
 	"jk-api/internal/shared/helper"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// Bisa kamu taruh di file domain/models atau langsung di atas handler
 type BenchmarkResult struct {
 	TestName    string  `json:"test_name"`
 	Target      string  `json:"target"`
 	Requests    uint64  `json:"requests"`
-	SuccessRate float64 `json:"success_rate"` // Persentase (0-100)
-	MeanLatency string  `json:"mean_latency"` // Rata-rata response time API
-	P99Latency  string  `json:"p99_latency"`  // Response time terburuk (99th percentile)
+	SuccessRate float64 `json:"success_rate"`
+	MeanLatency string  `json:"mean_latency"`
+	P99Latency  string  `json:"p99_latency"`
 }
 
-func RunBenchmarkSQL(c *fiber.Ctx) error {
-	// Bisa juga ambil URL, durasi, atau rate dari query param jika ingin dinamis
-	targetURL := "http://localhost:5000/api/v1/divisions/sql"
+// =================================================================
+// 1. SKENARIO SEDERHANA: DIVISIONS (Tanpa banyak relasi)
+// =================================================================
 
-	// Panggil Helper
-	result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Get Divisions", 5, 50)
-
-	return c.JSON(fiber.Map{
-		"message": "Benchmark SQL selesai",
-		"data":    result,
-	})
+func RunBenchmarkDivisionSQL(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		targetURL := "http://localhost:5000/api/v1/divisions/sql"
+		dbQueryFunc := func() time.Duration {
+			start := time.Now()
+			_, _, _ = cn.DivisionHandler.GetAllDivisionsHandler(dto.DivisionFilterDto{})
+			return time.Since(start)
+		}
+		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Get Divisions", 5, 50, dbQueryFunc)
+		return c.JSON(fiber.Map{"message": "Benchmark SQL Divisions selesai", "data": result})
+	}
 }
 
-func RunBenchmarkGraph(c *fiber.Ctx) error {
-	targetURL := "http://localhost:5000/api/v1/divisions/graph"
-	
-	// Panggil Helper dengan parameter berbeda
-	result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Get Divisions", 5, 50)
+func RunBenchmarkDivisionGraph(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		targetURL := "http://localhost:5000/api/v1/divisions/graph"
+		dbQueryFunc := func() time.Duration {
+			start := time.Now()
+			// Asumsi nama method handler-mu untuk graph
+			_, _, _ = cn.DivisionHandler.GetAllDivisionsGraphHandler(dto.DivisionFilterDto{}) 
+			return time.Since(start)
+		}
+		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Get Divisions", 5, 50, dbQueryFunc)
+		return c.JSON(fiber.Map{"message": "Benchmark Graph Divisions selesai", "data": result})
+	}
+}
 
-	return c.JSON(fiber.Map{
-		"message": "Benchmark Graph selesai",
-		"data":    result,
-	})
+// =================================================================
+// 2. SKENARIO MENENGAH: SOP (Relasi ke Divisi)
+// =================================================================
+
+func RunBenchmarkSopSQL(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		targetURL := "http://localhost:5000/api/v1/sops/sql/"
+		dbQueryFunc := func() time.Duration {
+			start := time.Now()
+			// Asumsi kamu punya SopFilterDto, sesuaikan jika namanya beda
+			_, _, _ = cn.SopHandler.GetAllSopsHandler(dto.SopFilterDto{})
+			return time.Since(start)
+		}
+		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Get All SOPs", 5, 50, dbQueryFunc)
+		return c.JSON(fiber.Map{"message": "Benchmark SQL SOPs selesai", "data": result})
+	}
+}
+
+func RunBenchmarkSopGraph(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		targetURL := "http://localhost:5000/api/v1/sops/graph/"
+		dbQueryFunc := func() time.Duration {
+			start := time.Now()
+			_, _, _ = cn.SopHandler.GetAllSopsGraphHandler(dto.SopFilterDto{})
+			return time.Since(start)
+		}
+		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Get All SOPs", 5, 50, dbQueryFunc)
+		return c.JSON(fiber.Map{"message": "Benchmark Graph SOPs selesai", "data": result})
+	}
+}
+
+// =================================================================
+// 3. SKENARIO KOMPLEKS: SOP JOBS (Struktur Linked-List & Multi-Join)
+// =================================================================
+
+func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/sql/"
+		dbQueryFunc := func() time.Duration {
+			start := time.Now()
+			_, _, _ = cn.SopJobHandler.GetAllSopJobsHandler(dto.SopJobFilterDto{})
+			return time.Since(start)
+		}
+		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Get All SOP Jobs", 5, 50, dbQueryFunc)
+		return c.JSON(fiber.Map{"message": "Benchmark SQL SOP Jobs selesai", "data": result})
+	}
+}
+
+func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/graph/"
+		dbQueryFunc := func() time.Duration {
+			start := time.Now()
+			_, _, _ = cn.SopJobHandler.GetAllSopJobsGraphHandler(dto.SopJobFilterDto{})
+			return time.Since(start)
+		}
+		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Get All SOP Jobs", 5, 50, dbQueryFunc)
+		return c.JSON(fiber.Map{"message": "Benchmark Graph SOP Jobs selesai", "data": result})
+	}
 }

@@ -60,8 +60,8 @@ func (l *Sop) GenerateSopCode(tx *gorm.DB, divisionID int64, excludeID int64) st
 		return ""
 	}
 
-	// Prefix: DEPT.DIV.
-	prefix := fmt.Sprintf("%s.%s.", division.Code)
+	// Prefix: DIV.
+	prefix := fmt.Sprintf("%s", division.Code)
 
 	// Ambil semua code yang match prefix
 	query := tx.Model(&Sop{}).Select("code").Where("code LIKE ? AND deleted_at IS NULL", prefix+"%")
