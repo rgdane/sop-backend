@@ -29,6 +29,6 @@ func Setup(app *fiber.App, c *container.AppContainer) {
 	UserRoutes(api, c)
 	GraphRoutes(api, c)
 
-	//Benchmark route
 	BenchmarkRoutes(api, c)
+	SeederRoutes(api, c)
 }
