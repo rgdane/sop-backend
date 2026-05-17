@@ -27,6 +27,8 @@ type SopJob struct {
 
 	CreatedAt time.Time `gorm:"autoCreateTime;index:idx_sop_jobs_created_at" json:"created_at"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index:idx_sop_jobs_deleted_at" json:"deleted_at"`
+
 
 	HasSop       *Sop       `gorm:"foreignKey:SopID;references:ID;constraint:OnDelete:SET NULL;" json:"has_sop"`
 	HasTitle     *Title     `gorm:"foreignKey:TitleID;references:ID;constraint:OnDelete:SET NULL;" json:"has_title"`

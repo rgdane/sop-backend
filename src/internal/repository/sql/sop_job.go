@@ -235,9 +235,23 @@ func (repo *sopJobRepository) FindSopJobWithJoins() ([]models.SopJob, error) {
 		r.order = "index ASC"
 	}
 
-	db := repo.db
+	db := repo.db.Table("sop_jobs")
 	if repo.unscoped {
 		db = db.Unscoped()
+	}
+
+	if len(repo.fields) > 0 {
+		db = db.Select(repo.fields)
+	} else {
+		db = db.Select(`
+			sop_jobs.id, sop_jobs.name, sop_jobs.alias, sop_jobs.type, sop_jobs.code,
+			sop_jobs.description, sop_jobs.title_id, sop_jobs.sop_id, sop_jobs.reference_id,
+			sop_jobs.index, sop_jobs.flowchart_id, sop_jobs.next_index, sop_jobs.prev_index,
+			sop_jobs.is_published, sop_jobs.is_hide, sop_jobs.created_at, sop_jobs.updated_at,
+			titles.id as title_id_mapped, titles.name as title_name, titles.code as title_code, titles.color as title_color,
+			ref_sops.id as ref_sop_id, ref_sops.name as ref_sop_name, ref_sops.code as ref_sop_code,
+			ref_spks.id as ref_spk_id, ref_spks.name as ref_spk_name, ref_spks.code as ref_spk_code
+		`)
 	}
 
 	for _, join := range repo.joins {

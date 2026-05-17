@@ -23,6 +23,8 @@ type SpkJob struct {
 
 	CreatedAt time.Time `gorm:"autoCreateTime;index:idx_spk_jobs_created_at" json:"created_at"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index:idx_spk_jobs_deleted_at" json:"deleted_at"`
+
 
 	// Relasi
 	HasSop       *Sop       `gorm:"foreignKey:SopID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_sop"`

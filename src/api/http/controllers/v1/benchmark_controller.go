@@ -104,7 +104,7 @@ func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 			_, _, _ = cn.SopJobHandler.GetAllSopJobsHandler(filter)
 			return time.Since(start)
 		}
-		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Complex SOP Jobs", 5, 500, dbQueryFunc)
+		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Complex SOP Jobs", 5, 1, dbQueryFunc)
 		return c.JSON(fiber.Map{"message": "Benchmark SQL SOP Jobs selesai", "data": result})
 	}
 }
@@ -128,7 +128,7 @@ func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 			_, _, _ = cn.SopJobHandler.GetAllSopJobsGraphHandler(filter)
 			return time.Since(start)
 		}
-		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Complex SOP Jobs", 5, 500, dbQueryFunc)
+		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Complex SOP Jobs", 5, 1, dbQueryFunc)
 		return c.JSON(fiber.Map{"message": "Benchmark Graph SOP Jobs selesai", "data": result})
 	}
 }

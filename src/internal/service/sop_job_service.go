@@ -219,7 +219,7 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 		placeholders := make([]string, len(filter.DivisionNames))
 		args := make([]interface{}, len(filter.DivisionNames))
 		for i, div := range filter.DivisionNames {
-			placeholders[i] = fmt.Sprintf("$%d", i+1)
+			placeholders[i] = "?"
 			args[i] = div
 		}
 		repo = repo.WithWhere(fmt.Sprintf("divisions.name IN (%s)", strings.Join(placeholders, ", ")), args...)
