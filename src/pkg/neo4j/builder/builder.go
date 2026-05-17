@@ -202,6 +202,7 @@ func (r *graphRepository) WithLimit(limit int) GraphRepository {
 
 // --- Build ---
 func (r *graphRepository) buildQuery() string {
+	// Just join statements in order, no reordering
 	out := ""
 	for _, s := range r.statements {
 		out += s + "\n"

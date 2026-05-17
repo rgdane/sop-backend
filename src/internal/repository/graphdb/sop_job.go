@@ -55,69 +55,61 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 	repo := builder.NewGraphRepository()
 	params := make(map[string]any)
 
-	// POINTER HOPPING: Mulai dari Node SOP, lalu lompat ke Job melalui relasi
-	// Jika filter SopName digunakan, kita perlu match SOP dulu
-	if filter.SopName != "" {
-		repo = repo.WithMatch("(s:SOP)-[:HAS_JOB]->(j:Job)")
-		repo = repo.WithWhere("toLower(s.name) CONTAINS toLower($sopName)", nil)
-		params["sopName"] = filter.SopName
-	} else if filter.SopID != 0 {
+	// 1. MATCH utama dengan WHERE untuk filter mandatory (job properties)
+	if filter.SopID != 0 {
 		repo = repo.WithMatch("(s:SOP {id: $sopId})-[:HAS_JOB]->(j:Job)")
 		params["sopId"] = filter.SopID
 	} else {
 		repo = repo.WithMatch("(s:SOP)-[:HAS_JOB]->(j:Job)")
 	}
 
-	// TRAVERSAL: Mengambil relasi Title dan Reference (seperti Join/Preload)
+	// 2. WHERE untuk mandatory filters (SopName, deleted_at, index, reference_id, type)
+	var mainConditions []string
+	if filter.SopName != "" {
+		mainConditions = append(mainConditions, "toLower(s.name) CONTAINS toLower($sopName)")
+		params["sopName"] = filter.SopName
+	}
+	if filter.ShowDeleted {
+		mainConditions = append(mainConditions, "j.deleted_at IS NOT NULL")
+	} else {
+		mainConditions = append(mainConditions, "j.deleted_at IS NULL")
+	}
+	if filter.Name != "" {
+		mainConditions = append(mainConditions, "toLower(j.name) CONTAINS toLower($name)")
+		params["name"] = filter.Name
+	}
+	if filter.MinIndex > 0 {
+		mainConditions = append(mainConditions, "j.index > $minIndex")
+		params["minIndex"] = filter.MinIndex
+	}
+	if filter.ReferenceID != nil {
+		mainConditions = append(mainConditions, "j.reference_id = $referenceId")
+		params["referenceId"] = *filter.ReferenceID
+	}
+	if filter.ReferenceType != "" {
+		mainConditions = append(mainConditions, "j.type = $referenceType")
+		params["referenceType"] = filter.ReferenceType
+	}
+	if len(mainConditions) > 0 {
+		repo = repo.WithWhere(strings.Join(mainConditions, " AND "), params)
+	}
+
+	// 3. OPTIONAL MATCH untuk relasi opsional (Division harus mandatory jika ada filter)
+	if len(filter.DivisionNames) > 0 {
+		repo = repo.WithMatch("(s)-[:BELONGS_TO]->(d:Division)")
+		var divConditions []string
+		for i, divName := range filter.DivisionNames {
+			divConditions = append(divConditions, fmt.Sprintf("toLower(d.name) = toLower($divName%d)", i))
+			params[fmt.Sprintf("divName%d", i)] = divName
+		}
+		repo = repo.WithWhere(strings.Join(divConditions, " OR "), params)
+	}
+
+	// 4. OPTIONAL MATCH untuk relasi pelengkap (Title, Reference)
 	repo = repo.WithOptionalMatch("(j)-[:HAS_TITLE]->(t:Title)").
 		WithOptionalMatch("(j)-[:REFERENCES]->(ref)")
 
-	// Traversal untuk Division (melalui SOP)
-	if len(filter.DivisionNames) > 0 {
-		repo = repo.WithOptionalMatch("(s)-[:BELONGS_TO]->(d:Division)")
-	}
-
-	var conditions []string
-	if filter.ShowDeleted {
-		conditions = append(conditions, "j.deleted_at IS NOT NULL")
-	} else {
-		conditions = append(conditions, "j.deleted_at IS NULL")
-	}
-
-	if filter.Name != "" {
-		conditions = append(conditions, "toLower(j.name) CONTAINS toLower($name)")
-		params["name"] = filter.Name
-	}
-
-	if filter.MinIndex > 0 {
-		conditions = append(conditions, "j.index > $minIndex")
-		params["minIndex"] = filter.MinIndex
-	}
-
-	if filter.ReferenceID != nil {
-		conditions = append(conditions, "j.reference_id = $referenceId")
-		params["referenceId"] = *filter.ReferenceID
-	}
-
-	if filter.ReferenceType != "" {
-		conditions = append(conditions, "j.type = $referenceType")
-		params["referenceType"] = filter.ReferenceType
-	}
-
-	if len(filter.DivisionNames) > 0 {
-		divisionConditions := make([]string, len(filter.DivisionNames))
-		for i, divName := range filter.DivisionNames {
-			divisionConditions[i] = fmt.Sprintf("toLower(d.name) = toLower($divName%d)", i)
-			params[fmt.Sprintf("divName%d", i)] = divName
-		}
-		conditions = append(conditions, "("+strings.Join(divisionConditions, " OR ")+")")
-	}
-
-	if len(conditions) > 0 {
-		repo = repo.WithWhere(strings.Join(conditions, " AND "), params)
-	}
-
-	// Kembalikan data Node Job beserta informasi dari Node yang terhubung (Title/Ref)
+	// 5. RETURN dan ORDER BY
 	returnClause := "j {.*, title_name: t.name, reference_name: ref.name} AS data"
 
 	if filter.Sort != "" && filter.Order != "" {
@@ -515,28 +507,58 @@ func (r *sopJobRepository) CountGraphSopJobs(filter dto.SopJobFilterDto) (int64,
 	repo := builder.NewGraphRepository()
 	params := make(map[string]any)
 
-	repo = repo.WithMatch("(j:Job)")
-
-	var conditions []string
-
-	if filter.ShowDeleted {
-		conditions = append(conditions, "j.deleted_at IS NOT NULL")
+	// 1. MATCH utama - harus include SOP untuk filter SopName
+	if filter.SopID != 0 {
+		repo = repo.WithMatch("(s:SOP {id: $sopId})-[:HAS_JOB]->(j:Job)")
+		params["sopId"] = filter.SopID
 	} else {
-		conditions = append(conditions, "j.deleted_at IS NULL")
+		repo = repo.WithMatch("(s:SOP)-[:HAS_JOB]->(j:Job)")
 	}
 
+	// 2. WHERE untuk filter mandatory (SopName, deleted_at, index, reference_id, type)
+	var mainConditions []string
+	if filter.SopName != "" {
+		mainConditions = append(mainConditions, "toLower(s.name) CONTAINS toLower($sopName)")
+		params["sopName"] = filter.SopName
+	}
+	if filter.ShowDeleted {
+		mainConditions = append(mainConditions, "j.deleted_at IS NOT NULL")
+	} else {
+		mainConditions = append(mainConditions, "j.deleted_at IS NULL")
+	}
 	if filter.Name != "" {
-		conditions = append(conditions, "toLower(j.name) CONTAINS toLower($name)")
+		mainConditions = append(mainConditions, "toLower(j.name) CONTAINS toLower($name)")
 		params["name"] = filter.Name
 	}
+	if filter.MinIndex > 0 {
+		mainConditions = append(mainConditions, "j.index > $minIndex")
+		params["minIndex"] = filter.MinIndex
+	}
+	if filter.ReferenceID != nil {
+		mainConditions = append(mainConditions, "j.reference_id = $referenceId")
+		params["referenceId"] = *filter.ReferenceID
+	}
+	if filter.ReferenceType != "" {
+		mainConditions = append(mainConditions, "j.type = $referenceType")
+		params["referenceType"] = filter.ReferenceType
+	}
 
-	if filter.SopID != 0 {
-		conditions = append(conditions, "j.sop_id = $sopId")
-		params["sopId"] = filter.SopID
+	// 3. Division filter
+	if len(filter.DivisionNames) > 0 {
+		repo = repo.WithMatch("(s)-[:BELONGS_TO]->(d:Division)")
+		var divConditions []string
+		for i, divName := range filter.DivisionNames {
+			divConditions = append(divConditions, fmt.Sprintf("toLower(d.name) = toLower($divName%d)", i))
+			params[fmt.Sprintf("divName%d", i)] = divName
+		}
+		mainConditions = append(mainConditions, "("+strings.Join(divConditions, " OR ")+")")
+	}
+
+	if len(mainConditions) > 0 {
+		repo = repo.WithWhere(strings.Join(mainConditions, " AND "), params)
 	}
 
 	repo = repo.
-		WithWhere(strings.Join(conditions, " AND "), params).
 		WithReturn("count(j) AS total").
 		WithParams(params)
 

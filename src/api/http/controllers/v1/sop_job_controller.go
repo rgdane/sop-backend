@@ -9,6 +9,7 @@ import (
 	"jk-api/internal/container"
 	"jk-api/internal/shared/helper"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -37,15 +38,40 @@ func GetSopJobs(cn *container.AppContainer) fiber.Handler {
 		page, _ := helper.ParseQueryInt64(c, "page")
 		limit, _ := helper.ParseQueryInt64(c, "limit")
 		name := c.Query("name", "")
+		sopName := c.Query("sop_name", "")
+		minIndex := 0
+		if mi := c.Query("min_index"); mi != "" {
+			if parsed, err := strconv.Atoi(mi); err == nil {
+				minIndex = parsed
+			}
+		}
+		referenceID := int64(0)
+		if ri := c.Query("reference_id"); ri != "" {
+			if parsed, err := strconv.ParseInt(ri, 10, 64); err == nil {
+				referenceID = parsed
+			}
+		}
+		referenceType := c.Query("reference_type", "")
+		divisionNamesStr := c.Query("division_names", "")
+
+		var divisionNames []string
+		if divisionNamesStr != "" {
+			divisionNames = strings.Split(divisionNamesStr, ",")
+		}
 
 		filter := dto.SopJobFilterDto{
-			Preload:     c.Query("preload", "false") == "true",
-			SopID:       sopID,
-			TitleID:     titleID,
-			Page:        page,
-			Limit:       limit,
-			Name:        name,
-			ShowDeleted: c.Query("show_deleted", "false") == "true",
+			Preload:       c.Query("preload", "false") == "true",
+			SopID:         sopID,
+			TitleID:       titleID,
+			Page:          page,
+			Limit:         limit,
+			Name:          name,
+			SopName:       sopName,
+			MinIndex:      minIndex,
+			ReferenceID:   &referenceID,
+			ReferenceType: referenceType,
+			DivisionNames: divisionNames,
+			ShowDeleted:   c.Query("show_deleted", "false") == "true",
 		}
 
 		data, total, err := cn.SopJobHandler.GetAllSopJobsHandler(filter)
@@ -79,15 +105,40 @@ func GetSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 		page, _ := helper.ParseQueryInt64(c, "page")
 		limit, _ := helper.ParseQueryInt64(c, "limit")
 		name := c.Query("name", "")
+		sopName := c.Query("sop_name", "")
+		minIndex := 0
+		if mi := c.Query("min_index"); mi != "" {
+			if parsed, err := strconv.Atoi(mi); err == nil {
+				minIndex = parsed
+			}
+		}
+		referenceID := int64(0)
+		if ri := c.Query("reference_id"); ri != "" {
+			if parsed, err := strconv.ParseInt(ri, 10, 64); err == nil {
+				referenceID = parsed
+			}
+		}
+		referenceType := c.Query("reference_type", "")
+		divisionNamesStr := c.Query("division_names", "")
+
+		var divisionNames []string
+		if divisionNamesStr != "" {
+			divisionNames = strings.Split(divisionNamesStr, ",")
+		}
 
 		filter := dto.SopJobFilterDto{
-			Preload:     c.Query("preload", "false") == "true",
-			SopID:       sopID,
-			TitleID:     titleID,
-			Page:        page,
-			Limit:       limit,
-			Name:        name,
-			ShowDeleted: c.Query("show_deleted", "false") == "true",
+			Preload:       c.Query("preload", "false") == "true",
+			SopID:         sopID,
+			TitleID:       titleID,
+			Page:          page,
+			Limit:         limit,
+			Name:          name,
+			SopName:       sopName,
+			MinIndex:      minIndex,
+			ReferenceID:   &referenceID,
+			ReferenceType: referenceType,
+			DivisionNames: divisionNames,
+			ShowDeleted:   c.Query("show_deleted", "false") == "true",
 		}
 
 		data, total, err := cn.SopJobHandler.GetAllSopJobsHandler(filter)
@@ -116,15 +167,43 @@ func GetGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sopID, _ := helper.ParseQueryInt64(c, "sop_id")
 		titleID, _ := helper.ParseQueryInt64(c, "title_id")
+		page, _ := helper.ParseQueryInt64(c, "page")
+		limit, _ := helper.ParseQueryInt64(c, "limit")
 		name := c.Query("name", "")
-		deleted := c.Query("show_deleted", "false") == "true"
+		sopName := c.Query("sop_name", "")
+		minIndex := 0
+		if mi := c.Query("min_index"); mi != "" {
+			if parsed, err := strconv.Atoi(mi); err == nil {
+				minIndex = parsed
+			}
+		}
+		referenceID := int64(0)
+		if ri := c.Query("reference_id"); ri != "" {
+			if parsed, err := strconv.ParseInt(ri, 10, 64); err == nil {
+				referenceID = parsed
+			}
+		}
+		referenceType := c.Query("reference_type", "")
+		divisionNamesStr := c.Query("division_names", "")
+
+		var divisionNames []string
+		if divisionNamesStr != "" {
+			divisionNames = strings.Split(divisionNamesStr, ",")
+		}
 
 		filter := dto.SopJobFilterDto{
-			Preload:     c.Query("preload", "false") == "true",
-			SopID:       sopID,
-			TitleID:     titleID,
-			Name:        name,
-			ShowDeleted: deleted,
+			Preload:       c.Query("preload", "false") == "true",
+			SopID:         sopID,
+			TitleID:       titleID,
+			Page:          page,
+			Limit:         limit,
+			Name:          name,
+			SopName:       sopName,
+			MinIndex:      minIndex,
+			ReferenceID:   &referenceID,
+			ReferenceType: referenceType,
+			DivisionNames: divisionNames,
+			ShowDeleted:   c.Query("show_deleted", "false") == "true",
 		}
 
 		data, total, err := cn.SopJobHandler.GetAllSopJobsGraphHandler(filter)
