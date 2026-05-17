@@ -377,8 +377,48 @@ func (s *sopJobService) ReorderSopJob(sopJobID int64, newIndex int, sopID int64)
 
 func (s *sopJobService) CountSopJobs(filter dto.SopJobFilterDto) (int64, error) {
 	repo := s.repo
+
 	if filter.SopID != 0 {
-		repo = repo.WithWhere("sop_id = ?", filter.SopID)
+		repo = repo.WithWhere("sop_jobs.sop_id = ?", filter.SopID)
+	}
+
+	if filter.SopName != "" {
+		repo = repo.WithJoins("LEFT JOIN sops AS parent_sops ON parent_sops.id = sop_jobs.sop_id")
+		repo = repo.WithWhere("parent_sops.name ILIKE ?", "%"+filter.SopName+"%")
+	}
+
+	if len(filter.DivisionNames) > 0 {
+		repo = repo.WithJoins("LEFT JOIN sop_divisions ON sop_divisions.sop_id = sop_jobs.sop_id")
+		repo = repo.WithJoins("LEFT JOIN divisions ON divisions.id = sop_divisions.division_id")
+		placeholders := make([]string, len(filter.DivisionNames))
+		args := make([]interface{}, len(filter.DivisionNames))
+		for i, div := range filter.DivisionNames {
+			placeholders[i] = "?"
+			args[i] = div
+		}
+		repo = repo.WithWhere(fmt.Sprintf("divisions.name IN (%s)", strings.Join(placeholders, ", ")), args...)
+	}
+
+	if filter.Name != "" {
+		repo = repo.WithWhere("sop_jobs.name ILIKE ?", "%"+filter.Name+"%")
+	}
+
+	if filter.MinIndex > 0 {
+		repo = repo.WithWhere("sop_jobs.index > ?", filter.MinIndex)
+	}
+
+	if filter.ReferenceID != nil {
+		repo = repo.WithWhere("sop_jobs.reference_id = ?", *filter.ReferenceID)
+	}
+
+	if filter.ReferenceType != "" {
+		repo = repo.WithWhere("sop_jobs.type = ?", filter.ReferenceType)
+	}
+
+	if filter.ShowDeleted {
+		repo = repo.WithUnscoped().WithWhere("sop_jobs.deleted_at IS NOT NULL")
+	} else {
+		repo = repo.WithWhere("sop_jobs.deleted_at IS NULL")
 	}
 
 	data, err := repo.CountSopJobs()

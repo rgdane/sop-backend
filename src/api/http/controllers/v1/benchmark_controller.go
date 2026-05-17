@@ -88,11 +88,11 @@ func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		targetURL := "http://localhost:5000/api/v1/sop-jobs/sql/"
 
-		refID := int64(100)
+		refID := int64(31206)
 		filter := dto.SopJobFilterDto{
 			Preload:       true,
-			SopName:       "Standard Operating Procedure",
-			DivisionNames: []string{"IT", "Finance"},
+			SopName:       "100163",
+			DivisionNames: []string{"Finance"},
 			MinIndex:      5,
 			ReferenceID:   &refID,
 			ReferenceType: "spk",
@@ -113,10 +113,11 @@ func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		targetURL := "http://localhost:5000/api/v1/sop-jobs/graph/"
 
-		refID := int64(100)
+		refID := int64(31206)
 		filter := dto.SopJobFilterDto{
-			SopName:       "Standard Operating Procedure",
-			DivisionNames: []string{"IT", "Finance"},
+			Preload:       true,
+			SopName:       "100163",
+			DivisionNames: []string{"Finance"},
 			MinIndex:      5,
 			ReferenceID:   &refID,
 			ReferenceType: "spk",
