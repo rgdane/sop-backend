@@ -10,23 +10,25 @@ import (
 )
 
 type SopJobNode struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Alias       string `json:"alias"`
-	Type        string `json:"type"`
-	Code        string `json:"code"`
-	Description string `json:"description"`
-	TitleID     *int64 `json:"title_id"`
-	SopID       int64  `json:"sop_id"`
-	ReferenceID *int64 `json:"reference_id"`
-	Index       int    `json:"index"`
-	FlowchartID *int64 `json:"flowchart_id"`
-	NextIndex   *int   `json:"next_index"`
-	PrevIndex   *int   `json:"prev_index"`
-	IsPublished *bool  `json:"is_published"`
-	IsHide      *bool  `json:"is_hide"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Alias         string `json:"alias"`
+	Type          string `json:"type"`
+	Code          string `json:"code"`
+	Description   string `json:"description"`
+	TitleID       *int64 `json:"title_id"`
+	TitleName     string `json:"title_name"` // Hasil dari t.name
+	SopID         int64  `json:"sop_id"`
+	ReferenceID   *int64 `json:"reference_id"`
+	ReferenceName string `json:"reference_name"` // Hasil dari ref.name
+	Index         int    `json:"index"`
+	FlowchartID   *int64 `json:"flowchart_id"`
+	NextIndex     *int   `json:"next_index"`
+	PrevIndex     *int   `json:"prev_index"`
+	IsPublished   *bool  `json:"is_published"`
+	IsHide        *bool  `json:"is_hide"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 type SopJobRepository interface {
@@ -53,10 +55,29 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 	repo := builder.NewGraphRepository()
 	params := make(map[string]any)
 
-	repo = repo.WithMatch("(j:Job)")
+	// POINTER HOPPING: Mulai dari Node SOP, lalu lompat ke Job melalui relasi
+	// Jika filter SopName digunakan, kita perlu match SOP dulu
+	if filter.SopName != "" {
+		repo = repo.WithMatch("(s:SOP)-[:HAS_JOB]->(j:Job)")
+		repo = repo.WithWhere("toLower(s.name) CONTAINS toLower($sopName)", nil)
+		params["sopName"] = filter.SopName
+	} else if filter.SopID != 0 {
+		repo = repo.WithMatch("(s:SOP {id: $sopId})-[:HAS_JOB]->(j:Job)")
+		params["sopId"] = filter.SopID
+	} else {
+		repo = repo.WithMatch("(s:SOP)-[:HAS_JOB]->(j:Job)")
+	}
+
+	// TRAVERSAL: Mengambil relasi Title dan Reference (seperti Join/Preload)
+	repo = repo.WithOptionalMatch("(j)-[:HAS_TITLE]->(t:Title)").
+		WithOptionalMatch("(j)-[:REFERENCES]->(ref)")
+
+	// Traversal untuk Division (melalui SOP)
+	if len(filter.DivisionNames) > 0 {
+		repo = repo.WithOptionalMatch("(s)-[:BELONGS_TO]->(d:Division)")
+	}
 
 	var conditions []string
-
 	if filter.ShowDeleted {
 		conditions = append(conditions, "j.deleted_at IS NOT NULL")
 	} else {
@@ -68,56 +89,58 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		params["name"] = filter.Name
 	}
 
-	if filter.SopID != 0 {
-		conditions = append(conditions, "j.sop_id = $sopId")
-		params["sopId"] = filter.SopID
+	if filter.MinIndex > 0 {
+		conditions = append(conditions, "j.index > $minIndex")
+		params["minIndex"] = filter.MinIndex
 	}
 
-	if filter.TitleID != 0 {
-		conditions = append(conditions, "j.title_id = $titleId")
-		params["titleId"] = filter.TitleID
+	if filter.ReferenceID != nil {
+		conditions = append(conditions, "j.reference_id = $referenceId")
+		params["referenceId"] = *filter.ReferenceID
 	}
 
-	if filter.Type != nil && *filter.Type != "" {
-		conditions = append(conditions, "j.type = $type")
-		params["type"] = *filter.Type
+	if filter.ReferenceType != "" {
+		conditions = append(conditions, "j.type = $referenceType")
+		params["referenceType"] = filter.ReferenceType
 	}
 
-	repo = repo.WithWhere(strings.Join(conditions, " AND "), params)
+	if len(filter.DivisionNames) > 0 {
+		divisionConditions := make([]string, len(filter.DivisionNames))
+		for i, divName := range filter.DivisionNames {
+			divisionConditions[i] = fmt.Sprintf("toLower(d.name) = toLower($divName%d)", i)
+			params[fmt.Sprintf("divName%d", i)] = divName
+		}
+		conditions = append(conditions, "("+strings.Join(divisionConditions, " OR ")+")")
+	}
 
-	returnClause := "j {.*} AS data"
+	if len(conditions) > 0 {
+		repo = repo.WithWhere(strings.Join(conditions, " AND "), params)
+	}
+
+	// Kembalikan data Node Job beserta informasi dari Node yang terhubung (Title/Ref)
+	returnClause := "j {.*, title_name: t.name, reference_name: ref.name} AS data"
 
 	if filter.Sort != "" && filter.Order != "" {
 		orderDir := strings.ToUpper(filter.Order)
-		if orderDir != "ASC" && orderDir != "DESC" {
-			orderDir = "ASC"
-		}
 		returnClause += fmt.Sprintf(" ORDER BY j.%s %s", filter.Sort, orderDir)
+	} else {
+		returnClause += " ORDER BY j.index ASC"
 	}
 
-	repo = repo.
-		WithReturn(returnClause).
-		WithParams(params)
+	repo = repo.WithReturn(returnClause).WithParams(params)
 
 	records, err := repo.RunRead()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get SOP Jobs with filter: %w", err)
+		return nil, fmt.Errorf("failed to get SOP Jobs with traversal: %w", err)
 	}
 
 	var sopJobs []*SopJobNode
 	for _, record := range records {
-		dataVal, ok := record.Get("data")
-		if !ok {
-			continue
+		if dataVal, ok := record.Get("data"); ok {
+			if props, ok := dataVal.(map[string]any); ok {
+				sopJobs = append(sopJobs, mapToSopJobNode(props))
+			}
 		}
-
-		props, ok := dataVal.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		sopJob := mapToSopJobNode(props)
-		sopJobs = append(sopJobs, sopJob)
 	}
 
 	return sopJobs, nil
@@ -188,12 +211,20 @@ func mapToSopJobNode(props map[string]any) *SopJobNode {
 		sopJob.TitleID = &titleIDVal
 	}
 
+	if tName, ok := props["title_name"].(string); ok {
+		sopJob.TitleName = tName
+	}
+
 	if sopIDVal, ok := props["sop_id"].(int64); ok {
 		sopJob.SopID = sopIDVal
 	}
 
 	if refIDVal, ok := props["reference_id"].(int64); ok {
 		sopJob.ReferenceID = &refIDVal
+	}
+
+	if rName, ok := props["reference_name"].(string); ok {
+		sopJob.ReferenceName = rName
 	}
 
 	if indexVal, ok := props["index"].(int64); ok {

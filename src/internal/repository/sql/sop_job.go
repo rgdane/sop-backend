@@ -11,6 +11,7 @@ import (
 
 type SopJobRepository interface {
 	WithTx(tx *gorm.DB) SopJobRepository
+	WithSelect(fields ...string) SopJobRepository
 	WithPreloads(preloads ...string) SopJobRepository
 	WithAssociations(associations ...string) SopJobRepository
 	WithReplacements(replacements map[string]any) SopJobRepository
@@ -29,6 +30,7 @@ type SopJobRepository interface {
 	RemoveManySopJobs(ids []int64) error
 
 	FindSopJob() ([]models.SopJob, error)
+	FindSopJobWithJoins() ([]models.SopJob, error)
 	FindSopJobByID(id int64) (*models.SopJob, error)
 	FindSopJobByIDs(ids []int64) ([]*models.SopJob, error)
 	ReorderSopJob(sopJobID int64, newIndex int, sopID int64) error
@@ -37,6 +39,7 @@ type SopJobRepository interface {
 
 type sopJobRepository struct {
 	db           *gorm.DB
+	fields       []string
 	preloads     []string
 	associations []string
 	replacements map[string]interface{}
@@ -60,6 +63,12 @@ func (repo *sopJobRepository) clone() *sopJobRepository {
 func (repo *sopJobRepository) WithTx(tx *gorm.DB) SopJobRepository {
 	clone := repo.clone()
 	clone.db = tx
+	return clone
+}
+
+func (repo *sopJobRepository) WithSelect(fields ...string) SopJobRepository {
+	clone := repo.clone()
+	clone.fields = append(clone.fields, fields...)
 	return clone
 }
 
@@ -126,6 +135,7 @@ func (repo *sopJobRepository) getQueryBuilder() *builder.QueryBuilder[models.Sop
 	}
 
 	qb := builder.NewQueryBuilder[models.SopJob](db).
+		WithSelect(repo.fields...).
 		WithPreloads(repo.preloads...).
 		WithAssociations(repo.associations...).
 		WithReplacements(repo.replacements).
@@ -183,6 +193,125 @@ func (repo *sopJobRepository) FindSopJob() ([]models.SopJob, error) {
 		r.order = "index ASC"
 	}
 	return repo.getQueryBuilder().FindAll()
+}
+
+type SopJobJoinResult struct {
+	ID          int64     `gorm:"column:id"`
+	Name        string    `gorm:"column:name"`
+	Alias       string    `gorm:"column:alias"`
+	Type        *string   `gorm:"column:type"`
+	Code        string    `gorm:"column:code"`
+	Description *string   `gorm:"column:description"`
+	TitleID     *int64    `gorm:"column:title_id"`
+	SopID       int64     `gorm:"column:sop_id"`
+	ReferenceID *int64    `gorm:"column:reference_id"`
+	Index       int       `gorm:"column:index"`
+	FlowchartID *int64    `gorm:"column:flowchart_id"`
+	NextIndex   *int      `gorm:"column:next_index"`
+	PrevIndex   *int      `gorm:"column:prev_index"`
+	IsPublished *bool     `gorm:"column:is_published"`
+	IsHide      *bool     `gorm:"column:is_hide"`
+	CreatedAt   time.Time `gorm:"column:created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at"`
+
+	TitleIDMapped *int64 `gorm:"column:title_id_mapped"`
+	TitleName     string `gorm:"column:title_name"`
+	TitleCode     string `gorm:"column:title_code"`
+	TitleColor    string `gorm:"column:title_color"`
+
+	RefSopID   *int64 `gorm:"column:ref_sop_id"`
+	RefSopName string `gorm:"column:ref_sop_name"`
+	RefSopCode string `gorm:"column:ref_sop_code"`
+
+	RefSpkID   *int64 `gorm:"column:ref_spk_id"`
+	RefSpkName string `gorm:"column:ref_spk_name"`
+	RefSpkCode string `gorm:"column:ref_spk_code"`
+}
+
+func (repo *sopJobRepository) FindSopJobWithJoins() ([]models.SopJob, error) {
+	r := repo
+	if r.order == "" {
+		r = repo.clone()
+		r.order = "index ASC"
+	}
+
+	db := repo.db
+	if repo.unscoped {
+		db = db.Unscoped()
+	}
+
+	for _, join := range repo.joins {
+		db = db.Joins(join)
+	}
+
+	for _, where := range repo.whereClauses {
+		db = where(db)
+	}
+
+	if r.order != "" {
+		db = db.Order(r.order)
+	}
+	if repo.limit != nil {
+		db = db.Limit(*repo.limit)
+	}
+	if repo.cursor != nil {
+		db = db.Where("id > ?", *repo.cursor)
+	}
+
+	var joinResults []SopJobJoinResult
+	if err := db.Find(&joinResults).Error; err != nil {
+		return nil, err
+	}
+
+	results := make([]models.SopJob, 0, len(joinResults))
+	for _, jr := range joinResults {
+		sopJob := models.SopJob{
+			ID:          jr.ID,
+			Name:        jr.Name,
+			Alias:       jr.Alias,
+			Type:        jr.Type,
+			Code:        jr.Code,
+			Description: jr.Description,
+			TitleID:     jr.TitleID,
+			SopID:       jr.SopID,
+			ReferenceID: jr.ReferenceID,
+			Index:       jr.Index,
+			FlowchartID: jr.FlowchartID,
+			NextIndex:   jr.NextIndex,
+			PrevIndex:   jr.PrevIndex,
+			IsPublished: jr.IsPublished,
+			IsHide:      jr.IsHide,
+			CreatedAt:   jr.CreatedAt,
+			UpdatedAt:   jr.UpdatedAt,
+		}
+
+		if jr.TitleIDMapped != nil {
+			sopJob.HasTitle = &models.Title{
+				ID:    *jr.TitleIDMapped,
+				Name:  jr.TitleName,
+				Code:  jr.TitleCode,
+				Color: jr.TitleColor,
+			}
+		}
+
+		if jr.RefSopID != nil {
+			sopJob.HasReference = &models.Sop{
+				ID:   *jr.RefSopID,
+				Name: jr.RefSopName,
+				Code: jr.RefSopCode,
+			}
+		} else if jr.RefSpkID != nil {
+			sopJob.HasReference = &models.Spk{
+				ID:   *jr.RefSpkID,
+				Name: jr.RefSpkName,
+				Code: jr.RefSpkCode,
+			}
+		}
+
+		results = append(results, sopJob)
+	}
+
+	return results, nil
 }
 
 func (repo *sopJobRepository) FindSopJobByID(id int64) (*models.SopJob, error) {

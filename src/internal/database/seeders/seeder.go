@@ -3,10 +3,10 @@ package seeders
 import "gorm.io/gorm"
 
 func InitSeeder(db *gorm.DB) {
-	SeedPermissions(db)
-	SeedRoles(db)
-	SeedAdmin(db)
-	// SeedFlowcharts(db)
+	// SeedPermissions(db)
+	// SeedRoles(db)
+	// SeedAdmin(db)
+	SeedFlowcharts(db)
 	// SeedDepartments(db)
 	// SeedDivisions(db)
 	// SeedLevels(db)

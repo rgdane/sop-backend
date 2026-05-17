@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"jk-api/api/http/controllers/v1/dto"
@@ -154,32 +155,101 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 	repo := s.repo
 
 	if filter.SopID != 0 {
-		repo = repo.WithWhere("sop_id = ?", filter.SopID)
-	}
-	if filter.TitleID != 0 {
-		repo = repo.WithWhere("title_id = ?", filter.TitleID)
-	}
-	if filter.Preload {
-		repo = repo.WithPreloads("HasSop", "HasTitle", "HasFlowchart")
-	}
-	if filter.Name != "" {
-		repo = repo.WithWhere("name ILIKE ?", "%"+filter.Name+"%")
-	}
-	if filter.ShowDeleted {
-		repo = repo.WithUnscoped().WithWhere("deleted_at IS NOT NULL")
+		repo = repo.WithWhere("sop_jobs.sop_id = ?", filter.SopID)
 	}
 
-	data, err := repo.FindSopJob()
+	if filter.Preload || filter.SopName != "" || len(filter.DivisionNames) > 0 {
+		selects := []string{
+			"sop_jobs.id",
+			"sop_jobs.name",
+			"sop_jobs.alias",
+			"sop_jobs.type",
+			"sop_jobs.code",
+			"sop_jobs.description",
+			"sop_jobs.title_id",
+			"sop_jobs.sop_id",
+			"sop_jobs.reference_id",
+			"sop_jobs.index",
+			"sop_jobs.flowchart_id",
+			"sop_jobs.next_index",
+			"sop_jobs.prev_index",
+			"sop_jobs.is_published",
+			"sop_jobs.is_hide",
+			"sop_jobs.created_at",
+			"sop_jobs.updated_at",
+			"titles.id AS title_id_mapped",
+			"titles.name AS title_name",
+			"titles.code AS title_code",
+			"titles.color AS title_color",
+			"ref_sops.id AS ref_sop_id",
+			"ref_sops.name AS ref_sop_name",
+			"ref_sops.code AS ref_sop_code",
+			"ref_spks.id AS ref_spk_id",
+			"ref_spks.name AS ref_spk_name",
+			"ref_spks.code AS ref_spk_code",
+		}
+
+		joinClauses := []string{
+			"LEFT JOIN titles ON titles.id = sop_jobs.title_id",
+			"LEFT JOIN sops AS parent_sops ON parent_sops.id = sop_jobs.sop_id",
+			"LEFT JOIN sops AS ref_sops ON ref_sops.id = sop_jobs.reference_id AND sop_jobs.type = 'sop'",
+			"LEFT JOIN spks AS ref_spks ON ref_spks.id = sop_jobs.reference_id AND sop_jobs.type = 'spk'",
+		}
+
+		if len(filter.DivisionNames) > 0 {
+			selects = append(selects, "divisions.name AS division_name")
+			joinClauses = append(joinClauses, "LEFT JOIN sop_divisions ON sop_divisions.sop_id = sop_jobs.sop_id")
+			joinClauses = append(joinClauses, "LEFT JOIN divisions ON divisions.id = sop_divisions.division_id")
+		}
+
+		repo = repo.WithSelect(selects...)
+
+		for _, j := range joinClauses {
+			repo = repo.WithJoins(j)
+		}
+	} else {
+		repo = repo.WithSelect("sop_jobs.*")
+	}
+
+	if filter.SopName != "" {
+		repo = repo.WithWhere("parent_sops.name ILIKE ?", "%"+filter.SopName+"%")
+	}
+
+	if len(filter.DivisionNames) > 0 {
+		placeholders := make([]string, len(filter.DivisionNames))
+		args := make([]interface{}, len(filter.DivisionNames))
+		for i, div := range filter.DivisionNames {
+			placeholders[i] = fmt.Sprintf("$%d", i+1)
+			args[i] = div
+		}
+		repo = repo.WithWhere(fmt.Sprintf("divisions.name IN (%s)", strings.Join(placeholders, ", ")), args...)
+	}
+
+	if filter.Name != "" {
+		repo = repo.WithWhere("sop_jobs.name ILIKE ?", "%"+filter.Name+"%")
+	}
+
+	if filter.MinIndex > 0 {
+		repo = repo.WithWhere("sop_jobs.index > ?", filter.MinIndex)
+	}
+
+	if filter.ReferenceID != nil {
+		repo = repo.WithWhere("sop_jobs.reference_id = ?", *filter.ReferenceID)
+	}
+
+	if filter.ReferenceType != "" {
+		repo = repo.WithWhere("sop_jobs.type = ?", filter.ReferenceType)
+	}
+
+	if filter.ShowDeleted {
+		repo = repo.WithUnscoped().WithWhere("sop_jobs.deleted_at IS NOT NULL")
+	} else {
+		repo = repo.WithWhere("sop_jobs.deleted_at IS NULL")
+	}
+
+	data, err := repo.FindSopJobWithJoins()
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)
-	}
-
-	if filter.Preload {
-		for i := range data {
-			if err := s.loadDynamicReference(&data[i]); err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	return data, nil
@@ -418,6 +488,43 @@ func (s *sopJobService) loadDynamicReference(sopJob *models.SopJob) error {
 		sopJob.HasReference = &spk
 	}
 
+	return nil
+}
+
+type sopJobJoinResult struct {
+	ID          int64     `gorm:"column:id"`
+	Name        string    `gorm:"column:name"`
+	Alias       string    `gorm:"column:alias"`
+	Type        *string   `gorm:"column:type"`
+	Code        string    `gorm:"column:code"`
+	Description *string   `gorm:"column:description"`
+	TitleID     *int64    `gorm:"column:title_id"`
+	SopID       int64     `gorm:"column:sop_id"`
+	ReferenceID *int64    `gorm:"column:reference_id"`
+	Index       int       `gorm:"column:index"`
+	FlowchartID *int64    `gorm:"column:flowchart_id"`
+	NextIndex   *int      `gorm:"column:next_index"`
+	PrevIndex   *int      `gorm:"column:prev_index"`
+	IsPublished *bool     `gorm:"column:is_published"`
+	IsHide      *bool     `gorm:"column:is_hide"`
+	CreatedAt   time.Time `gorm:"column:created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at"`
+
+	TitleIDMapped *int64 `gorm:"column:title_id_mapped"`
+	TitleName     string `gorm:"column:title_name"`
+	TitleCode     string `gorm:"column:title_code"`
+	TitleColor    string `gorm:"column:title_color"`
+
+	RefSopID   *int64 `gorm:"column:ref_sop_id"`
+	RefSopName string `gorm:"column:ref_sop_name"`
+	RefSopCode string `gorm:"column:ref_sop_code"`
+
+	RefSpkID   *int64 `gorm:"column:ref_spk_id"`
+	RefSpkName string `gorm:"column:ref_spk_name"`
+	RefSpkCode string `gorm:"column:ref_spk_code"`
+}
+
+func (s *sopJobService) mapJoinResultToModel(sopJob *models.SopJob) error {
 	return nil
 }
 

@@ -41,7 +41,7 @@ func RunBenchmarkDivisionGraph(cn *container.AppContainer) fiber.Handler {
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
 			// Asumsi nama method handler-mu untuk graph
-			_, _, _ = cn.DivisionHandler.GetAllDivisionsGraphHandler(dto.DivisionFilterDto{}) 
+			_, _, _ = cn.DivisionHandler.GetAllDivisionsGraphHandler(dto.DivisionFilterDto{})
 			return time.Since(start)
 		}
 		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Get Divisions", 5, 50, dbQueryFunc)
@@ -87,12 +87,24 @@ func RunBenchmarkSopGraph(cn *container.AppContainer) fiber.Handler {
 func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		targetURL := "http://localhost:5000/api/v1/sop-jobs/sql/"
+
+		refID := int64(100)
+		filter := dto.SopJobFilterDto{
+			Preload:       true,
+			SopName:       "Standard Operating Procedure",
+			DivisionNames: []string{"IT", "Finance"},
+			MinIndex:      5,
+			ReferenceID:   &refID,
+			ReferenceType: "spk",
+			ShowDeleted:   false,
+		}
+
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
-			_, _, _ = cn.SopJobHandler.GetAllSopJobsHandler(dto.SopJobFilterDto{})
+			_, _, _ = cn.SopJobHandler.GetAllSopJobsHandler(filter)
 			return time.Since(start)
 		}
-		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Get All SOP Jobs", 5, 50, dbQueryFunc)
+		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Complex SOP Jobs", 5, 500, dbQueryFunc)
 		return c.JSON(fiber.Map{"message": "Benchmark SQL SOP Jobs selesai", "data": result})
 	}
 }
@@ -100,12 +112,23 @@ func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		targetURL := "http://localhost:5000/api/v1/sop-jobs/graph/"
+
+		refID := int64(100)
+		filter := dto.SopJobFilterDto{
+			SopName:       "Standard Operating Procedure",
+			DivisionNames: []string{"IT", "Finance"},
+			MinIndex:      5,
+			ReferenceID:   &refID,
+			ReferenceType: "spk",
+			ShowDeleted:   false,
+		}
+
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
-			_, _, _ = cn.SopJobHandler.GetAllSopJobsGraphHandler(dto.SopJobFilterDto{})
+			_, _, _ = cn.SopJobHandler.GetAllSopJobsGraphHandler(filter)
 			return time.Since(start)
 		}
-		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Get All SOP Jobs", 5, 50, dbQueryFunc)
+		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Complex SOP Jobs", 5, 500, dbQueryFunc)
 		return c.JSON(fiber.Map{"message": "Benchmark Graph SOP Jobs selesai", "data": result})
 	}
 }

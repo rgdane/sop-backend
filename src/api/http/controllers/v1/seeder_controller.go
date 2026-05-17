@@ -1,15 +1,19 @@
 package controllers
 
 import (
+	"fmt"
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/api/http/presenters"
 	"jk-api/internal/container"
 	"jk-api/internal/shared/helper"
+	"math/rand"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func RunMasterDataSeeder(cn *container.AppContainer) fiber.Handler {
+func RunMasterDataSeederV1(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 
 		// ==========================================
@@ -73,7 +77,98 @@ func RunMasterDataSeeder(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
-func RunParentDataSeeder(cn *container.AppContainer) fiber.Handler {
+func RunMasterDataSeeder(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+
+		// ==========================================
+		// 1. GENERATE 30 DIVISIONS
+		// ==========================================
+		divisionNames := []string{
+			"Human Resources", "General Affairs", "Information Technology", "Finance", "Accounting",
+			"Operations", "Logistics", "Marketing", "Sales", "Research & Development",
+			"Legal", "Compliance", "Customer Support", "Customer Success", "Procurement",
+			"Quality Assurance", "Public Relations", "Facilities Management", "Internal Audit", "Business Development",
+			"Product Management", "Data Engineering", "Data Science", "Information Security", "Corporate Strategy",
+			"Supply Chain", "Manufacturing", "Corporate Communications", "Investor Relations", "Risk Management",
+		}
+
+		var divisionsData []*dto.CreateDivisionDto
+		for i, name := range divisionNames {
+			// Bikin kode singkatan simple, misal: DIV-1, DIV-2, dst.
+			code := fmt.Sprintf("DIV-%03d", i+1)
+			divisionsData = append(divisionsData, &dto.CreateDivisionDto{
+				Name: name,
+				Code: code,
+			})
+		}
+
+		divisionsInput := dto.BulkCreateDivisionDto{Data: divisionsData}
+		divisionsRes, errDiv := cn.DivisionHandler.BulkCreateHandler(&divisionsInput)
+		if errDiv != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusInternalServerError, "Gagal seeding Divisions: "+errDiv.Error())
+		}
+
+		// ==========================================
+		// 2. GENERATE 100 TITLES (JABATAN)
+		// ==========================================
+		// Kita akan kombinasikan Level dan Spesialisasi untuk dapat 100 kombinasi
+		levels := []string{"Intern", "Junior", "Staff", "Senior", "Lead", "Supervisor", "Manager", "Director"}
+		specialties := []string{
+			"Software Engineer", "Data Analyst", "Product Designer", "Accountant", 
+			"HR Specialist", "Marketing Exec", "Sales Rep", "System Admin", 
+			"Legal Counsel", "Operations Spec", "QA Tester", "Support Agent",
+		}
+
+		var titlesData []*dto.CreateTitleDto
+
+		// 8 levels x 12 specialties = 96 Titles
+		counter := 1
+		for _, level := range levels {
+			for _, spec := range specialties {
+				titleName := fmt.Sprintf("%s %s", level, spec)
+				code := fmt.Sprintf("TTL-%03d", counter)
+				titlesData = append(titlesData, &dto.CreateTitleDto{
+					Name:  titleName,
+					Code:  code,
+					Color: helper.GenerateRandomHexColor(),
+				})
+				counter++
+			}
+		}
+
+		// Tambahkan 4 C-Level Executive biar pas 100
+		cLevels := []string{"Chief Executive Officer", "Chief Technology Officer", "Chief Financial Officer", "Chief Operating Officer"}
+		for i, cName := range cLevels {
+			titlesData = append(titlesData, &dto.CreateTitleDto{
+				Name:  cName,
+				Code:  fmt.Sprintf("C-LVL-%02d", i+1),
+				Color: helper.GenerateRandomHexColor(),
+			})
+		}
+
+		titlesInput := dto.BulkCreateTitleDto{Data: titlesData}
+		titlesRes, errTitle := cn.TitleHandler.BulkCreateHandler(&titlesInput)
+		if errTitle != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusInternalServerError, "Gagal seeding Titles: "+errTitle.Error())
+		}
+
+		// ==========================================
+		// 3. RETURN RESPONSE
+		// ==========================================
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"success": true,
+			"message": "Seeding Data Master (30 Divisions & 100 Titles) Berhasil!",
+			"data": fiber.Map{
+				"divisions_inserted": len(divisionsInput.Data),
+				"titles_inserted":    len(titlesInput.Data),
+				"raw_divisions_res":  divisionsRes,
+				"raw_titles_res":     titlesRes,
+			},
+		})
+	}
+}
+
+func RunParentDataSeederV1(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 
 		// ==========================================
@@ -179,7 +274,82 @@ func RunParentDataSeeder(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
-func RunJobDataSeeder(cn *container.AppContainer) fiber.Handler {
+func RunParentDataSeeder(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+		// Kamus kata untuk bikin nama dinamis
+		departments := []string{"Keuangan", "Teknologi", "SDM", "Operasional", "Produksi", "Pemasaran", "Legal", "Logistik"}
+		actions := []string{"Pemeliharaan", "Audit", "Evaluasi", "Perencanaan", "Pelaporan", "Pengawasan", "Implementasi"}
+
+		// ==========================================
+		// 1. GENERATE 50 SOPs
+		// ==========================================
+		totalSOPs := 50
+		var sopsData []*dto.CreateSopDto
+
+		for i := 1; i <= totalSOPs; i++ {
+			dept := departments[r.Intn(len(departments))]
+			action := actions[r.Intn(len(actions))]
+			codePrefix := strings.ToUpper(dept[:3])
+
+			sopsData = append(sopsData, &dto.CreateSopDto{
+				Name:         fmt.Sprintf("SOP %s %s v%d.0", action, dept, r.Intn(5)+1),
+				Description:  helper.StrPtr(fmt.Sprintf("Dokumen standar operasional resmi untuk kegiatan %s di departemen %s.", action, dept)),
+				Code:         fmt.Sprintf("SOP-%s-%03d", codePrefix, i),
+				HasDivisions: helper.GenerateRandomIDs(1, 30, r.Intn(4)+1), // Tiap SOP dipegang 1-4 Divisi acak (ID 1-30)
+				ParentJobID:  nil,
+			})
+		}
+
+		sopsInput := dto.BulkCreateSopsDto{Data: sopsData}
+		sopsRes, errSop := cn.SopHandler.BulkCreateSopsHandler(&sopsInput)
+		if errSop != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusInternalServerError, "Gagal seeding SOPs: "+errSop.Error())
+		}
+
+		// ==========================================
+		// 2. GENERATE 150 SPKs
+		// ==========================================
+		totalSPKs := 150
+		var spksData []*dto.CreateSpkDto
+
+		for i := 1; i <= totalSPKs; i++ {
+			dept := departments[r.Intn(len(departments))]
+			action := actions[r.Intn(len(actions))]
+			codePrefix := strings.ToUpper(dept[:3])
+
+			spksData = append(spksData, &dto.CreateSpkDto{
+				Name:        fmt.Sprintf("SPK %s %s - Kuartal %d", action, dept, r.Intn(4)+1),
+				Description: helper.StrPtr(fmt.Sprintf("Surat perintah kerja untuk eksekusi %s pada area %s.", action, dept)),
+				Code:        fmt.Sprintf("SPK-%s-%04d", codePrefix, i),
+				HasTitles:   helper.GenerateRandomIDs(1, 100, r.Intn(6)+1), // Tiap SPK dikerjakan oleh 1-6 Jabatan acak (ID 1-100)
+			})
+		}
+
+		spksInput := dto.BulkCreateSpksDto{Data: spksData}
+		spksRes, errSpk := cn.SpkHandler.BulkCreateSpksHandler(&spksInput)
+		if errSpk != nil {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusInternalServerError, "Gagal seeding SPKs: "+errSpk.Error())
+		}
+
+		// ==========================================
+		// 3. RETURN RESPONSE
+		// ==========================================
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"success": true,
+			"message": fmt.Sprintf("Seeding Parent (%d SOPs & %d SPKs) Berhasil!", totalSOPs, totalSPKs),
+			"data": fiber.Map{
+				"sops_inserted": len(sopsInput.Data),
+				"spks_inserted": len(spksInput.Data),
+				"raw_sops_res":  sopsRes,
+				"raw_spks_res":  spksRes,
+			},
+		})
+	}
+}
+
+func RunJobDataSeederV1(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 
 		// ==========================================
@@ -301,6 +471,100 @@ func RunJobDataSeeder(cn *container.AppContainer) fiber.Handler {
 				"spk_jobs_inserted": len(spkJobsInput.Data),
 				"raw_sop_jobs_res":  sopJobsRes,
 				"raw_spk_jobs_res":  spkJobsRes,
+			},
+		})
+	}
+}
+
+func RunJobDataSeeder(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		
+		// Enum type yang diizinkan database-mu
+		jobTypes := []string{"instruction", "sop", "spk"}
+
+		// ==========================================
+		// 1. GENERATE SOP JOBS (LINKED-LIST GRAPH)
+		// ==========================================
+		totalSOPs := 50
+		sopJobsInserted := 0
+
+		for i := 1; i <= totalSOPs; i++ {
+			// Setiap SOP punya 3-7 langkah kerja
+			stepsCount := r.Intn(5) + 3 
+			var lastInsertedID *int64 = nil
+
+			for j := 1; j <= stepsCount; j++ {
+				// Pilih tipe job acak
+				jType := jobTypes[r.Intn(len(jobTypes))]
+				
+				jobDto := &dto.CreateSopJobDto{
+					Name:        fmt.Sprintf("Langkah %d untuk SOP ID %d", j, i),
+					Alias:       fmt.Sprintf("step-%d-sop-%d", j, i),
+					Description: helper.StrPtr(fmt.Sprintf("Ini adalah instruksi detail untuk eksekusi langkah ke-%d", j)),
+					Type:        helper.StrPtr(jType), 
+					TitleID:     helper.Int64Ptr(int64(r.Intn(100) + 1)), // Acak Jabatan 1-100
+					SopID:       int64(i),
+					ReferenceID: lastInsertedID, // MENGHUBUNGKAN KE JOB SEBELUMNYA (Linked-List)
+					IsPublished: helper.BoolPtr(true),
+				}
+
+				// Insert SATU per SATU untuk mendapatkan ID yang akan dipakai node selanjutnya
+				input := dto.BulkCreateSopJobs{Data: []*dto.CreateSopJobDto{jobDto}}
+				
+				res, err := cn.SopJobHandler.BulkCreateSopJobsHandler(&input)
+				if err != nil {
+					return presenters.SendErrorResponseWithMessage(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal seeding SOP Job di SOP %d: %v", i, err))
+				}
+
+				// Ambil ID dari record yang baru terbuat dan jadikan lastInsertedID
+				if len(res) > 0 {
+					newID := int64(res[0].ID)
+					lastInsertedID = &newID
+					sopJobsInserted++
+				}
+			}
+		}
+
+		// ==========================================
+		// 2. GENERATE SPK JOBS
+		// ==========================================
+		// totalSPKs := 150
+		// var spksJobsData []*dto.CreateSpkJobDto
+
+		// for i := 1; i <= totalSPKs; i++ {
+		// 	// Setiap SPK punya 2-6 pekerjaan
+		// 	jobsCount := r.Intn(5) + 2
+
+		// 	for index := 1; index <= jobsCount; index++ {
+		// 		spksJobsData = append(spksJobsData, &dto.CreateSpkJobDto{
+		// 			Name:        fmt.Sprintf("Tugas SPK %d - %d", i, index),
+		// 			Description: helper.StrPtr(fmt.Sprintf("Pekerjaan indeks %d yang harus diselesaikan untuk SPK %d", index, i)),
+		// 			SpkID:       int64(i),
+		// 			SopID:       helper.Int64Ptr(int64(r.Intn(50) + 1)), // Relasi acak ke SOP 1-50
+		// 			TitleID:     helper.Int64Ptr(int64(r.Intn(100) + 1)), // Acak Jabatan 1-100
+		// 			Index:       index, // Menggunakan urutan Index
+		// 		})
+		// 	}
+		// }
+
+		// // SPK Job tidak pakai ReferenceID, jadi aman kita bulk insert ratusan sekaligus!
+		// spkJobsInput := dto.BulkCreateSpkJobsDto{Data: spksJobsData}
+		// _, errSpkJob := cn.SpkJobHandler.BulkCreateSpkJobsHandler(&spkJobsInput)
+		// if errSpkJob != nil {
+		// 	return presenters.SendErrorResponseWithMessage(c, fiber.StatusInternalServerError, "Gagal seeding SPK Jobs: "+errSpkJob.Error())
+		// }
+
+		// ==========================================
+		// 3. RETURN RESPONSE
+		// ==========================================
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"success": true,
+			"message": "Seeding Data Jobs (Linked-List & Indexed) Berhasil!",
+			"data": fiber.Map{
+				"sop_jobs_inserted": sopJobsInserted,
+				//"spk_jobs_inserted": len(spkJobsInput.Data),
+				// Kita tidak return raw_res karena datanya terlalu masif (bisa bikin crash response)
 			},
 		})
 	}
