@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -233,8 +234,9 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 		repo = repo.WithWhere("sop_jobs.index > ?", filter.MinIndex)
 	}
 
-	if filter.ReferenceID != nil {
+	if filter.ReferenceID != nil && *filter.ReferenceID != 0 {
 		repo = repo.WithWhere("sop_jobs.reference_id = ?", *filter.ReferenceID)
+		log.Printf("Filtering by ReferenceID: %d", *filter.ReferenceID)
 	}
 
 	if filter.ReferenceType != "" {
@@ -383,20 +385,17 @@ func (s *sopJobService) CountSopJobs(filter dto.SopJobFilterDto) (int64, error) 
 	}
 
 	if filter.SopName != "" {
-		repo = repo.WithJoins("LEFT JOIN sops AS parent_sops ON parent_sops.id = sop_jobs.sop_id")
-		repo = repo.WithWhere("parent_sops.name ILIKE ?", "%"+filter.SopName+"%")
+		repo = repo.WithWhere("EXISTS (SELECT 1 FROM sops p WHERE p.id = sop_jobs.sop_id AND p.name ILIKE ?)", "%"+filter.SopName+"%")
 	}
 
 	if len(filter.DivisionNames) > 0 {
-		repo = repo.WithJoins("LEFT JOIN sop_divisions ON sop_divisions.sop_id = sop_jobs.sop_id")
-		repo = repo.WithJoins("LEFT JOIN divisions ON divisions.id = sop_divisions.division_id")
 		placeholders := make([]string, len(filter.DivisionNames))
 		args := make([]interface{}, len(filter.DivisionNames))
 		for i, div := range filter.DivisionNames {
 			placeholders[i] = "?"
 			args[i] = div
 		}
-		repo = repo.WithWhere(fmt.Sprintf("divisions.name IN (%s)", strings.Join(placeholders, ", ")), args...)
+		repo = repo.WithWhere(fmt.Sprintf("EXISTS (SELECT 1 FROM sop_divisions sd JOIN divisions d ON d.id = sd.division_id WHERE sd.sop_id = sop_jobs.sop_id AND d.name IN (%s))", strings.Join(placeholders, ", ")), args...)
 	}
 
 	if filter.Name != "" {
@@ -407,8 +406,9 @@ func (s *sopJobService) CountSopJobs(filter dto.SopJobFilterDto) (int64, error) 
 		repo = repo.WithWhere("sop_jobs.index > ?", filter.MinIndex)
 	}
 
-	if filter.ReferenceID != nil {
+	if filter.ReferenceID != nil && *filter.ReferenceID != 0 {
 		repo = repo.WithWhere("sop_jobs.reference_id = ?", *filter.ReferenceID)
+		log.Printf("Filtering by ReferenceID: %d", *filter.ReferenceID)
 	}
 
 	if filter.ReferenceType != "" {

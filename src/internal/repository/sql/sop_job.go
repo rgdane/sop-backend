@@ -405,8 +405,12 @@ func (repo *sopJobRepository) CountSopJobs() (int64, error) {
 	if repo.unscoped {
 		db = db.Unscoped()
 	}
-	err := db.Model(&models.SopJob{}).
-		Count(&count).Error
+
+	for _, where := range repo.whereClauses {
+		db = where(db)
+	}
+
+	err := db.Model(&models.SopJob{}).Count(&count).Error
 	if err != nil {
 		return 0, err
 	}

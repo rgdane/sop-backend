@@ -436,19 +436,7 @@ func (h *SopJobHandler) GetAllSopJobsHandler(filter dto.SopJobFilterDto) ([]mode
 		return nil, 0, err
 	}
 
-	var total int64
-	db := h.Service.GetDB()
-	if filter.Name != "" {
-		db = db.Where("name ILIKE ?", "%"+filter.Name+"%")
-	}
-	if filter.ShowDeleted {
-		db = db.Unscoped().Where("deleted_at IS NOT NULL")
-	}
-	if err := db.Model(&models.SopJob{}).Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return data, total, nil
+	return data, int64(len(data)), nil
 }
 
 func (h *SopJobHandler) GetAllSopJobsGraphHandler(filter dto.SopJobFilterDto) ([]*graphdb.SopJobNode, int64, error) {
@@ -457,12 +445,7 @@ func (h *SopJobHandler) GetAllSopJobsGraphHandler(filter dto.SopJobFilterDto) ([
 		return nil, 0, err
 	}
 
-	total, err := h.Service.CountGraphSopJobs(filter)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return data, total, nil
+	return data, int64(len(data)), nil
 }
 
 func (h *SopJobHandler) BulkCreateSopJobsHandler(input *dto.BulkCreateSopJobs) ([]*models.SopJob, error) {

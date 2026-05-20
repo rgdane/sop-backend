@@ -88,13 +88,13 @@ func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		targetURL := "http://localhost:5000/api/v1/sop-jobs/sql/"
 
-		refID := int64(31206)
+		//refID := int64(31206)
 		filter := dto.SopJobFilterDto{
 			Preload:       true,
 			SopName:       "100163",
-			DivisionNames: []string{"Finance"},
+			DivisionNames: []string{"Legal"},
 			MinIndex:      5,
-			ReferenceID:   &refID,
+			//ReferenceID:   &refID,
 			ReferenceType: "spk",
 			ShowDeleted:   false,
 		}
@@ -104,7 +104,7 @@ func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 			_, _, _ = cn.SopJobHandler.GetAllSopJobsHandler(filter)
 			return time.Since(start)
 		}
-		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Complex SOP Jobs", 5, 50, dbQueryFunc)
+		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - Complex SOP Jobs", 5, 10, dbQueryFunc)
 		return c.JSON(fiber.Map{"message": "Benchmark SQL SOP Jobs selesai", "data": result})
 	}
 }
@@ -113,13 +113,13 @@ func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		targetURL := "http://localhost:5000/api/v1/sop-jobs/graph/"
 
-		refID := int64(31206)
+		//refID := int64(31206)
 		filter := dto.SopJobFilterDto{
 			Preload:       true,
 			SopName:       "100163",
-			DivisionNames: []string{"Finance"},
+			DivisionNames: []string{"Legal"},
 			MinIndex:      5,
-			ReferenceID:   &refID,
+			//ReferenceID:   &refID,
 			ReferenceType: "spk",
 			ShowDeleted:   false,
 		}
@@ -129,7 +129,7 @@ func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 			_, _, _ = cn.SopJobHandler.GetAllSopJobsGraphHandler(filter)
 			return time.Since(start)
 		}
-		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Complex SOP Jobs", 5, 50, dbQueryFunc)
+		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - Complex SOP Jobs", 5, 10, dbQueryFunc)
 		return c.JSON(fiber.Map{"message": "Benchmark Graph SOP Jobs selesai", "data": result})
 	}
 }
