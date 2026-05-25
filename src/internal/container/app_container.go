@@ -15,6 +15,7 @@ type AppContainer struct {
 	SpkHandler                *handlers.SpkHandler
 	SpkJobHandler             *handlers.SpkJobHandler
 	SopJobHandler             *handlers.SopJobHandler
+	DashboardHandler		  *handlers.DashboardHandler
 }
 
 func NewAppContainer() *AppContainer {
@@ -29,5 +30,6 @@ func NewAppContainer() *AppContainer {
 		SpkHandler:                InitSpkContainer(),
 		SpkJobHandler:             InitSpkJobContainer(),
 		SopJobHandler:             InitSopJobContainer(),
+		DashboardHandler:          InitDashboardContainer(),
 	}
 }

@@ -228,7 +228,7 @@ func (r *graphRepository) RunRead() ([]neo4j.Record, error) {
 
 	log.Printf("[Neo4j READ] Executing query:\n%s\nParams: %#v\n", query, r.params)
 
-	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(r.ctx)
 
 	result, err := session.ExecuteRead(r.ctx, func(tx neo4j.ManagedTransaction) (any, error) {

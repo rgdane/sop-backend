@@ -5,6 +5,19 @@ import (
 	"fmt"
 )
 
+func ToInt64(v any) int64 {
+	switch val := v.(type) {
+	case int64:
+		return val
+	case int:
+		return int64(val)
+	case float64:
+		return int64(val)
+	default:
+		return 0
+	}
+}
+
 func ToString(v interface{}) string {
 	if v == nil {
 		return ""

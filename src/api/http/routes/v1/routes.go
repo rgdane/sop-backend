@@ -27,6 +27,7 @@ func Setup(app *fiber.App, c *container.AppContainer) {
 	SpkRoutes(api, c)
 	TitleRoutes(api, c)
 	UserRoutes(api, c)
+	DashboardRoutes(api, c)
 	GraphRoutes(api, c)
 
 	BenchmarkRoutes(api, c)
