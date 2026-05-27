@@ -15,11 +15,11 @@ func Migrate() {
 	}
 
 	err := db.AutoMigrate(
-		&models.User{},
+		//&models.User{},
 		&models.Division{},
 		&models.Title{},
-		&models.Role{},
-		&models.Permission{},
+		//&models.Role{},
+		//&models.Permission{},
 		&models.Sop{},
 		&models.Spk{},
 		&models.Flowchart{},

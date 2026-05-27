@@ -30,6 +30,7 @@ type Config struct {
 	Neo4jURI      string
 	Neo4jUser     string
 	Neo4jPassword string
+	Neo4jDB       string
 
 	OmniChannelURI string
 }
@@ -56,7 +57,8 @@ func LoadConfig() error {
 		Neo4jURI:      getEnv("NEO4J_URI", "bolt://localhost:7687"),
 		Neo4jUser:     getEnv("NEO4J_USER", "neo4j"),
 		Neo4jPassword: getEnv("NEO4J_PASSWORD", "password"),
-
+		Neo4jDB:       getEnv("NEO4J_DB", "neo4j"),
+		
 		OmniChannelURI: getEnv("OMNI_CHANNEL_URI", "http://localhost:3000"),
 	}
 

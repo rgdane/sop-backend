@@ -58,9 +58,10 @@ type graphRepository struct {
 
 // --- Constructor ---
 func NewGraphRepository() GraphRepository {
+	dbName := config.AppConfig.Neo4jDB
 	return &graphRepository{
 		driver:        config.GetNeo4j(),
-		sessionConfig: neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite},
+		sessionConfig: neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName},
 		ctx:           context.Background(),
 		params:        make(map[string]interface{}),
 		statements:    []string{},
@@ -228,7 +229,8 @@ func (r *graphRepository) RunRead() ([]neo4j.Record, error) {
 
 	log.Printf("[Neo4j READ] Executing query:\n%s\nParams: %#v\n", query, r.params)
 
-	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	dbName := config.AppConfig.Neo4jDB
+	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead, DatabaseName: dbName})
 	defer session.Close(r.ctx)
 
 	result, err := session.ExecuteRead(r.ctx, func(tx neo4j.ManagedTransaction) (any, error) {
@@ -253,7 +255,8 @@ func (r *graphRepository) RunWrite() error {
 
 	log.Printf("[Neo4j WRITE] Executing query:\n%s\nParams: %#v\n", query, r.params)
 
-	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	dbName := config.AppConfig.Neo4jDB
+	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName})
 	defer session.Close(r.ctx)
 
 	_, err := session.ExecuteWrite(r.ctx, func(tx neo4j.ManagedTransaction) (any, error) {
@@ -268,7 +271,8 @@ func (r *graphRepository) RunWriteWithReturn() ([]neo4j.Record, error) {
 
 	log.Printf("[Neo4j WRITE WITH RETURN] Executing query:\n%s\nParams: %#v\n", query, r.params)
 
-	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	dbName := config.AppConfig.Neo4jDB
+	session := r.driver.NewSession(r.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName})
 	defer session.Close(r.ctx)
 
 	result, err := session.ExecuteWrite(r.ctx, func(tx neo4j.ManagedTransaction) (any, error) {
