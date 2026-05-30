@@ -131,11 +131,11 @@ func runPostgresSeeder(db *gorm.DB, scale SeedScale) {
 	log.Printf("SPK seeding complete: %d records", len(spkIDs))
 
 	log.Println("Seeding SPK Jobs...")
-	seedSpkJobsPG(db, scale.SpkJobCount, spkIDs, titleIDs)
+	seedSpkJobsPG(db, scale.SpkJobCount, spkIDs, titleIDs, sopIDs)
 	log.Printf("SPK Job seeding complete: %d records", scale.SpkJobCount)
 
 	log.Println("Seeding SOP Jobs...")
-	seedSopJobsPG(db, scale.SopJobCount, sopIDs, titleIDs)
+	seedSopJobsPG(db, scale.SopJobCount, sopIDs, spkIDs, titleIDs)
 	log.Printf("SOP Job seeding complete: %d records", scale.SopJobCount)
 
 	log.Println("Postgres seeding complete!")
@@ -206,6 +206,76 @@ func setupNeo4jConstraints(driver neo4j.DriverWithContext) {
 
 func generateCode(prefix string, id int64) string {
 	return fmt.Sprintf("%s%04d", prefix, id)
+}
+
+func generateDocName(prefix string) (name, alias string) {
+	words := []string{
+		gofakeit.VerbAction(),
+		gofakeit.Noun(),
+		gofakeit.Noun(),
+	}
+	words[0] = strings.ToUpper(words[0][:1]) + words[0][1:]
+
+	phrase := strings.Join(words, " ")
+	name = prefix + " " + phrase
+
+	var initials []string
+	for _, w := range words {
+		if len(w) > 0 {
+			initials = append(initials, strings.ToUpper(w[:1]))
+		}
+	}
+	alias = prefix + " " + strings.Join(initials, "")
+	return
+}
+
+func generateSopJobName() (name, alias string) {
+	roles := []string{
+		"Product Owner", "Project Manager", "Engineering Manager",
+		"UI/UX Designer", "Software Engineer", "QA Engineer",
+		"System Analyst", "Scrum Master", "Tech Lead", "CTO", "COO",
+		"Business Analyst", "Data Engineer", "DevOps Engineer",
+		"Product Designer", "Frontend Engineer", "Backend Engineer",
+		"Full Stack Developer", "IT Support", "Security Engineer",
+		"Database Administrator", "Network Engineer", "Solution Architect",
+	}
+
+	actions := []string{
+		"melaksanakan meeting", "melakukan brainstorming",
+		"menyusun dokumen", "mengevaluasi hasil",
+		"membahas progress", "mereview deliverable",
+		"mengkoordinasikan", "memimpin diskusi",
+		"menyiapkan presentasi", "menganalisa kebutuhan",
+		"membuat laporan", "mengembangkan fitur",
+		"mengimplementasikan", "mengintegrasikan",
+		"mengoptimalkan", "merefaktor kode",
+		"mendokumentasikan", "memvalidasi",
+		"mengaudit", "merancang arsitektur",
+	}
+
+	entities := []string{
+		"COO", "CTO", "tim Engineering", "tim Product",
+		"tim QA", "tim DevOps", "stakeholder", "client",
+		"vendor", "tim Marketing", "tim Sales",
+		"Divisi Developer", "Divisi Designer", "Data Team",
+		"Infrastructure Team", "user", "management",
+	}
+
+	role := roles[gofakeit.Number(0, len(roles)-1)]
+	action := actions[gofakeit.Number(0, len(actions)-1)]
+	entity := entities[gofakeit.Number(0, len(entities)-1)]
+
+	name = fmt.Sprintf("%s %s %s", role, action, entity)
+
+	var roleAbbr string
+	for _, part := range strings.Split(role, " ") {
+		if len(part) > 0 {
+			roleAbbr += strings.ToUpper(part[:1])
+		}
+	}
+	alias = fmt.Sprintf("%s %s %s", roleAbbr, action, entity)
+
+	return
 }
 
 func generateColor() string {
@@ -520,10 +590,11 @@ func seedSOPsPG(db *gorm.DB, count int, divisionIDs []int64) []int64 {
 		id := startID + i
 		divisionID := divisionIDs[gofakeit.Number(0, len(divisionIDs)-1)]
 		desc := gofakeit.Sentence(5)
+		sopName, _ := generateDocName("SOP")
 
 		sops = append(sops, SopPG{
 			ID:          id,
-			Name:        gofakeit.HackerPhrase(),
+			Name:        sopName,
 			Code:        fmt.Sprintf("SOP-%s", strings.ReplaceAll(gofakeit.UUID(), "-", "")[:8]),
 			Description: &desc,
 		})
@@ -563,10 +634,12 @@ func seedSPKsPG(db *gorm.DB, count int, titleIDs []int64) []int64 {
 		titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 		desc := gofakeit.Sentence(5)
 
+		spkName, _ := generateDocName("SPK")
+
 		spks = append(spks, SpkPG{
 			ID:          id,
-			Name:        gofakeit.HackerPhrase(),
-			Code:        fmt.Sprintf("SPK-%s", strings.ReplaceAll(gofakeit.UUID(), "-", "")[:8]),
+			Name:        spkName,
+			Code:        generateCode("SPK", id),
 			Description: &desc,
 		})
 
@@ -591,35 +664,61 @@ func seedSPKsPG(db *gorm.DB, count int, titleIDs []int64) []int64 {
 	return ids
 }
 
-func seedSopJobsPG(db *gorm.DB, count int, sopIDs []int64, titleIDs []int64) {
+func seedSopJobsPG(db *gorm.DB, count int, sopIDs []int64, spkIDs []int64, titleIDs []int64) {
 	if len(sopIDs) == 0 {
 		log.Fatal("No SOP IDs provided for SopJob seeding")
+	}
+	if len(spkIDs) == 0 {
+		log.Fatal("No SPK IDs provided for SopJob seeding")
+	}
+	if len(titleIDs) == 0 {
+		log.Fatal("No Title IDs provided for SopJob seeding")
 	}
 
 	startID := int64(1)
 	isPublished := true
 	isHide := false
-	jobType := "sop"
 
 	jobs := make([]SopJobPG, 0, count)
+	sopIndex := make(map[int64]int)
 
 	for i := int64(0); i < int64(count); i++ {
 		id := startID + i
 		sopID := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+		titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 		desc := gofakeit.Sentence(5)
 		flowchartID := int64(gofakeit.Number(1, 2))
+		jobType := gofakeit.RandomString([]string{"sop", "spk", "instruction"})
+
+		sopIndex[sopID]++
+		idx := sopIndex[sopID]
+
+		jobName, jobAlias := generateSopJobName()
+
+		var refID *int64
+		switch jobType {
+		case "sop":
+			rid := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+			for rid == sopID {
+				rid = sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+			}
+			refID = &rid
+		case "spk":
+			rid := spkIDs[gofakeit.Number(0, len(spkIDs)-1)]
+			refID = &rid
+		}
 
 		jobs = append(jobs, SopJobPG{
 			ID:          id,
-			Name:        gofakeit.HackerPhrase(),
-			Alias:       gofakeit.HackerPhrase(),
+			Name:        jobName,
+			Alias:       jobAlias,
 			Type:        &jobType,
 			Code:        fmt.Sprintf("P%04d", id),
 			Description: &desc,
-			TitleID:     nil,
+			TitleID:     &titleID,
 			SopID:       sopID,
-			ReferenceID: nil,
-			Index:       0,
+			ReferenceID: refID,
+			Index:       idx,
 			IsPublished: &isPublished,
 			IsHide:      &isHide,
 			FlowchartID: &flowchartID,
@@ -633,30 +732,43 @@ func seedSopJobsPG(db *gorm.DB, count int, sopIDs []int64, titleIDs []int64) {
 	}
 }
 
-func seedSpkJobsPG(db *gorm.DB, count int, spkIDs []int64, titleIDs []int64) {
+func seedSpkJobsPG(db *gorm.DB, count int, spkIDs []int64, titleIDs []int64, sopIDs []int64) {
 	if len(spkIDs) == 0 {
 		log.Fatal("No SPK IDs provided for SpkJob seeding")
+	}
+	if len(titleIDs) == 0 {
+		log.Fatal("No Title IDs provided for SpkJob seeding")
+	}
+	if len(sopIDs) == 0 {
+		log.Fatal("No SOP IDs provided for SpkJob seeding")
 	}
 
 	startID := int64(1)
 
 	jobs := make([]SpkJobPG, 0, count)
+	spkIndex := make(map[int64]int)
 
 	for i := int64(0); i < int64(count); i++ {
 		id := startID + i
-		spkIDIdx := gofakeit.Number(0, len(spkIDs)-1)
-		spkID := spkIDs[spkIDIdx]
+		spkID := spkIDs[gofakeit.Number(0, len(spkIDs)-1)]
+		sopID := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+		titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 		desc := gofakeit.Sentence(5)
 		flowchartID := int64(gofakeit.Number(1, 2))
 
+		spkIndex[spkID]++
+		idx := spkIndex[spkID]
+
+		jobName, _ := generateSopJobName()
+
 		jobs = append(jobs, SpkJobPG{
 			ID:          id,
-			Name:        gofakeit.HackerPhrase(),
+			Name:        jobName,
 			Description: &desc,
 			SpkID:       spkID,
-			SopID:       nil,
-			TitleID:     nil,
-			Index:       0,
+			SopID:       &sopID,
+			TitleID:     &titleID,
+			Index:       idx,
 			FlowchartID: &flowchartID,
 			NextIndex:   nil,
 			PrevIndex:   nil,
@@ -692,10 +804,11 @@ func seedSOPsNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int6
 		for i := int64(batchStart); i < int64(batchEnd); i++ {
 			id := startID + i
 			divisionID := divisionIDs[gofakeit.Number(0, len(divisionIDs)-1)]
+			sopName, _ := generateDocName("SOP")
 
 			rows = append(rows, map[string]interface{}{
 				"id":          id,
-				"name":        gofakeit.HackerPhrase(),
+				"name":        sopName,
 				"code":        fmt.Sprintf("SOP-%s", strings.ReplaceAll(gofakeit.UUID(), "-", "")[:8]),
 				"description": gofakeit.Sentence(5),
 				"division_id": divisionID,
@@ -740,11 +853,12 @@ func seedSPKsNeo4j(driver neo4j.DriverWithContext, count int, titleIDs []int64) 
 		for i := int64(batchStart); i < int64(batchEnd); i++ {
 			id := startID + i
 			titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
+			spkName, _ := generateDocName("SPK")
 
 			rows = append(rows, map[string]interface{}{
 				"id":          id,
-				"name":        gofakeit.HackerPhrase(),
-				"code":        fmt.Sprintf("SPK-%s", strings.ReplaceAll(gofakeit.UUID(), "-", "")[:8]),
+				"name":        spkName,
+				"code":        generateCode("SPK", id),
 				"description": gofakeit.Sentence(5),
 				"title_id":    titleID,
 			})
@@ -787,19 +901,21 @@ func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount 
 		for i := int64(batchStart); i < int64(batchEnd); i++ {
 			spkID := spkIDs[gofakeit.Number(0, len(spkIDs)-1)]
 			flowchartID := int64(gofakeit.Number(1, 2))
+			jobName, _ := generateSopJobName()
 			rows = append(rows, map[string]interface{}{
 				"id":           jobIDCounter,
-				"name":         gofakeit.HackerPhrase(),
+				"name":         jobName,
 				"description":  gofakeit.Sentence(5),
 				"spk_id":       spkID,
 				"flowchart_id": flowchartID,
+				"type": 	    gofakeit.RandomString([]string{"sop", "spk"}),
 			})
 			jobIDCounter++
 		}
 
 		cypher := "UNWIND $batch AS row " +
 			"MATCH (s:SPK {id: row.spk_id}), (f:Flowchart {id: row.flowchart_id}) " +
-			"CREATE (j:Job {id: row.id, name: row.name, description: row.description}) " +
+			"CREATE (j:Job {id: row.id, name: row.name, description: row.description, type: row.type}) " +
 			"CREATE (s)-[:HAS_JOB]->(j) " +
 			"CREATE (j)-[:HAS_FLOWCHART]->(f)"
 
@@ -818,9 +934,10 @@ func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount 
 		for i := int64(batchStart); i < int64(batchEnd); i++ {
 			sopID := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
 			flowchartID := int64(gofakeit.Number(1, 2))
+			jobName, _ := generateSopJobName()
 			rows = append(rows, map[string]interface{}{
 				"id":           jobIDCounter,
-				"name":         gofakeit.HackerPhrase(),
+				"name":         jobName,
 				"description":  gofakeit.Sentence(5),
 				"sop_id":       sopID,
 				"flowchart_id": flowchartID,

@@ -19,3 +19,5 @@ go.sum
 *.sql
 examples
 src/pkg/dataset/bpi_2017_cleaned.csv
+session-ses_1981.md
+session-ses_187f.md
