@@ -181,6 +181,8 @@ func mapToSpkJobNode(props map[string]any) *SpkJobNode {
 
 	if indexVal, ok := props["index"].(int64); ok {
 		spkJob.Index = int(indexVal)
+	} else if indexVal32, ok := props["index"].(float64); ok {
+		spkJob.Index = int(indexVal32)
 	}
 
 	if flowchartIDVal, ok := props["flowchart_id"].(int64); ok {
@@ -190,10 +192,16 @@ func mapToSpkJobNode(props map[string]any) *SpkJobNode {
 	if nextIndexVal, ok := props["next_index"].(int64); ok {
 		nextIdx := int(nextIndexVal)
 		spkJob.NextIndex = &nextIdx
+	} else if nextIndexVal32, ok := props["next_index"].(float64); ok {
+		nextIdx := int(nextIndexVal32)
+		spkJob.NextIndex = &nextIdx
 	}
 
 	if prevIndexVal, ok := props["prev_index"].(int64); ok {
 		prevIdx := int(prevIndexVal)
+		spkJob.PrevIndex = &prevIdx
+	} else if prevIndexVal32, ok := props["prev_index"].(float64); ok {
+		prevIdx := int(prevIndexVal32)
 		spkJob.PrevIndex = &prevIdx
 	}
 

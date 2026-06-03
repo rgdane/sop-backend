@@ -158,7 +158,7 @@ func runNeo4jSeeder(driver neo4j.DriverWithContext, scale SeedScale) {
 	log.Printf("Division seeding complete: %d records", len(divisionIDs))
 
 	log.Println("Seeding Titles...")
-	titleIDs := seedTitlesNeo4j(driver, scale.TitleCount, divisionIDs)
+	titleIDs, divisionTitleMap, titleDivisionMap := seedTitlesNeo4j(driver, scale.TitleCount, divisionIDs)
 	log.Printf("Title seeding complete: %d records", len(titleIDs))
 
 	log.Println("Creating Title-Division relationships...")
@@ -166,15 +166,15 @@ func runNeo4jSeeder(driver neo4j.DriverWithContext, scale SeedScale) {
 	log.Println("Title-Division relations complete")
 
 	log.Println("Seeding SOPs...")
-	sopIDs := seedSOPsNeo4j(driver, scale.SopCount, divisionIDs)
+	sopIDs, sopDivisionMap := seedSOPsNeo4j(driver, scale.SopCount, divisionIDs)
 	log.Printf("SOP seeding complete: %d records", len(sopIDs))
 
 	log.Println("Seeding SPKs...")
-	spkIDs := seedSPKsNeo4j(driver, scale.SpkCount, titleIDs)
+	spkIDs, spkTitleMap := seedSPKsNeo4j(driver, scale.SpkCount, titleIDs)
 	log.Printf("SPK seeding complete: %d records", len(spkIDs))
 
 	log.Println("Seeding Jobs (SPK + SOP)...")
-	seedJobsNeo4j(driver, scale.SpkJobCount, scale.SopJobCount, sopIDs, spkIDs)
+	seedJobsNeo4j(driver, scale.SpkJobCount, scale.SopJobCount, sopIDs, spkIDs, sopDivisionMap, divisionTitleMap, spkTitleMap, titleDivisionMap, titleIDs)
 	log.Printf("Job seeding complete: %d records (SPK: %d, SOP: %d)", scale.SpkJobCount+scale.SopJobCount, scale.SpkJobCount, scale.SopJobCount)
 
 	log.Println("Neo4j seeding complete!")
@@ -412,6 +412,60 @@ func seedFlowchartsNeo4j(driver neo4j.DriverWithContext) {
 	}
 }
 
+func generateDivisionName(id int64) string {
+	baseDivisions := []string{
+		"Information Technology", "Human Resources", "Management", "Product",
+		"Engineering", "Marketing", "Sales", "Finance", "Accounting",
+		"Legal", "Operations", "Research & Development", "Customer Success",
+		"Business Development", "Corporate Strategy", "Data Science",
+		"Security", "Infrastructure", "Quality Assurance", "Design",
+		"Communications", "Procurement", "Logistics", "Supply Chain",
+		"Risk Management", "Compliance", "Internal Audit",
+		"Public Relations", "Investor Relations", "Innovation",
+		"Digital Transformation", "IT Support", "Network Operations",
+		"Database Administration", "Cloud Services", "DevOps",
+		"Platform Engineering", "Data Engineering", "Machine Learning",
+		"AI Research", "Business Intelligence", "Analytics",
+		"Product Design", "Brand Marketing", "Growth",
+		"Partnerships", "Treasury", "Payroll", "Benefits",
+		"Talent Acquisition", "Learning & Development",
+		"Employee Relations", "Office Administration", "Facilities",
+		"Sustainability", "Content Strategy", "Customer Experience",
+		"Corporate Finance", "Tax", "Mergers & Acquisitions",
+		"Product Operations", "Performance Marketing", "Alliances",
+		"Corporate Communications", "Change Management",
+		"Portfolio Management", "Vendor Management", "Asset Management",
+		"Regulatory Affairs", "Quality Management", "Strategy & Planning",
+	}
+
+	n := len(baseDivisions)
+	idx := int((id - 1) % int64(n))
+	group := int((id - 1) / int64(n))
+
+	if group == 0 {
+		return baseDivisions[idx]
+	}
+
+	prefixes := []string{"Senior ", "Junior ", "Assistant ", "Deputy ", "Associate "}
+	suffixes := []string{" I", " II", " III", " Alpha", " Beta", " Core", " Global", " Regional"}
+
+	if group <= len(prefixes) {
+		return prefixes[group-1] + baseDivisions[idx]
+	}
+	return baseDivisions[idx] + suffixes[(group-1-len(prefixes))%len(suffixes)]
+}
+
+var divisionNameCache = make(map[int64]string)
+
+func getCachedDivisionName(id int64) string {
+	if name, ok := divisionNameCache[id]; ok {
+		return name
+	}
+	name := generateDivisionName(id)
+	divisionNameCache[id] = name
+	return name
+}
+
 func seedDivisionsPG(db *gorm.DB, count int) []int64 {
 	startID := int64(1)
 	divisions := make([]DivisionPG, 0, count)
@@ -420,7 +474,7 @@ func seedDivisionsPG(db *gorm.DB, count int) []int64 {
 		id := startID + i
 		divisions = append(divisions, DivisionPG{
 			ID:   id,
-			Name: gofakeit.Company(),
+			Name: getCachedDivisionName(id),
 			Code: generateCode("DIV", id),
 		})
 	}
@@ -489,7 +543,7 @@ func seedDivisionsNeo4j(driver neo4j.DriverWithContext, count int) []int64 {
 			id := startID + i
 			rows = append(rows, map[string]interface{}{
 				"id":   id,
-				"name": gofakeit.Company(),
+				"name": getCachedDivisionName(id),
 				"code": generateCode("DIV", id),
 			})
 			ids = append(ids, id)
@@ -504,7 +558,7 @@ func seedDivisionsNeo4j(driver neo4j.DriverWithContext, count int) []int64 {
 	return ids
 }
 
-func seedTitlesNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int64) []int64 {
+func seedTitlesNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int64) ([]int64, map[int64][]int64, map[int64]int64) {
 	ctx := context.Background()
 	dbName := config.AppConfig.Neo4jDB
 	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName})
@@ -513,6 +567,8 @@ func seedTitlesNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []in
 	batchSize := 500
 	var ids []int64
 	startID := int64(1)
+	divisionTitleMap := make(map[int64][]int64)
+	titleDivisionMap := make(map[int64]int64, count)
 
 	for batchStart := 0; batchStart < count; batchStart += batchSize {
 		batchEnd := batchStart + batchSize
@@ -524,6 +580,9 @@ func seedTitlesNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []in
 		for i := int64(batchStart); i < int64(batchEnd); i++ {
 			id := startID + i
 			divisionID := divisionIDs[gofakeit.Number(0, len(divisionIDs)-1)]
+
+			divisionTitleMap[divisionID] = append(divisionTitleMap[divisionID], id)
+			titleDivisionMap[id] = divisionID
 
 			rows = append(rows, map[string]interface{}{
 				"id":         id,
@@ -541,7 +600,7 @@ func seedTitlesNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []in
 		}
 	}
 
-	return ids
+	return ids, divisionTitleMap, titleDivisionMap
 }
 
 func seedTitleDivisionRelationsNeo4j(driver neo4j.DriverWithContext, titleCount int, divisionIDs []int64) {
@@ -633,7 +692,6 @@ func seedSPKsPG(db *gorm.DB, count int, titleIDs []int64) []int64 {
 		id := startID + i
 		titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 		desc := gofakeit.Sentence(5)
-
 		spkName, _ := generateDocName("SPK")
 
 		spks = append(spks, SpkPG{
@@ -780,7 +838,7 @@ func seedSpkJobsPG(db *gorm.DB, count int, spkIDs []int64, titleIDs []int64, sop
 	}
 }
 
-func seedSOPsNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int64) []int64 {
+func seedSOPsNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int64) ([]int64, map[int64]int64) {
 	if len(divisionIDs) == 0 {
 		log.Fatal("No division IDs provided for SOP seeding")
 	}
@@ -793,6 +851,7 @@ func seedSOPsNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int6
 	batchSize := 500
 	var ids []int64
 	startID := int64(1)
+	sopDivisionMap := make(map[int64]int64, count)
 
 	for batchStart := 0; batchStart < count; batchStart += batchSize {
 		batchEnd := batchStart + batchSize
@@ -805,6 +864,8 @@ func seedSOPsNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int6
 			id := startID + i
 			divisionID := divisionIDs[gofakeit.Number(0, len(divisionIDs)-1)]
 			sopName, _ := generateDocName("SOP")
+
+			sopDivisionMap[id] = divisionID
 
 			rows = append(rows, map[string]interface{}{
 				"id":          id,
@@ -826,10 +887,10 @@ func seedSOPsNeo4j(driver neo4j.DriverWithContext, count int, divisionIDs []int6
 		}
 	}
 
-	return ids
+	return ids, sopDivisionMap
 }
 
-func seedSPKsNeo4j(driver neo4j.DriverWithContext, count int, titleIDs []int64) []int64 {
+func seedSPKsNeo4j(driver neo4j.DriverWithContext, count int, titleIDs []int64) ([]int64, map[int64]int64) {
 	if len(titleIDs) == 0 {
 		log.Fatal("No title IDs provided for SPK seeding")
 	}
@@ -842,6 +903,7 @@ func seedSPKsNeo4j(driver neo4j.DriverWithContext, count int, titleIDs []int64) 
 	batchSize := 500
 	var ids []int64
 	startID := int64(1)
+	spkTitleMap := make(map[int64]int64, count)
 
 	for batchStart := 0; batchStart < count; batchStart += batchSize {
 		batchEnd := batchStart + batchSize
@@ -853,6 +915,9 @@ func seedSPKsNeo4j(driver neo4j.DriverWithContext, count int, titleIDs []int64) 
 		for i := int64(batchStart); i < int64(batchEnd); i++ {
 			id := startID + i
 			titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
+
+			spkTitleMap[id] = titleID
+
 			spkName, _ := generateDocName("SPK")
 
 			rows = append(rows, map[string]interface{}{
@@ -875,10 +940,10 @@ func seedSPKsNeo4j(driver neo4j.DriverWithContext, count int, titleIDs []int64) 
 		}
 	}
 
-	return ids
+	return ids, spkTitleMap
 }
 
-func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount int, sopIDs []int64, spkIDs []int64) {
+func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount int, sopIDs []int64, spkIDs []int64, sopDivisionMap map[int64]int64, divisionTitleMap map[int64][]int64, spkTitleMap map[int64]int64, titleDivisionMap map[int64]int64, titleIDs []int64) {
 	if len(sopIDs) == 0 || len(spkIDs) == 0 {
 		log.Fatal("No SOP/SPK IDs provided for Job seeding")
 	}
@@ -891,6 +956,16 @@ func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount 
 	batchSize := 5000
 	var jobIDCounter int64 = 1
 
+	pickTitle := func(divisionID int64) int64 {
+		titles := divisionTitleMap[divisionID]
+		if len(titles) == 0 {
+			return titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
+		}
+		return titles[gofakeit.Number(0, len(titles)-1)]
+	}
+
+	// --- SPK Jobs ---
+	spkIndex := make(map[int64]int)
 	for batchStart := 0; batchStart < spkJobCount; batchStart += batchSize {
 		batchEnd := batchStart + batchSize
 		if batchEnd > spkJobCount {
@@ -902,28 +977,93 @@ func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount 
 			spkID := spkIDs[gofakeit.Number(0, len(spkIDs)-1)]
 			flowchartID := int64(gofakeit.Number(1, 2))
 			jobName, _ := generateSopJobName()
-			rows = append(rows, map[string]interface{}{
-				"id":           jobIDCounter,
-				"name":         jobName,
-				"description":  gofakeit.Sentence(5),
-				"spk_id":       spkID,
-				"flowchart_id": flowchartID,
-				"type": 	    gofakeit.RandomString([]string{"sop", "spk"}),
-			})
+			jobType := gofakeit.RandomString([]string{"sop", "instruction"})
+
+			spkIndex[spkID]++
+			idx := spkIndex[spkID]
+
+			// Determine ASSIGNED_TO: trace SPK -> Title -> Division -> random Title
+			spkTitleID := spkTitleMap[spkID]
+			spkDivisionID := titleDivisionMap[spkTitleID]
+			assignedTitleID := pickTitle(spkDivisionID)
+
+			// Determine HAS_REFERENCE — SpkJob only refs SOP, never SPK
+			var refType string
+			var refID int64
+			hasRef := false
+			if jobType == "sop" {
+				rid := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+				refType = "SOP"
+				refID = rid
+				hasRef = true
+			}
+
+			row := map[string]interface{}{
+				"id":              jobIDCounter,
+				"name":            jobName,
+				"description":     gofakeit.Sentence(5),
+				"spk_id":          spkID,
+				"flowchart_id":    flowchartID,
+				"type":            jobType,
+				"title_id":        assignedTitleID,
+				"index":           idx,
+			}
+			if hasRef {
+				row["ref_type"] = refType
+				row["ref_id"] = refID
+			}
+			rows = append(rows, row)
 			jobIDCounter++
 		}
 
+		// Create Job nodes with ASSIGNED_TO
 		cypher := "UNWIND $batch AS row " +
-			"MATCH (s:SPK {id: row.spk_id}), (f:Flowchart {id: row.flowchart_id}) " +
-			"CREATE (j:Job {id: row.id, name: row.name, description: row.description, type: row.type}) " +
+			"MATCH (s:SPK {id: row.spk_id}), (f:Flowchart {id: row.flowchart_id}), (t:Title {id: row.title_id}) " +
+			"CREATE (j:Job {id: row.id, name: row.name, description: row.description, type: row.type, index: row.index}) " +
 			"CREATE (s)-[:HAS_JOB]->(j) " +
-			"CREATE (j)-[:HAS_FLOWCHART]->(f)"
+			"CREATE (j)-[:HAS_FLOWCHART]->(f) " +
+			"CREATE (j)-[:ASSIGNED_TO]->(t)"
 
 		if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": rows}); err != nil {
 			log.Fatalf("Failed to insert SPK Jobs: %v", err)
 		}
+
+		// HAS_REFERENCE — split by ref_type to use correct label (SOP/SPK)
+		sopRefRows := make([]map[string]interface{}, 0)
+		spkRefRows := make([]map[string]interface{}, 0)
+		for _, row := range rows {
+			if rt, ok := row["ref_type"]; ok {
+				r := map[string]interface{}{
+					"job_id": row["id"],
+					"ref_id": row["ref_id"],
+				}
+				if rt == "SOP" {
+					sopRefRows = append(sopRefRows, r)
+				} else {
+					spkRefRows = append(spkRefRows, r)
+				}
+			}
+		}
+		if len(sopRefRows) > 0 {
+			cypher := "UNWIND $batch AS row " +
+				"MATCH (j:Job {id: row.job_id}), (ref:SOP {id: row.ref_id}) " +
+				"CREATE (j)-[:HAS_REFERENCE]->(ref)"
+			if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": sopRefRows}); err != nil {
+				log.Fatalf("Failed to create SPK Job SOP references: %v", err)
+			}
+		}
+		if len(spkRefRows) > 0 {
+			cypher := "UNWIND $batch AS row " +
+				"MATCH (j:Job {id: row.job_id}), (ref:SPK {id: row.ref_id}) " +
+				"CREATE (j)-[:HAS_REFERENCE]->(ref)"
+			if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": spkRefRows}); err != nil {
+				log.Fatalf("Failed to create SPK Job SPK references: %v", err)
+			}
+		}
 	}
 
+	// --- SOP Jobs ---
+	sopIndex := make(map[int64]int)
 	for batchStart := 0; batchStart < sopJobCount; batchStart += batchSize {
 		batchEnd := batchStart + batchSize
 		if batchEnd > sopJobCount {
@@ -935,24 +1075,96 @@ func seedJobsNeo4j(driver neo4j.DriverWithContext, spkJobCount int, sopJobCount 
 			sopID := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
 			flowchartID := int64(gofakeit.Number(1, 2))
 			jobName, _ := generateSopJobName()
-			rows = append(rows, map[string]interface{}{
-				"id":           jobIDCounter,
-				"name":         jobName,
-				"description":  gofakeit.Sentence(5),
-				"sop_id":       sopID,
-				"flowchart_id": flowchartID,
-			})
+			jobType := gofakeit.RandomString([]string{"sop", "spk", "instruction"})
+
+			sopIndex[sopID]++
+			idx := sopIndex[sopID]
+
+			// Determine ASSIGNED_TO: SOP -> Division -> random Title
+			sopDivisionID := sopDivisionMap[sopID]
+			assignedTitleID := pickTitle(sopDivisionID)
+
+			// Determine HAS_REFERENCE
+			var refType string
+			var refID int64
+			hasRef := false
+			switch jobType {
+			case "sop":
+				rid := sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+				for rid == sopID {
+					rid = sopIDs[gofakeit.Number(0, len(sopIDs)-1)]
+				}
+				refType = "SOP"
+				refID = rid
+				hasRef = true
+			case "spk":
+				rid := spkIDs[gofakeit.Number(0, len(spkIDs)-1)]
+				refType = "SPK"
+				refID = rid
+				hasRef = true
+			}
+
+			row := map[string]interface{}{
+				"id":              jobIDCounter,
+				"name":            jobName,
+				"description":     gofakeit.Sentence(5),
+				"sop_id":          sopID,
+				"flowchart_id":    flowchartID,
+				"type":            jobType,
+				"title_id":        assignedTitleID,
+				"index":           idx,
+			}
+			if hasRef {
+				row["ref_type"] = refType
+				row["ref_id"] = refID
+			}
+			rows = append(rows, row)
 			jobIDCounter++
 		}
 
+		// Create Job nodes with ASSIGNED_TO
 		cypher := "UNWIND $batch AS row " +
-			"MATCH (s:SOP {id: row.sop_id}), (f:Flowchart {id: row.flowchart_id}) " +
-			"CREATE (j:Job {id: row.id, name: row.name, description: row.description}) " +
+			"MATCH (s:SOP {id: row.sop_id}), (f:Flowchart {id: row.flowchart_id}), (t:Title {id: row.title_id}) " +
+			"CREATE (j:Job {id: row.id, name: row.name, description: row.description, type: row.type, index: row.index}) " +
 			"CREATE (s)-[:HAS_JOB]->(j) " +
-			"CREATE (j)-[:HAS_FLOWCHART]->(f)"
+			"CREATE (j)-[:HAS_FLOWCHART]->(f) " +
+			"CREATE (j)-[:ASSIGNED_TO]->(t)"
 
 		if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": rows}); err != nil {
 			log.Fatalf("Failed to insert SOP Jobs: %v", err)
+		}
+
+		// HAS_REFERENCE — split by ref_type to use correct label (SOP/SPK)
+		sopRefRows := make([]map[string]interface{}, 0)
+		spkRefRows := make([]map[string]interface{}, 0)
+		for _, row := range rows {
+			if rt, ok := row["ref_type"]; ok {
+				r := map[string]interface{}{
+					"job_id": row["id"],
+					"ref_id": row["ref_id"],
+				}
+				if rt == "SOP" {
+					sopRefRows = append(sopRefRows, r)
+				} else {
+					spkRefRows = append(spkRefRows, r)
+				}
+			}
+		}
+		if len(sopRefRows) > 0 {
+			cypher := "UNWIND $batch AS row " +
+				"MATCH (j:Job {id: row.job_id}), (ref:SOP {id: row.ref_id}) " +
+				"CREATE (j)-[:HAS_REFERENCE]->(ref)"
+			if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": sopRefRows}); err != nil {
+				log.Fatalf("Failed to create SOP Job SOP references: %v", err)
+			}
+		}
+		if len(spkRefRows) > 0 {
+			cypher := "UNWIND $batch AS row " +
+				"MATCH (j:Job {id: row.job_id}), (ref:SPK {id: row.ref_id}) " +
+				"CREATE (j)-[:HAS_REFERENCE]->(ref)"
+			if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": spkRefRows}); err != nil {
+				log.Fatalf("Failed to create SOP Job SPK references: %v", err)
+			}
 		}
 	}
 }

@@ -104,7 +104,7 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 
     // 3. Filter Divisi Menggunakan klausa 'IN' (Jauh lebih efisien dan bersih)
     if len(filter.DivisionNames) > 0 {
-        repo = repo.WithMatch("(s)-[:BELONGS_TO]->(d:Division)")
+        repo = repo.WithMatch("(s:SOP)<-[:HAS_SOP]-(d:Division)")
         
         // Lowercase semua input divisi dari Go
         var lowerDivs []string
@@ -120,8 +120,8 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
     // Fungsi head() mengambil index ke-[0] dari hasil relasi secara instan
     returnClause := `j {
         .*, 
-        title_name: head([(j)-[:HAS_TITLE]->(t:Title) | t.name]), 
-        reference_name: head([(j)-[:REFERENCES]->(ref) | ref.name])
+        title_name: head([(j)-[:ASSIGNED_TO]->(t:Title) | t.name]), 
+        reference_name: head([(j)-[:HAS_REFERENCE]->(ref) | ref.name])
     } AS data`
 
     if filter.Sort != "" && filter.Order != "" {
@@ -233,6 +233,8 @@ func mapToSopJobNode(props map[string]any) *SopJobNode {
 
 	if indexVal, ok := props["index"].(int64); ok {
 		sopJob.Index = int(indexVal)
+	} else if indexVal32, ok := props["index"].(float64); ok {
+		sopJob.Index = int(indexVal32)
 	}
 
 	if flowchartIDVal, ok := props["flowchart_id"].(int64); ok {
@@ -557,7 +559,7 @@ func (r *sopJobRepository) CountGraphSopJobs(filter dto.SopJobFilterDto) (int64,
 
 	// 3. Division filter
 	if len(filter.DivisionNames) > 0 {
-		repo = repo.WithMatch("(s)-[:BELONGS_TO]->(d:Division)")
+		repo = repo.WithMatch("(s:SOP)<-[:HAS_SOP]-(d:Division)")
 		var divConditions []string
 		for i, divName := range filter.DivisionNames {
 			divConditions = append(divConditions, fmt.Sprintf("toLower(d.name) = toLower($divName%d)", i))
