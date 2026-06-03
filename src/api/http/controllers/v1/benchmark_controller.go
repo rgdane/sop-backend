@@ -91,9 +91,9 @@ func RunBenchmarkSopJobSQL(cn *container.AppContainer) fiber.Handler {
 		//refID := int64(31206)
 		filter := dto.SopJobFilterDto{
 			Preload:       true,
-			SopName:       "100163",
-			DivisionNames: []string{"Legal"},
-			MinIndex:      5,
+			SopName:       "homework",
+			DivisionNames: []string{"Product"},
+			//MinIndex:      5,
 			//ReferenceID:   &refID,
 			ReferenceType: "spk",
 			ShowDeleted:   false,
@@ -116,9 +116,9 @@ func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 		//refID := int64(31206)
 		filter := dto.SopJobFilterDto{
 			Preload:       true,
-			SopName:       "100163",
-			DivisionNames: []string{"Legal"},
-			MinIndex:      5,
+			SopName:       "homework",
+			DivisionNames: []string{"Product"},
+			//MinIndex:      5,
 			//ReferenceID:   &refID,
 			ReferenceType: "spk",
 			ShowDeleted:   false,
