@@ -155,7 +155,7 @@ func (h *SopJobHandler) CreateSopJobSqlHandler(input *dto.CreateSopJobDto) (*dto
 	return mapper.SopJobModelToResponseDto(createdData)
 }
 
-func (h *SopJobHandler) CreateSopJobGraphHandler(input *dto.CreateSopJobDto) (*graphdb.SopJobNode, error) {
+func (h *SopJobHandler) CreateSopJobGraphHandler(input *dto.CreateSopJobDto) (*dto.SopJobResponseDto, error) {
 	newID := time.Now().UnixMilli()
 	now := time.Now().Format(time.RFC3339Nano)
 
@@ -172,12 +172,18 @@ func (h *SopJobHandler) CreateSopJobGraphHandler(input *dto.CreateSopJobDto) (*g
 	if input.Type != nil {
 		graphNode.Type = *input.Type
 	}
+	if input.TitleID != nil {
+		graphNode.TitleID = input.TitleID
+	}
+	if input.IsPublished != nil {
+		graphNode.IsPublished = input.IsPublished
+	}
 
 	if err := h.Service.InsertGraphSopJob(graphNode); err != nil {
 		return nil, fmt.Errorf("failed to create graph SOP Job: %w", err)
 	}
 
-	return graphNode, nil
+	return mapper.SopJobNodeToResponseDto(graphNode), nil
 }
 
 func (h *SopJobHandler) UpdateSopJobHandler(id int64, input *dto.UpdateSopJobDto) (*models.SopJob, error) {
@@ -330,7 +336,7 @@ func (h *SopJobHandler) UpdateSopJobSqlHandler(id int64, input *dto.UpdateSopJob
 	return updatedData, nil
 }
 
-func (h *SopJobHandler) UpdateSopJobGraphHandler(id int64, input *dto.UpdateSopJobDto) (*graphdb.SopJobNode, error) {
+func (h *SopJobHandler) UpdateSopJobGraphHandler(id int64, input *dto.UpdateSopJobDto) (*dto.SopJobResponseDto, error) {
 	graphNode := &graphdb.SopJobNode{
 		ID:        id,
 		UpdatedAt: time.Now().Format(time.RFC3339Nano),
@@ -348,12 +354,21 @@ func (h *SopJobHandler) UpdateSopJobGraphHandler(id int64, input *dto.UpdateSopJ
 	if input.Description != nil {
 		graphNode.Description = fmt.Sprintf("%v", *input.Description)
 	}
+	if input.TitleID != nil {
+		graphNode.TitleID = input.TitleID
+	}
+	if input.IsPublished != nil {
+		graphNode.IsPublished = input.IsPublished
+	}
+	if input.IsHide != nil {
+		graphNode.IsHide = input.IsHide
+	}
 
 	if err := h.Service.UpdateGraphSopJob(graphNode); err != nil {
 		return nil, fmt.Errorf("failed to update graph SOP Job: %w", err)
 	}
 
-	return graphNode, nil
+	return mapper.SopJobNodeToResponseDto(graphNode), nil
 }
 
 func (h *SopJobHandler) DeleteSopJobHandler(id int64, isPermanent bool) error {
@@ -426,8 +441,12 @@ func (h *SopJobHandler) GetSopJobByIDHandler(id int64, filter dto.SopJobFilterDt
 	return h.Service.GetSopJobByID(id, filter)
 }
 
-func (h *SopJobHandler) GetSopJobByIdGraphHandler(id int64) (*graphdb.SopJobNode, error) {
-	return h.Service.GetGraphSopJobByID(id)
+func (h *SopJobHandler) GetSopJobByIdGraphHandler(id int64) (*dto.SopJobResponseDto, error) {
+	node, err := h.Service.GetGraphSopJobByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return mapper.SopJobNodeToResponseDto(node), nil
 }
 
 func (h *SopJobHandler) GetAllSopJobsHandler(filter dto.SopJobFilterDto) ([]models.SopJob, int64, error) {
@@ -439,13 +458,14 @@ func (h *SopJobHandler) GetAllSopJobsHandler(filter dto.SopJobFilterDto) ([]mode
 	return data, int64(len(data)), nil
 }
 
-func (h *SopJobHandler) GetAllSopJobsGraphHandler(filter dto.SopJobFilterDto) ([]*graphdb.SopJobNode, int64, error) {
+func (h *SopJobHandler) GetAllSopJobsGraphHandler(filter dto.SopJobFilterDto) ([]*dto.SopJobResponseDto, int64, error) {
 	data, err := h.Service.GetAllGraphSopJobs(filter)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return data, int64(len(data)), nil
+	dtos := mapper.SopJobNodesToResponseDto(data)
+	return dtos, int64(len(dtos)), nil
 }
 
 func (h *SopJobHandler) BulkCreateSopJobsHandler(input *dto.BulkCreateSopJobs) ([]*models.SopJob, error) {

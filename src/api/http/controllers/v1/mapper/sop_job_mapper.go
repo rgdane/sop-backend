@@ -5,6 +5,7 @@ package mapper
 import (
 	"jk-api/api/http/controllers/v1/dto"
 	"jk-api/internal/database/models"
+	"jk-api/internal/repository/graphdb"
 )
 
 func CreateSopJobDtoToModel(dto *dto.CreateSopJobDto) (*models.SopJob, error) {
@@ -86,4 +87,64 @@ func SopJobModelToResponseDto(data *models.SopJob) (*dto.SopJobResponseDto, erro
 	}
 
 	return responseDto, nil
+}
+
+func SopJobNodeToResponseDto(node *graphdb.SopJobNode) *dto.SopJobResponseDto {
+	if node == nil {
+		return nil
+	}
+
+	response := &dto.SopJobResponseDto{
+		SopJob: models.SopJob{
+			ID:          node.ID,
+			Name:        node.Name,
+			Alias:       node.Alias,
+			Code:        node.Code,
+			Description: func() *string { if node.Description != "" { return &node.Description }; return nil }(),
+			TitleID:     node.TitleID,
+			SopID:       node.SopID,
+			ReferenceID: node.ReferenceID,
+			Index:       node.Index,
+			FlowchartID: node.FlowchartID,
+			NextIndex:   node.NextIndex,
+			PrevIndex:   node.PrevIndex,
+			IsPublished: node.IsPublished,
+			IsHide:      node.IsHide,
+		},
+	}
+
+	if node.Type != "" {
+		response.Type = &node.Type
+	}
+
+	if node.HasTitle != nil {
+		response.HasTitle = &models.Title{
+			ID:    node.HasTitle.ID,
+			Code:  node.HasTitle.Code,
+			Color: node.HasTitle.Color,
+			Name:  node.HasTitle.Name,
+		}
+	}
+
+	if node.HasReference != nil {
+		response.HasReference = &models.Sop{
+			ID:   node.HasReference.ID,
+			Name: node.HasReference.Name,
+			Code: node.HasReference.Code,
+		}
+	}
+
+	return response
+}
+
+func SopJobNodesToResponseDto(nodes []*graphdb.SopJobNode) []*dto.SopJobResponseDto {
+	if nodes == nil {
+		return nil
+	}
+
+	result := make([]*dto.SopJobResponseDto, 0, len(nodes))
+	for _, node := range nodes {
+		result = append(result, SopJobNodeToResponseDto(node))
+	}
+	return result
 }

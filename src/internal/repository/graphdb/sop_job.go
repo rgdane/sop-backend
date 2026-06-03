@@ -10,25 +10,40 @@ import (
 )
 
 type SopJobNode struct {
-	ID            int64  `json:"id"`
-	Name          string `json:"name"`
-	Alias         string `json:"alias"`
-	Type          string `json:"type"`
-	Code          string `json:"code"`
-	Description   string `json:"description"`
-	TitleID       *int64 `json:"title_id"`
-	TitleName     string `json:"title_name"` // Hasil dari t.name
-	SopID         int64  `json:"sop_id"`
-	ReferenceID   *int64 `json:"reference_id"`
-	ReferenceName string `json:"reference_name"` // Hasil dari ref.name
-	Index         int    `json:"index"`
-	FlowchartID   *int64 `json:"flowchart_id"`
-	NextIndex     *int   `json:"next_index"`
-	PrevIndex     *int   `json:"prev_index"`
-	IsPublished   *bool  `json:"is_published"`
-	IsHide        *bool  `json:"is_hide"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	ID            int64          `json:"id"`
+	Name          string         `json:"name"`
+	Alias         string         `json:"alias"`
+	Type          string         `json:"type"`
+	Code          string         `json:"code"`
+	Description   string         `json:"description"`
+	TitleID       *int64         `json:"title_id"`
+	SopID         int64          `json:"sop_id"`
+	ReferenceID   *int64         `json:"reference_id"`
+	Index         int            `json:"index"`
+	FlowchartID   *int64         `json:"flowchart_id"`
+	NextIndex     *int           `json:"next_index"`
+	PrevIndex     *int           `json:"prev_index"`
+	IsPublished   *bool          `json:"is_published"`
+	IsHide        *bool          `json:"is_hide"`
+	CreatedAt     string         `json:"created_at"`
+	UpdatedAt     string         `json:"updated_at"`
+	HasTitle      *SopJobTitleNode      `json:"has_title"`
+	HasReference  *SopJobReferenceNode  `json:"has_reference"`
+}
+
+type SopJobTitleNode struct {
+	ID         int64  `json:"id"`
+	Code       string `json:"code"`
+	Color      string `json:"color"`
+	Name       string `json:"name"`
+	DivisionID int64  `json:"division_id"`
+}
+
+type SopJobReferenceNode struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
 }
 
 type SopJobRepository interface {
@@ -119,9 +134,23 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
     // 4 & 5. RETURN menggunakan Pattern Comprehension dan membuang OPTIONAL MATCH
     // Fungsi head() mengambil index ke-[0] dari hasil relasi secara instan
     returnClause := `j {
-        .*, 
-        title_name: head([(j)-[:ASSIGNED_TO]->(t:Title) | t.name]), 
-        reference_name: head([(j)-[:HAS_REFERENCE]->(ref) | ref.name])
+        .id,
+        .name,
+        .alias,
+        .type,
+        .code,
+        .description,
+        .index,
+        .is_published,
+        .is_hide,
+        .created_at,
+        .updated_at,
+        sop_id: head([(j)<-[:HAS_JOB]-(s:SOP) | s.id]),
+        title_id: head([(j)-[:ASSIGNED_TO]->(t:Title) | t.id]),
+        flowchart_id: head([(j)-[:HAS_FLOWCHART]->(f:Flowchart) | f.id]),
+        reference_id: head([(j)-[:HAS_REFERENCE]->(ref) | ref.id]),
+        has_title: head([(j)-[:ASSIGNED_TO]->(t:Title) | t { .id, .code, .color, .name, .divisionId }]),
+        has_reference: head([(j)-[:HAS_REFERENCE]->(ref) | ref { .id, .name, .code, .description }])
     } AS data`
 
     if filter.Sort != "" && filter.Order != "" {
@@ -215,20 +244,12 @@ func mapToSopJobNode(props map[string]any) *SopJobNode {
 		sopJob.TitleID = &titleIDVal
 	}
 
-	if tName, ok := props["title_name"].(string); ok {
-		sopJob.TitleName = tName
-	}
-
 	if sopIDVal, ok := props["sop_id"].(int64); ok {
 		sopJob.SopID = sopIDVal
 	}
 
 	if refIDVal, ok := props["reference_id"].(int64); ok {
 		sopJob.ReferenceID = &refIDVal
-	}
-
-	if rName, ok := props["reference_name"].(string); ok {
-		sopJob.ReferenceName = rName
 	}
 
 	if indexVal, ok := props["index"].(int64); ok {
@@ -244,10 +265,16 @@ func mapToSopJobNode(props map[string]any) *SopJobNode {
 	if nextIndexVal, ok := props["next_index"].(int64); ok {
 		nextIdx := int(nextIndexVal)
 		sopJob.NextIndex = &nextIdx
+	} else if nextIndexVal32, ok := props["next_index"].(float64); ok {
+		nextIdx := int(nextIndexVal32)
+		sopJob.NextIndex = &nextIdx
 	}
 
 	if prevIndexVal, ok := props["prev_index"].(int64); ok {
 		prevIdx := int(prevIndexVal)
+		sopJob.PrevIndex = &prevIdx
+	} else if prevIndexVal32, ok := props["prev_index"].(float64); ok {
+		prevIdx := int(prevIndexVal32)
 		sopJob.PrevIndex = &prevIdx
 	}
 
@@ -265,6 +292,43 @@ func mapToSopJobNode(props map[string]any) *SopJobNode {
 
 	if updatedVal, ok := props["updated_at"].(string); ok {
 		sopJob.UpdatedAt = updatedVal
+	}
+
+	if hasTitleVal, ok := props["has_title"].(map[string]any); ok {
+		titleNode := &SopJobTitleNode{}
+		if idVal, ok := hasTitleVal["id"].(int64); ok {
+			titleNode.ID = idVal
+		}
+		if codeVal, ok := hasTitleVal["code"].(string); ok {
+			titleNode.Code = codeVal
+		}
+		if colorVal, ok := hasTitleVal["color"].(string); ok {
+			titleNode.Color = colorVal
+		}
+		if nameVal, ok := hasTitleVal["name"].(string); ok {
+			titleNode.Name = nameVal
+		}
+		if divIDVal, ok := hasTitleVal["divisionId"].(int64); ok {
+			titleNode.DivisionID = divIDVal
+		}
+		sopJob.HasTitle = titleNode
+	}
+
+	if hasRefVal, ok := props["has_reference"].(map[string]any); ok {
+		refNode := &SopJobReferenceNode{}
+		if idVal, ok := hasRefVal["id"].(int64); ok {
+			refNode.ID = idVal
+		}
+		if nameVal, ok := hasRefVal["name"].(string); ok {
+			refNode.Name = nameVal
+		}
+		if codeVal, ok := hasRefVal["code"].(string); ok {
+			refNode.Code = codeVal
+		}
+		if descVal, ok := hasRefVal["description"].(string); ok {
+			refNode.Description = descVal
+		}
+		sopJob.HasReference = refNode
 	}
 
 	return sopJob
