@@ -101,9 +101,9 @@ func runSeeder(db *gorm.DB, driver neo4j.DriverWithContext, scale SeedScale) {
 	titleIDs := seedTitles(db, driver, scale.TitleCount, divisionIDs)
 	log.Printf("Title seeding complete: %d records", len(titleIDs))
 
-	log.Println("Creating Title-Division relations in Neo4j...")
-	createTitleDivisionRelations(driver, scale.TitleCount)
-	log.Println("Title-Division relations complete")
+	// log.Println("Creating Title-Division relations in Neo4j...")
+	// createTitleDivisionRelations(driver, scale.TitleCount)
+	// log.Println("Title-Division relations complete")
 
 	log.Println("Seeding SOPs & SPKs...")
 	sopIDs := seedSOPs(db, driver, scale.SopCount, divisionIDs)
@@ -132,7 +132,18 @@ func setupNeo4jConstraints(driver neo4j.DriverWithContext) {
 		"CREATE CONSTRAINT sop_id_unique IF NOT EXISTS FOR (s:SOP) REQUIRE s.id IS UNIQUE",
 		"CREATE CONSTRAINT spk_id_unique IF NOT EXISTS FOR (s:SPK) REQUIRE s.id IS UNIQUE",
 		"CREATE CONSTRAINT job_id_unique IF NOT EXISTS FOR (j:Job) REQUIRE j.id IS UNIQUE",
+	}
+
+	indexes := []string{
+		"CREATE INDEX job_deleted_at IF NOT EXISTS FOR (j:Job) ON (j.deleted_at)",
+		"CREATE INDEX job_type IF NOT EXISTS FOR (j:Job) ON (j.type)",
+		"CREATE INDEX job_index ON (j:Job) ON (j.index)",
+		"CREATE INDEX job_name IF NOT EXISTS FOR (j:Job) ON (j.name)",
+		"CREATE INDEX sop_name IF NOT EXISTS FOR (s:SOP) ON (s.name)",
+		"CREATE INDEX sop_deleted_at IF NOT EXISTS FOR (s:SOP) ON (s.deleted_at)",
+		"CREATE INDEX division_name IF NOT EXISTS FOR (d:Division) ON (d.name)",
 		"CREATE INDEX title_division_id IF NOT EXISTS FOR (t:Title) ON (t.divisionId)",
+		"CREATE FULLTEXT INDEX sopNameIndex IF NOT EXISTS FOR (s:SOP) ON EACH [s.name]",
 	}
 
 	for _, cypher := range constraints {
@@ -141,23 +152,20 @@ func setupNeo4jConstraints(driver neo4j.DriverWithContext) {
 			log.Printf("Constraint creation (may already exist): %v", err)
 		}
 	}
+
+	for _, idx := range indexes {
+		_, err := session.Run(ctx, idx, nil)
+		if err != nil {
+			log.Printf("Index creation (may already exist): %v", err)
+		}
+	}
 }
 
 func generateCode(prefix string, id int64) string {
 	return fmt.Sprintf("%s%04d", prefix, id)
 }
 
-func generateDocName(prefix string) (name string) {
-	words := []string{
-		gofakeit.VerbAction(),
-		gofakeit.Noun(),
-		gofakeit.Noun(),
-	}
-	words[0] = strings.ToUpper(words[0][:1]) + words[0][1:]
-	return prefix + " " + strings.Join(words, " ")
-}
-
-func generateSopJobName() (name, alias string) {
+func generateJobTaskName() (name, alias string) {
 	roles := []string{
 		"Product Owner", "Project Manager", "Engineering Manager",
 		"UI/UX Designer", "Software Engineer", "QA Engineer",
@@ -204,6 +212,45 @@ func generateSopJobName() (name, alias string) {
 	alias = fmt.Sprintf("%s %s %s", roleAbbr, action, entity)
 
 	return
+}
+
+func generateDocumentName(prefix string) string {
+	roles := []string{
+		"Product Owner", "Project Manager", "Engineering Manager",
+		"UI/UX Designer", "Software Engineer", "QA Engineer",
+		"System Analyst", "Scrum Master", "Tech Lead", "CTO", "COO",
+		"Business Analyst", "Data Engineer", "DevOps Engineer",
+		"Product Designer", "Frontend Engineer", "Backend Engineer",
+		"Full Stack Developer", "IT Support", "Security Engineer",
+		"Database Administrator", "Network Engineer", "Solution Architect",
+	}
+
+	actions := []string{
+		"melaksanakan meeting", "melakukan brainstorming",
+		"menyusun dokumen", "mengevaluasi hasil",
+		"membahas progress", "mereview deliverable",
+		"mengkoordinasikan", "memimpin diskusi",
+		"menyiapkan presentasi", "menganalisa kebutuhan",
+		"membuat laporan", "mengembangkan fitur",
+		"mengimplementasikan", "mengintegrasikan",
+		"mengoptimalkan", "merefaktor kode",
+		"mendokumentasikan", "memvalidasi",
+		"mengaudit", "merancang arsitektur",
+	}
+
+	entities := []string{
+		"COO", "CTO", "tim Engineering", "tim Product",
+		"tim QA", "tim DevOps", "stakeholder", "client",
+		"vendor", "tim Marketing", "tim Sales",
+		"Divisi Developer", "Divisi Designer", "Data Team",
+		"Infrastructure Team", "user", "management",
+	}
+
+	role := roles[gofakeit.Number(0, len(roles)-1)]
+	action := actions[gofakeit.Number(0, len(actions)-1)]
+	entity := entities[gofakeit.Number(0, len(entities)-1)]
+
+	return fmt.Sprintf("%s %s %s %s", prefix, role, action, entity)
 }
 
 func generateColor() string {
@@ -496,7 +543,10 @@ func seedTitles(db *gorm.DB, driver neo4j.DriverWithContext, count int, division
 			log.Fatalf("Failed to insert titles to PostgreSQL: %v", err)
 		}
 
-		cypher := "UNWIND $batch AS row CREATE (t:Title {id: row.id, name: row.name, code: row.code, color: row.color, divisionId: row.divisionId})"
+		cypher := "UNWIND $batch AS row " +
+			"CREATE (t:Title {id: row.id, name: row.name, code: row.code, color: row.color, divisionId: row.divisionId}) " +
+			"WITH row, t MATCH (d:Division {id: row.divisionId}) " +
+			"CREATE (d)-[:HAS_TITLE]->(t)"
 		if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": neo4jRows}); err != nil {
 			log.Fatalf("Failed to insert titles to Neo4j: %v", err)
 		}
@@ -505,34 +555,34 @@ func seedTitles(db *gorm.DB, driver neo4j.DriverWithContext, count int, division
 	return neo4jIDs
 }
 
-func createTitleDivisionRelations(driver neo4j.DriverWithContext, titleCount int) {
-	ctx := context.Background()
-	dbName := config.AppConfig.Neo4jDB
-	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName})
-	defer session.Close(ctx)
+// func createTitleDivisionRelations(driver neo4j.DriverWithContext, titleCount int) {
+// 	ctx := context.Background()
+// 	dbName := config.AppConfig.Neo4jDB
+// 	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName})
+// 	defer session.Close(ctx)
 
-	batchSize := 500
-	startID := int64(1)
+// 	batchSize := 500
+// 	startID := int64(1)
 
-	for batchStart := 0; batchStart < titleCount; batchStart += batchSize {
-		batchEnd := batchStart + batchSize
-		if batchEnd > titleCount {
-			batchEnd = titleCount
-		}
+// 	for batchStart := 0; batchStart < titleCount; batchStart += batchSize {
+// 		batchEnd := batchStart + batchSize
+// 		if batchEnd > titleCount {
+// 			batchEnd = titleCount
+// 		}
 
-		rows := make([]map[string]interface{}, 0, batchEnd-batchStart)
-		for i := int64(batchStart); i < int64(batchEnd); i++ {
-			rows = append(rows, map[string]interface{}{
-				"titleId": startID + i,
-			})
-		}
+// 		rows := make([]map[string]interface{}, 0, batchEnd-batchStart)
+// 		for i := int64(batchStart); i < int64(batchEnd); i++ {
+// 			rows = append(rows, map[string]interface{}{
+// 				"titleId": startID + i,
+// 			})
+// 		}
 
-		cypher := "UNWIND $batch AS row MATCH (t:Title {id: row.titleId}) MATCH (d:Division) WITH t, d RETURN t.id AS titleId, d.id AS divisionId LIMIT 1"
-		_, err := session.Run(ctx, cypher, map[string]interface{}{"batch": rows})
-		if err != nil {
-		}
-	}
-}
+// 		cypher := "UNWIND $batch AS row MATCH (t:Title {id: row.titleId}) MATCH (d:Division) WITH t, d RETURN t.id AS titleId, d.id AS divisionId LIMIT 1"
+// 		_, err := session.Run(ctx, cypher, map[string]interface{}{"batch": rows})
+// 		if err != nil {
+// 		}
+// 	}
+// }
 
 func seedSOPs(db *gorm.DB, driver neo4j.DriverWithContext, count int, divisionIDs []int64) []int64 {
 	ctx := context.Background()
@@ -559,7 +609,7 @@ func seedSOPs(db *gorm.DB, driver neo4j.DriverWithContext, count int, divisionID
 			id := startID + i
 			divisionID := divisionIDs[gofakeit.Number(0, len(divisionIDs)-1)]
 
-			name := generateDocName("SOP")
+			name := generateDocumentName("SOP")
 			code := fmt.Sprintf("SOP-%s", strings.ReplaceAll(gofakeit.UUID(), "-", "")[:8])
 			desc := gofakeit.Sentence(5)
 
@@ -630,7 +680,7 @@ func seedSPKs(db *gorm.DB, driver neo4j.DriverWithContext, count int, titleIDs [
 			id := startID + i
 			titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 
-			name := generateDocName("SPK")
+			name := generateDocumentName("SPK")
 			code := generateCode("SPK", id)
 			desc := gofakeit.Sentence(5)
 
@@ -709,7 +759,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 			flowchartID := int64(gofakeit.Number(1, 2))
 
-			name := gofakeit.JobTitle()
+			jobName, _ := generateJobTaskName()
 			desc := gofakeit.Sentence(5)
 
 			spkIndex[spkID]++
@@ -717,7 +767,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 
 			spkJobs = append(spkJobs, SpkJobPG{
 				ID:          pgID,
-				Name:        name,
+				Name:        jobName,
 				Description: &desc,
 				SpkID:       spkID,
 				SopID:       &sopID,
@@ -730,7 +780,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 
 			neo4jRows = append(neo4jRows, map[string]interface{}{
 				"id":           id,
-				"name":         name,
+				"name":         jobName,
 				"description":  desc,
 				"spk_id":       spkID,
 				"title_id":     titleID,
@@ -775,7 +825,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			titleID := titleIDs[gofakeit.Number(0, len(titleIDs)-1)]
 			flowchartID := int64(gofakeit.Number(1, 2))
 
-			jobName, jobAlias := generateSopJobName()
+			jobName, jobAlias := generateJobTaskName()
 			jobType := gofakeit.RandomString([]string{"sop", "spk", "instruction"})
 			desc := gofakeit.Sentence(5)
 
@@ -813,7 +863,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 				PrevIndex:   nil,
 			})
 
-			neo4jRows = append(neo4jRows, map[string]interface{}{
+			neo4jRow := map[string]interface{}{
 				"id":           id,
 				"name":         jobName,
 				"alias":        jobAlias,
@@ -824,8 +874,11 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 				"title_id":     titleID,
 				"flowchart_id": flowchartID,
 				"index":        idx,
-				"ref_id":       refID,
-			})
+			}
+			if jobType != "instruction" {
+				neo4jRow["ref_id"] = refID
+			}
+			neo4jRows = append(neo4jRows, neo4jRow)
 			jobIDCounter++
 			pgJobIDCounter++
 		}
@@ -835,7 +888,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 		}
 
 		for _, row := range neo4jRows {
-			refID, hasRef := row["ref_id"].(*int64)
+			jobType := row["type"].(string)
 
 			cypher := "UNWIND $batch AS row " +
 				"MATCH (s:SOP {id: row.sop_id}), (f:Flowchart {id: row.flowchart_id}), (t:Title {id: row.title_id}) " +
@@ -848,14 +901,20 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			}
 			totalInserted++
 
-			if hasRef && refID != nil {
-				cypher = "UNWIND $batch AS row " +
-					"MATCH (j:Job {id: row.id}), (ref) " +
-					"WHERE (ref:SOP AND ref.id = row.ref_id) OR (ref:SPK AND ref.id = row.ref_id) " +
-					"CREATE (j)-[:HAS_REFERENCE]->(ref)"
+			if jobType == "sop" || jobType == "spk" {
+				refID := *row["ref_id"].(*int64)
+				var refLabel string
+				if jobType == "sop" {
+					refLabel = "SOP"
+				} else {
+					refLabel = "SPK"
+				}
+				cypher = fmt.Sprintf("UNWIND $batch AS row "+
+					"MATCH (j:Job {id: row.id}), (ref:%s {id: row.ref_id}) "+
+					"CREATE (j)-[:HAS_REFERENCE]->(ref)", refLabel)
 				refRow := map[string]interface{}{
 					"id":     row["id"],
-					"ref_id": *refID,
+					"ref_id": refID,
 				}
 				if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": []map[string]interface{}{refRow}}); err != nil {
 					log.Printf("Warning: failed to create reference relation: %v", err)

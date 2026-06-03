@@ -531,43 +531,6 @@ func (s *sopJobService) loadDynamicReference(sopJob *models.SopJob) error {
 	return nil
 }
 
-type sopJobJoinResult struct {
-	ID          int64     `gorm:"column:id"`
-	Name        string    `gorm:"column:name"`
-	Alias       string    `gorm:"column:alias"`
-	Type        *string   `gorm:"column:type"`
-	Code        string    `gorm:"column:code"`
-	Description *string   `gorm:"column:description"`
-	TitleID     *int64    `gorm:"column:title_id"`
-	SopID       int64     `gorm:"column:sop_id"`
-	ReferenceID *int64    `gorm:"column:reference_id"`
-	Index       int       `gorm:"column:index"`
-	FlowchartID *int64    `gorm:"column:flowchart_id"`
-	NextIndex   *int      `gorm:"column:next_index"`
-	PrevIndex   *int      `gorm:"column:prev_index"`
-	IsPublished *bool     `gorm:"column:is_published"`
-	IsHide      *bool     `gorm:"column:is_hide"`
-	CreatedAt   time.Time `gorm:"column:created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at"`
-
-	TitleIDMapped *int64 `gorm:"column:title_id_mapped"`
-	TitleName     string `gorm:"column:title_name"`
-	TitleCode     string `gorm:"column:title_code"`
-	TitleColor    string `gorm:"column:title_color"`
-
-	RefSopID   *int64 `gorm:"column:ref_sop_id"`
-	RefSopName string `gorm:"column:ref_sop_name"`
-	RefSopCode string `gorm:"column:ref_sop_code"`
-
-	RefSpkID   *int64 `gorm:"column:ref_spk_id"`
-	RefSpkName string `gorm:"column:ref_spk_name"`
-	RefSpkCode string `gorm:"column:ref_spk_code"`
-}
-
-func (s *sopJobService) mapJoinResultToModel(sopJob *models.SopJob) error {
-	return nil
-}
-
 func (s *sopJobService) sopJobRestore(ids []int64) error {
 	var sopJobs []models.SopJob
 	if err := s.GetDB().Unscoped().Preload("HasSop").Where("id IN ? AND deleted_at IS NOT NULL", ids).Find(&sopJobs).Error; err != nil {
