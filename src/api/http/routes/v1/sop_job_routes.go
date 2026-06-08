@@ -22,6 +22,18 @@ func SopJobRoutes(router fiber.Router, c *container.AppContainer) {
 	app.Put("/graph/:id", controllers.UpdateGraphSopJobs(c))
 	app.Delete("/graph/:id", controllers.DeleteGraphSopJobs(c))
 
+	app.Get("/title-sql/", controllers.GetTitleSqlSopJobs(c))
+	app.Get("/title-graph/", controllers.GetTitleGraphSopJobs(c))
+
+	app.Get("/division-sql/", controllers.GetDivisionSqlSopJobs(c))
+	app.Get("/division-graph/", controllers.GetDivisionGraphSopJobs(c))
+
+	app.Get("/division-title-sql/", controllers.GetDivisionTitleSqlSopJobs(c))
+	app.Get("/division-title-graph/", controllers.GetDivisionTitleGraphSopJobs(c))
+
+	app.Get("/reference-division-sql/", controllers.GetReferenceDivisionSqlSopJobs(c))
+	app.Get("/reference-division-graph/", controllers.GetReferenceDivisionGraphSopJobs(c))
+
 	app.Get("/sql/", controllers.GetSqlSopJobs(c))
 	app.Get("/sql/:id", controllers.GetSqlSopJobByID(c))
 	app.Post("/sql/", controllers.CreateSqlSopJobs(c))

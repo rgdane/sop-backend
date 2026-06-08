@@ -214,6 +214,232 @@ func GetGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 	}
 }
 
+// GetTitleSqlSopJobs godoc
+// @Summary Get SOP Jobs by Title Name (SQL)
+// @Description Get SOP Jobs filtered by title name from SQL database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param title_name query string true "Title Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/title-sql [get]
+func GetTitleSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		titleName := c.Query("title_name", "")
+		if titleName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByTitleNameSqlHandler(titleName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetTitleGraphSopJobs godoc
+// @Summary Get SOP Jobs by Title Name (Graph)
+// @Description Get SOP Jobs filtered by title name from Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param title_name query string true "Title Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/title-graph [get]
+func GetTitleGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		titleName := c.Query("title_name", "")
+		if titleName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByTitleNameGraphHandler(titleName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetDivisionSqlSopJobs godoc
+// @Summary Get SOP Jobs by Division Name (SQL)
+// @Description Get SOP Jobs filtered by division name from SQL database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param division_name query string true "Division Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/division-sql [get]
+func GetDivisionSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("division_name", "")
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionNameSqlHandler(divisionName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetDivisionGraphSopJobs godoc
+// @Summary Get SOP Jobs by Division Name (Graph)
+// @Description Get SOP Jobs filtered by division name from Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param division_name query string true "Division Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/division-graph [get]
+func GetDivisionGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("division_name", "")
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionNameGraphHandler(divisionName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetDivisionTitleSqlSopJobs godoc
+// @Summary Get SOP Jobs by Division and Title Name (SQL)
+// @Description Get SOP Jobs filtered by division and title name from SQL database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param division_name query string true "Division Name"
+// @Param title_name query string true "Title Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/division-title-sql [get]
+func GetDivisionTitleSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("division_name", "")
+		titleName := c.Query("title_name", "")
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
+		}
+		if titleName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionAndTitleSqlHandler(divisionName, titleName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetDivisionTitleGraphSopJobs godoc
+// @Summary Get SOP Jobs by Division and Title Name (Graph)
+// @Description Get SOP Jobs filtered by division and title name from Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param division_name query string true "Division Name"
+// @Param title_name query string true "Title Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/division-title-graph [get]
+func GetDivisionTitleGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("division_name", "")
+		titleName := c.Query("title_name", "")
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
+		}
+		if titleName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionAndTitleGraphHandler(divisionName, titleName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetReferenceDivisionSqlSopJobs godoc
+// @Summary Get SOP Jobs by Reference Division Name (SQL)
+// @Description Get SOP Jobs filtered by reference division name from SQL database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param reference_division_name query string true "Reference Division Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/reference-division-sql [get]
+func GetReferenceDivisionSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("reference_division_name", "")
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "reference_division_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByReferenceDivisionNameSqlHandler(divisionName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetReferenceDivisionGraphSopJobs godoc
+// @Summary Get SOP Jobs by Reference Division Name (Graph)
+// @Description Get SOP Jobs filtered by reference division name from Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param reference_division_name query string true "Reference Division Name"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/reference-division-graph [get]
+func GetReferenceDivisionGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("reference_division_name", "")
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "reference_division_name is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByReferenceDivisionNameGraphHandler(divisionName)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
 // GetSopJobByID godoc
 // @Summary Get SOP Job by ID (Hybrid)
 // @Description Get a single SOP Job by ID from both SQL and Graph database

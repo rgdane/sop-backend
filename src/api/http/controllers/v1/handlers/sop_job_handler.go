@@ -610,3 +610,111 @@ func (h *SopJobHandler) ReorderSopJobHandler(id int64, input *dto.ReorderSopJobD
 func (h *SopJobHandler) CountSopJobsHandler(filter dto.SopJobFilterDto) (int64, error) {
 	return h.Service.CountSopJobs(filter)
 }
+
+func (h *SopJobHandler) GetJobsByTitleNameGraphHandler(titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByTitleName(titleName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := mapper.SopJobNodesToResponseDto(data)
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByTitleNameSqlHandler(titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByTitleNameSQL(titleName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
+	for _, job := range data {
+		dto, err := mapper.SopJobModelToResponseDto(&job)
+		if err != nil {
+			continue
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByDivisionNameGraphHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionName(divisionName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := mapper.SopJobNodesToResponseDto(data)
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByDivisionNameSqlHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionNameSQL(divisionName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
+	for _, job := range data {
+		dto, err := mapper.SopJobModelToResponseDto(&job)
+		if err != nil {
+			continue
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByDivisionAndTitleGraphHandler(divisionName, titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionAndTitle(divisionName, titleName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := mapper.SopJobNodesToResponseDto(data)
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByDivisionAndTitleSqlHandler(divisionName, titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionAndTitleSQL(divisionName, titleName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
+	for _, job := range data {
+		dto, err := mapper.SopJobModelToResponseDto(&job)
+		if err != nil {
+			continue
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByReferenceDivisionNameGraphHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByReferenceDivisionName(divisionName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := mapper.SopJobNodesToResponseDto(data)
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByReferenceDivisionNameSqlHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByReferenceDivisionNameSQL(divisionName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
+	for _, job := range data {
+		dto, err := mapper.SopJobModelToResponseDto(&job)
+		if err != nil {
+			continue
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, int64(len(dtos)), nil
+}

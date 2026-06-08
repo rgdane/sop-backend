@@ -59,12 +59,16 @@ type SopJobRepository interface {
 	BulkDeleteGraphSopJobs(ids []int64) error
 
 	CountGraphSopJobs(filter dto.SopJobFilterDto) (int64, error)
+	GetJobsByTitleName(titleName string) ([]*SopJobNode, error)
+	GetJobsByDivisionName(divisionName string) ([]*SopJobNode, error)
+	GetJobsByDivisionAndTitle(divisionName, titleName string) ([]*SopJobNode, error)
+	GetJobsByReferenceDivisionName(divisionName string) ([]*SopJobNode, error)
 }
 
 type sopJobRepository struct{}
 
 func NewSopJobRepository() SopJobRepository {
-	return &sopJobRepository{}
+	return&sopJobRepository{}
 }
 
 func mapToSopJobNode(data map[string]any) *SopJobNode {
@@ -89,27 +93,22 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 	repo := builder.NewGraphRepository()
 	params := make(map[string]any)
 
-	// Array penyimpan kondisi WHERE
 	var conditions []string
 
-	// 1. Filter Nama SOP (Menggunakan search_name dan CONTAINS murni)
 	if filter.SopName != "" {
 		conditions = append(conditions, "s.search_name CONTAINS $sopName")
 		params["sopName"] = strings.ToLower(filter.SopName)
 	}
 
-	// 2. Filter Nama Divisi (Karena Seeder kita juga menyuntikkan d.search_name, gunakan itu)
 	if len(filter.DivisionNames) > 0 {
 		var lowerDivs []string
 		for _, div := range filter.DivisionNames {
 			lowerDivs = append(lowerDivs, strings.ToLower(div))
 		}
 		params["divNames"] = lowerDivs
-		// Index Seek murni tanpa toLower()
 		conditions = append(conditions, "d.search_name IN $divNames")
 	}
 
-	// 3. Filter Atribut Standar Lainnya
 	if filter.SopID != 0 {
 		conditions = append(conditions, "s.id = $sopId")
 		params["sopId"] = filter.SopID
@@ -121,7 +120,6 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		conditions = append(conditions, "j.deleted_at IS NULL")
 	}
 
-	// 4. Filter Nama Job (Menggunakan search_name dan CONTAINS murni)
 	if filter.Name != "" {
 		conditions = append(conditions, "j.search_name CONTAINS $jobName")
 		params["jobName"] = strings.ToLower(filter.Name)
@@ -142,46 +140,31 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		params["referenceType"] = filter.ReferenceType
 	}
 
-	// JALUR UTAMA: Jalur traversal graf
 	repo = repo.WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)")
 
-	// Gabungkan semua kondisi jika ada
 	if len(conditions) > 0 {
 		repo = repo.WithWhere(strings.Join(conditions, " AND "), params)
 	}
 
-	// =========================================================================
-	// OPTIMASI KUNCI: EARLY PAGINATION & SORTING (DILAKUKAN DI TENGAH KUERI)
-	// =========================================================================
-	
-	// Pengurutan data (Sorting)
 	orderByClause := "ORDER BY j.index ASC"
 	if filter.Sort != "" && filter.Order != "" {
 		orderByClause = fmt.Sprintf("ORDER BY j.%s %s", filter.Sort, strings.ToUpper(filter.Order))
 	}
 
-	// Pagination (LIMIT & SKIP) wajib untuk menahan beban data jutaan
 	paginationClause := ""
 	if filter.Limit > 0 {
 		var offset int64 = 0
 		if filter.Page > 1 {
 			offset = (filter.Page - 1) * filter.Limit
 		}
-		// Di Neo4j, SKIP adalah pengganti OFFSET
 		paginationClause = fmt.Sprintf(" SKIP %d LIMIT %d", offset, filter.Limit)
 	} else {
-		// Safety default limit untuk mencegah full graph scan
 		paginationClause = " LIMIT 100"
 	}
 
-	// Terapkan Limit dan Sorting SEBELUM masuk ke OPTIONAL MATCH!
-	// Ini akan mencegah RAM jebol karena "Cartesian Product" atau row multiplication
 	withClause := fmt.Sprintf("j, s, d %s%s", orderByClause, paginationClause)
 	repo = repo.WithWith(withClause)
 
-	// =========================================================================
-
-	// OPTIONAL MATCH ini sekarang sangat ringan karena datanya sudah di-limit misal hanya 10 atau 20 baris
 	repo = repo.
 		WithOptionalMatch("(j)-[:ASSIGNED_TO]->(t:Title)").
 		WithWhere("(d)<-[:HAS_TITLE]-(t)", nil).
@@ -189,8 +172,6 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		WithOptionalMatch("(j)-[:HAS_REFERENCE]->(ref)").
 		WithWith("j, s, t, ref")
 
-	// Proyeksi JSON
-	// CATATAN: Kita tetap me-return `.name` agar UI Front-End tetap melihat huruf kapital yang cantik
 	returnClause := `j {
 		.id,
 		.name,
@@ -210,25 +191,73 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		has_reference: ref { .id, .name, .code, .description }
 	} AS data`
 
-	// Bagian akhir ini tidak butuh ORDER BY lagi, karena sudah diurutkan di atas
 	repo = repo.WithReturn(returnClause).WithParams(params)
 
-	// Eksekusi kueri ke database Neo4j
 	records, err := repo.RunRead()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get SOP Jobs with traversal: %w", err)
 	}
 
-	// Mapping hasil record Neo4j ke struct Go
 	sopJobs := make([]*SopJobNode, 0, len(records))
 	for _, record := range records {
 		if dataVal, ok := record.Get("data"); ok {
 			if props, ok := dataVal.(map[string]any); ok {
 				if node := mapToSopJobNode(props); node != nil {
-					sopJobs = append(sopJobs, node)
+			sopJobs = append(sopJobs, node)
 				}
 			}
 		}
+	}
+
+	return sopJobs, nil
+}
+		
+func (r *sopJobRepository) GetJobsByReferenceDivisionName(divisionName string) ([]*SopJobNode, error) {
+	repo := builder.NewGraphRepository()
+	params := map[string]any{
+		"divisionName": divisionName,
+	}
+
+	records, err := repo.
+		WithMatch("(j:Job)-[:HAS_REFERENCE]->(ref:SOP)<-[:HAS_SOP]-(d:Division)").
+		WithWhere("d.name = $divisionName AND j.deleted_at IS NULL", params).
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithParams(params).
+		RunRead()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Jobs by reference division name: %w", err)
+	}
+
+	sopJobs := make([]*SopJobNode, 0, len(records))
+	for _, record := range records {
+		node := &SopJobNode{}
+		if idVal, ok := record.Get("id"); ok {
+			if id, ok := idVal.(int64); ok {
+				node.ID = id
+			}
+		}
+		if nameVal, ok := record.Get("name"); ok {
+			if name, ok := nameVal.(string); ok {
+				node.Name = name
+			}
+		}
+		if typeVal, ok := record.Get("type"); ok {
+			if typ, ok := typeVal.(string); ok {
+				node.Type = typ
+			}
+		}
+		if codeVal, ok := record.Get("code"); ok {
+			if code, ok := codeVal.(string); ok {
+				node.Code = code
+			}
+		}
+		if indexVal, ok := record.Get("index"); ok {
+			if index, ok := indexVal.(int64); ok {
+				node.Index = int(index)
+			}
+		}
+	sopJobs = append(sopJobs, node)
 	}
 
 	return sopJobs, nil
@@ -293,21 +322,21 @@ func (r *sopJobRepository) InsertGraphSopJob(data *SopJobNode) error {
 
 	if err := graph.
 		WithMerge("(j:Job {id: $id})").
-		WithSet(`j.name = $name, 
-			j.alias = $alias, 
-			j.type = $type, 
-			j.code = $code, 
+		WithSet(`j.name = $name,
+			j.alias = $alias,
+			j.type = $type,
+			j.code = $code,
 			j.description = $description,
-			j.title_id = $titleId, 
-			j.sop_id = $sopId, 
-			j.reference_id = $referenceId, 
+			j.title_id = $titleId,
+			j.sop_id = $sopId,
+			j.reference_id = $referenceId,
 			j.index = $index,
 			j.flowchart_id = $flowchartId,
-			j.next_index = $nextIndex, 
+			j.next_index = $nextIndex,
 			j.prev_index = $prevIndex,
 			j.is_published = $isPublished,
 			j.is_hide = $isHide,
-			j.created_at = datetime($createdAt), 
+			j.created_at = datetime($createdAt),
 			j.updated_at = datetime($updatedAt)`, nil).
 		WithParams(params).
 		RunWrite(); err != nil {
@@ -340,17 +369,17 @@ func (r *sopJobRepository) UpdateGraphSopJob(data *SopJobNode) error {
 
 	if err := graph.
 		WithMatch("(j:Job {id: $id})").
-		WithSet(`j.name = $name, 
-			j.alias = $alias, 
-			j.type = $type, 
-			j.code = $code, 
+		WithSet(`j.name = $name,
+			j.alias = $alias,
+			j.type = $type,
+			j.code = $code,
 			j.description = $description,
-			j.title_id = $titleId, 
-			j.sop_id = $sopId, 
-			j.reference_id = $referenceId, 
+			j.title_id = $titleId,
+			j.sop_id = $sopId,
+			j.reference_id = $referenceId,
 			j.index = $index,
 			j.flowchart_id = $flowchartId,
-			j.next_index = $nextIndex, 
+			j.next_index = $nextIndex,
 			j.prev_index = $prevIndex,
 			j.is_published = $isPublished,
 			j.is_hide = $isHide`, nil).
@@ -414,17 +443,17 @@ func (r *sopJobRepository) BulkInsertGraphSopJobs(data []*SopJobNode) error {
 	if err := graph.
 		WithUnwind("$jobs", "j").
 		WithMerge("(job:Job {id: j.id})").
-		WithSet(`job.name = j.name, 
-			job.alias = j.alias, 
-			job.type = j.type, 
-			job.code = j.code, 
+		WithSet(`job.name = j.name,
+			job.alias = j.alias,
+			job.type = j.type,
+			job.code = j.code,
 			job.description = j.description,
-			job.title_id = j.titleId, 
-			job.sop_id = j.sopId, 
-			job.reference_id = j.referenceId, 
+			job.title_id = j.titleId,
+			job.sop_id = j.sopId,
+			job.reference_id = j.referenceId,
 			job.index = j.index,
 			job.flowchart_id = j.flowchartId,
-			job.next_index = j.nextIndex, 
+			job.next_index = j.nextIndex,
 			job.prev_index = j.prevIndex,
 			job.is_published = j.isPublished,
 			job.is_hide = j.isHide`, nil).
@@ -469,17 +498,17 @@ func (r *sopJobRepository) BulkUpdateGraphSopJobs(data []*SopJobNode) error {
 	if err := graph.
 		WithUnwind("$jobs", "j").
 		WithMatch("(job:Job {id: j.id})").
-		WithSet(`job.name = j.name, 
-			job.alias = j.alias, 
-			job.type = j.type, 
-			job.code = j.code, 
+		WithSet(`job.name = j.name,
+			job.alias = j.alias,
+			job.type = j.type,
+			job.code = j.code,
 			job.description = j.description,
-			job.title_id = j.titleId, 
-			job.sop_id = j.sopId, 
-			job.reference_id = j.referenceId, 
+			job.title_id = j.titleId,
+			job.sop_id = j.sopId,
+			job.reference_id = j.referenceId,
 			job.index = j.index,
 			job.flowchart_id = j.flowchartId,
-			job.next_index = j.nextIndex, 
+			job.next_index = j.nextIndex,
 			job.prev_index = j.prevIndex,
 			job.is_published = j.isPublished,
 			job.is_hide = j.isHide`, nil).
@@ -585,4 +614,158 @@ func (r *sopJobRepository) CountGraphSopJobs(filter dto.SopJobFilterDto) (int64,
 	}
 
 	return 0, nil
+}
+
+func (r *sopJobRepository) GetJobsByTitleName(titleName string) ([]*SopJobNode, error) {
+	repo := builder.NewGraphRepository()
+	params := map[string]any{
+		"titleName": titleName,
+	}
+
+	records, err := repo.
+		WithMatch("(j:Job)-[:ASSIGNED_TO]->(t:Title)").
+		WithWhere("t.name = $titleName AND j.deleted_at IS NULL", params).
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithParams(params).
+		RunRead()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Jobs by title name: %w", err)
+	}
+
+	sopJobs := make([]*SopJobNode, 0, len(records))
+	for _, record := range records {
+		node := &SopJobNode{}
+		if idVal, ok := record.Get("id"); ok {
+			if id, ok := idVal.(int64); ok {
+				node.ID = id
+			}
+		}
+		if nameVal, ok := record.Get("name"); ok {
+			if name, ok := nameVal.(string); ok {
+				node.Name = name
+			}
+		}
+		if typeVal, ok := record.Get("type"); ok {
+			if typ, ok := typeVal.(string); ok {
+				node.Type = typ
+			}
+		}
+		if codeVal, ok := record.Get("code"); ok {
+			if code, ok := codeVal.(string); ok {
+				node.Code = code
+			}
+		}
+		if indexVal, ok := record.Get("index"); ok {
+			if index, ok := indexVal.(int64); ok {
+				node.Index = int(index)
+			}
+		}
+		sopJobs = append(sopJobs, node)
+	}
+
+	return sopJobs, nil
+}
+
+func (r *sopJobRepository) GetJobsByDivisionName(divisionName string) ([]*SopJobNode, error) {
+	repo := builder.NewGraphRepository()
+	params := map[string]any{
+		"divisionName": divisionName,
+	}
+
+	records, err := repo.
+		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)").
+		WithWhere("d.name = $divisionName AND j.deleted_at IS NULL", params).
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithParams(params).
+		RunRead()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Jobs by division name: %w", err)
+	}
+
+	sopJobs := make([]*SopJobNode, 0, len(records))
+	for _, record := range records {
+		node := &SopJobNode{}
+		if idVal, ok := record.Get("id"); ok {
+			if id, ok := idVal.(int64); ok {
+				node.ID = id
+			}
+		}
+		if nameVal, ok := record.Get("name"); ok {
+			if name, ok := nameVal.(string); ok {
+				node.Name = name
+			}
+		}
+		if typeVal, ok := record.Get("type"); ok {
+			if typ, ok := typeVal.(string); ok {
+				node.Type = typ
+			}
+		}
+		if codeVal, ok := record.Get("code"); ok {
+			if code, ok := codeVal.(string); ok {
+				node.Code = code
+			}
+		}
+		if indexVal, ok := record.Get("index"); ok {
+			if index, ok := indexVal.(int64); ok {
+				node.Index = int(index)
+			}
+		}
+		sopJobs = append(sopJobs, node)
+	}
+
+	return sopJobs, nil
+}
+
+func (r *sopJobRepository) GetJobsByDivisionAndTitle(divisionName, titleName string) ([]*SopJobNode, error) {
+	repo := builder.NewGraphRepository()
+	params := map[string]any{
+		"divisionName": divisionName,
+		"titleName":    titleName,
+	}
+
+	records, err := repo.
+		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job), (j)-[:ASSIGNED_TO]->(t:Title)").
+		WithWhere("d.name = $divisionName AND t.name = $titleName AND j.deleted_at IS NULL", params).
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithParams(params).
+		RunRead()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Jobs by division and title name: %w", err)
+	}
+
+	sopJobs := make([]*SopJobNode, 0, len(records))
+	for _, record := range records {
+		node := &SopJobNode{}
+		if idVal, ok := record.Get("id"); ok {
+			if id, ok := idVal.(int64); ok {
+				node.ID = id
+			}
+		}
+		if nameVal, ok := record.Get("name"); ok {
+			if name, ok := nameVal.(string); ok {
+				node.Name = name
+			}
+		}
+		if typeVal, ok := record.Get("type"); ok {
+			if typ, ok := typeVal.(string); ok {
+				node.Type = typ
+			}
+		}
+		if codeVal, ok := record.Get("code"); ok {
+			if code, ok := codeVal.(string); ok {
+				node.Code = code
+			}
+		}
+		if indexVal, ok := record.Get("index"); ok {
+			if index, ok := indexVal.(int64); ok {
+				node.Index = int(index)
+			}
+		}
+		sopJobs = append(sopJobs, node)
+	}
+
+	return sopJobs, nil
 }

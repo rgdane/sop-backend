@@ -36,6 +36,10 @@ type SopJobRepository interface {
 	FindSopJobByIDs(ids []int64) ([]*models.SopJob, error)
 	ReorderSopJob(sopJobID int64, newIndex int, sopID int64) error
 	CountSopJobs() (int64, error)
+	FindSopJobsByTitleName(titleName string) ([]models.SopJob, error)
+	FindSopJobsByDivisionName(divisionName string) ([]models.SopJob, error)
+	FindSopJobsByDivisionAndTitle(divisionName, titleName string) ([]models.SopJob, error)
+	FindSopJobsByReferenceDivisionName(divisionName string) ([]models.SopJob, error)
 }
 
 type sopJobRepository struct {
@@ -54,7 +58,7 @@ type sopJobRepository struct {
 }
 
 func NewSopJobRepository() SopJobRepository {
-	return &sopJobRepository{db: config.DB}
+	return&sopJobRepository{db: config.DB}
 }
 
 func (repo *sopJobRepository) clone() *sopJobRepository {
@@ -357,7 +361,6 @@ func (repo *sopJobRepository) FindSopJobByIDs(ids []int64) ([]*models.SopJob, er
 }
 
 func (repo *sopJobRepository) ReorderSopJob(sopJobID int64, newIndex int, sopID int64) error {
-	// Get current sop job
 	var currentSopJob models.SopJob
 	if err := repo.db.Where("id = ? AND sop_id = ?", sopJobID, sopID).First(&currentSopJob).Error; err != nil {
 		return err
@@ -365,12 +368,10 @@ func (repo *sopJobRepository) ReorderSopJob(sopJobID int64, newIndex int, sopID 
 
 	oldIndex := currentSopJob.Index
 
-	// If no change needed
 	if oldIndex == newIndex {
 		return nil
 	}
 
-	// Validate newIndex is within valid range
 	var maxIndex int64
 	if err := repo.db.Model(&models.SopJob{}).Where("sop_id = ?", sopID).Count(&maxIndex).Error; err != nil {
 		return err
@@ -383,16 +384,13 @@ func (repo *sopJobRepository) ReorderSopJob(sopJobID int64, newIndex int, sopID 
 		newIndex = 1
 	}
 
-	// Reorder logic
 	if oldIndex < newIndex {
-		// Moving down: shift items up between oldIndex+1 and newIndex
 		if err := repo.db.Model(&models.SopJob{}).
 			Where("sop_id = ? AND index > ? AND index <= ?", sopID, oldIndex, newIndex).
 			UpdateColumn("index", gorm.Expr("index - 1")).Error; err != nil {
 			return err
 		}
 	} else {
-		// Moving up: shift items down between newIndex and oldIndex-1
 		if err := repo.db.Model(&models.SopJob{}).
 			Where("sop_id = ? AND index >= ? AND index < ?", sopID, newIndex, oldIndex).
 			UpdateColumn("index", gorm.Expr("index + 1")).Error; err != nil {
@@ -400,7 +398,6 @@ func (repo *sopJobRepository) ReorderSopJob(sopJobID int64, newIndex int, sopID 
 		}
 	}
 
-	// Update the moved sop job
 	if err := repo.db.Model(&models.SopJob{}).
 		Where("id = ?", sopJobID).
 		UpdateColumns(map[string]interface{}{
@@ -430,4 +427,75 @@ func (repo *sopJobRepository) CountSopJobs() (int64, error) {
 	}
 
 	return count, nil
+}
+
+func (repo *sopJobRepository) FindSopJobsByTitleName(titleName string) ([]models.SopJob, error) {
+	db := repo.db.Table("sop_jobs j").
+		Select("j.id, j.name, j.type, j.code, j.index").
+		Joins("JOIN titles t ON t.id = j.title_id").
+		Where("t.name = ?", titleName).
+		Limit(100).
+		Order("j.index ASC")
+
+	var results []models.SopJob
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *sopJobRepository) FindSopJobsByDivisionName(divisionName string) ([]models.SopJob, error) {
+	db := repo.db.Table("sop_jobs j").
+		Select("j.id, j.name, j.type, j.code, j.index").
+		Joins("JOIN sops s ON s.id = j.sop_id").
+		Joins("JOIN sop_divisions sd ON sd.sop_id = s.id").
+		Joins("JOIN divisions d ON d.id = sd.division_id").
+		Where("d.name = ?", divisionName).
+		Limit(100).
+		Order("j.index ASC")
+
+	var results []models.SopJob
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *sopJobRepository) FindSopJobsByDivisionAndTitle(divisionName, titleName string) ([]models.SopJob, error) {
+	db := repo.db.Table("sop_jobs j").
+		Select("j.id, j.name, j.type, j.code, j.index").
+		Joins("JOIN sops s ON s.id = j.sop_id").
+		Joins("JOIN sop_divisions sd ON sd.sop_id = s.id").
+		Joins("JOIN divisions d ON d.id = sd.division_id").
+		Joins("JOIN titles t ON t.id = j.title_id").
+		Where("d.name = ? AND t.name = ?", divisionName, titleName).
+		Limit(100).
+		Order("j.index ASC")
+
+	var results []models.SopJob
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *sopJobRepository) FindSopJobsByReferenceDivisionName(divisionName string) ([]models.SopJob, error) {
+	db := repo.db.Table("sop_jobs j").
+		Select("j.id, j.name, j.type, j.code, j.index").
+		Joins("JOIN sops ref_sops ON ref_sops.id = j.reference_id AND j.type = 'sop'").
+		Joins("JOIN sop_divisions sd ON sd.sop_id = ref_sops.id").
+		Joins("JOIN divisions d ON d.id = sd.division_id").
+		Where("d.name = ?", divisionName).
+		Limit(100).
+		Order("j.index ASC")
+
+	var results []models.SopJob
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

@@ -44,6 +44,14 @@ type SopJobService interface {
 	BulkUpdateGraphSopJobs(data []*graphdb.SopJobNode) error
 	BulkDeleteGraphSopJobs(ids []int64) error
 	CountGraphSopJobs(filter dto.SopJobFilterDto) (int64, error)
+	GetJobsByTitleName(titleName string) ([]*graphdb.SopJobNode, error)
+	GetJobsByTitleNameSQL(titleName string) ([]models.SopJob, error)
+	GetJobsByDivisionName(divisionName string) ([]*graphdb.SopJobNode, error)
+	GetJobsByDivisionNameSQL(divisionName string) ([]models.SopJob, error)
+	GetJobsByDivisionAndTitle(divisionName, titleName string) ([]*graphdb.SopJobNode, error)
+	GetJobsByDivisionAndTitleSQL(divisionName, titleName string) ([]models.SopJob, error)
+	GetJobsByReferenceDivisionName(divisionName string) ([]*graphdb.SopJobNode, error)
+	GetJobsByReferenceDivisionNameSQL(divisionName string) ([]models.SopJob, error)
 }
 
 type sopJobService struct {
@@ -53,7 +61,7 @@ type sopJobService struct {
 }
 
 func NewSopJobService(repo sql.SopJobRepository, graphRepo graphdb.SopJobRepository) SopJobService {
-	return &sopJobService{repo: repo, graphRepo: graphRepo}
+	return&sopJobService{repo: repo, graphRepo: graphRepo}
 }
 
 func (s *sopJobService) WithTx(tx *gorm.DB) SopJobService {
@@ -249,8 +257,8 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 		repo = repo.WithWhere("sop_jobs.deleted_at IS NULL")
 	}
 
-	repo = repo.WithOrder("sop_jobs.index ASC") // Pastikan order menggunakan field index
-	
+	repo = repo.WithOrder("sop_jobs.index ASC")
+
 	if filter.Limit > 0 {
 		repo = repo.WithLimit(int(filter.Limit))
 
@@ -258,12 +266,8 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 		if filter.Page > 1 {
 			offset = int((filter.Page - 1) * filter.Limit)
 		}
-		// Asumsi Anda memiliki fungsi WithOffset di repository builder Anda
-		// Jika belum ada, Anda perlu menambahkannya ke builder Anda
 		repo = repo.WithOffset(offset)
 	} else {
-		// Safety default limit untuk mencegah full table scan
-		// saat client tidak mengirimkan parameter limit
 		repo = repo.WithLimit(100)
 	}
 
@@ -481,6 +485,38 @@ func (s *sopJobService) BulkDeleteGraphSopJobs(ids []int64) error {
 
 func (s *sopJobService) CountGraphSopJobs(filter dto.SopJobFilterDto) (int64, error) {
 	return s.graphRepo.CountGraphSopJobs(filter)
+}
+
+func (s *sopJobService) GetJobsByTitleName(titleName string) ([]*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetJobsByTitleName(titleName)
+}
+
+func (s *sopJobService) GetJobsByTitleNameSQL(titleName string) ([]models.SopJob, error) {
+	return s.repo.FindSopJobsByTitleName(titleName)
+}
+
+func (s *sopJobService) GetJobsByDivisionName(divisionName string) ([]*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetJobsByDivisionName(divisionName)
+}
+
+func (s *sopJobService) GetJobsByDivisionNameSQL(divisionName string) ([]models.SopJob, error) {
+	return s.repo.FindSopJobsByDivisionName(divisionName)
+}
+
+func (s *sopJobService) GetJobsByDivisionAndTitle(divisionName, titleName string) ([]*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetJobsByDivisionAndTitle(divisionName, titleName)
+}
+
+func (s *sopJobService) GetJobsByDivisionAndTitleSQL(divisionName, titleName string) ([]models.SopJob, error) {
+	return s.repo.FindSopJobsByDivisionAndTitle(divisionName, titleName)
+}
+
+func (s *sopJobService) GetJobsByReferenceDivisionName(divisionName string) ([]*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetJobsByReferenceDivisionName(divisionName)
+}
+
+func (s *sopJobService) GetJobsByReferenceDivisionNameSQL(divisionName string) ([]models.SopJob, error) {
+	return s.repo.FindSopJobsByReferenceDivisionName(divisionName)
 }
 
 func toSopJobNode(m *models.SopJob) *graphdb.SopJobNode {
