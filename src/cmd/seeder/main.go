@@ -86,6 +86,8 @@ func runSeeder(db *gorm.DB, driver neo4j.DriverWithContext, scale SeedScale) {
 	}
 
 	log.Println("Running migrations...")
+	// Pastikan fungsi Migrate() Anda di internal/database/migrations menjalankan AutoMigrate 
+	// terhadap struct-struct PG di bawah yang sudah ditambah field SearchName
 	migrations.Migrate()
 
 	setupNeo4jConstraints(driver)
@@ -100,10 +102,6 @@ func runSeeder(db *gorm.DB, driver neo4j.DriverWithContext, scale SeedScale) {
 
 	titleIDs := seedTitles(db, driver, scale.TitleCount, divisionIDs)
 	log.Printf("Title seeding complete: %d records", len(titleIDs))
-
-	// log.Println("Creating Title-Division relations in Neo4j...")
-	// createTitleDivisionRelations(driver, scale.TitleCount)
-	// log.Println("Title-Division relations complete")
 
 	log.Println("Seeding SOPs & SPKs...")
 	sopIDs := seedSOPs(db, driver, scale.SopCount, divisionIDs)
@@ -134,16 +132,18 @@ func setupNeo4jConstraints(driver neo4j.DriverWithContext) {
 		"CREATE CONSTRAINT job_id_unique IF NOT EXISTS FOR (j:Job) REQUIRE j.id IS UNIQUE",
 	}
 
+	// PERBAIKAN FATAL: Memperbaiki index sorting dan mengubah index name menjadi TEXT INDEX pada search_name
 	indexes := []string{
 		"CREATE INDEX job_deleted_at IF NOT EXISTS FOR (j:Job) ON (j.deleted_at)",
 		"CREATE INDEX job_type IF NOT EXISTS FOR (j:Job) ON (j.type)",
-		"CREATE INDEX job_index ON (j:Job) ON (j.index)",
-		"CREATE INDEX job_name IF NOT EXISTS FOR (j:Job) ON (j.name)",
-		"CREATE INDEX sop_name IF NOT EXISTS FOR (s:SOP) ON (s.name)",
-		"CREATE INDEX sop_deleted_at IF NOT EXISTS FOR (s:SOP) ON (s.deleted_at)",
-		"CREATE INDEX division_name IF NOT EXISTS FOR (d:Division) ON (d.name)",
+		"CREATE INDEX job_index_sort IF NOT EXISTS FOR (j:Job) ON (j.index)", // Fixed syntax
+		"CREATE INDEX division_search_name IF NOT EXISTS FOR (d:Division) ON (d.search_name)",
 		"CREATE INDEX title_division_id IF NOT EXISTS FOR (t:Title) ON (t.divisionId)",
-		"CREATE FULLTEXT INDEX sopNameIndex IF NOT EXISTS FOR (s:SOP) ON EACH [s.name]",
+		"CREATE INDEX sop_deleted_at IF NOT EXISTS FOR (s:SOP) ON (s.deleted_at)",
+		
+		// TEXT INDEX untuk pencarian CONTAINS super cepat
+		"CREATE TEXT INDEX job_search_name_text_idx IF NOT EXISTS FOR (j:Job) ON (j.search_name)",
+		"CREATE TEXT INDEX sop_search_name_text_idx IF NOT EXISTS FOR (s:SOP) ON (s.search_name)",
 	}
 
 	for _, cypher := range constraints {
@@ -312,6 +312,8 @@ func getCachedDivisionName(id int64) string {
 	return name
 }
 
+// ================= STRUCT GORM (Telah ditambahkan SearchName) =================
+
 type FlowchartPG struct {
 	ID   int64  `gorm:"primaryKey;autoIncrement:false;type:bigint"`
 	Type string `gorm:"type:text;not null"`
@@ -320,11 +322,12 @@ type FlowchartPG struct {
 func (FlowchartPG) TableName() string { return "flowcharts" }
 
 type DivisionPG struct {
-	ID        int64  `gorm:"primaryKey;autoIncrement:false;type:bigint"`
-	Name      string `gorm:"type:varchar(255);not null"`
-	Code      string `gorm:"type:varchar(50);uniqueIndex"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         int64  `gorm:"primaryKey;autoIncrement:false;type:bigint"`
+	Name       string `gorm:"type:varchar(255);not null"`
+	SearchName string `gorm:"type:varchar(255);not null;index"` // Tambahan Dual Property
+	Code       string `gorm:"type:varchar(50);uniqueIndex"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 func (DivisionPG) TableName() string { return "divisions" }
@@ -344,6 +347,7 @@ func (TitlePG) TableName() string { return "titles" }
 type SopPG struct {
 	ID          int64     `gorm:"primaryKey;autoIncrement:false;type:bigint"`
 	Name        string    `gorm:"type:varchar(255);not null"`
+	SearchName  string    `gorm:"type:varchar(255);not null"` // Tambahan Dual Property
 	Code        string    `gorm:"type:varchar(255)"`
 	Description *string   `gorm:"type:text"`
 	CreatedAt   time.Time
@@ -362,6 +366,7 @@ func (SopDivisionPG) TableName() string { return "sop_divisions" }
 type SpkPG struct {
 	ID          int64     `gorm:"primaryKey;autoIncrement:false;type:bigint"`
 	Name        string    `gorm:"type:varchar(255);not null"`
+	SearchName  string    `gorm:"type:varchar(255);not null"` // Tambahan Dual Property
 	Code        string    `gorm:"type:varchar(255);uniqueIndex"`
 	Description *string   `gorm:"type:text"`
 	CreatedAt   time.Time
@@ -380,6 +385,7 @@ func (SpkTitlePG) TableName() string { return "spk_titles" }
 type SopJobPG struct {
 	ID          int64     `gorm:"primaryKey;autoIncrement:false;type:bigint"`
 	Name        string    `gorm:"type:varchar(255);not null"`
+	SearchName  string    `gorm:"type:varchar(255);not null"` // Tambahan Dual Property
 	Alias       string    `gorm:"type:varchar(255)"`
 	Type        *string   `gorm:"type:text"`
 	Code        string    `gorm:"type:varchar(255)"`
@@ -402,6 +408,7 @@ func (SopJobPG) TableName() string { return "sop_jobs" }
 type SpkJobPG struct {
 	ID          int64     `gorm:"primaryKey;autoIncrement:false;type:bigint"`
 	Name        string    `gorm:"type:varchar(255);not null"`
+	SearchName  string    `gorm:"type:varchar(255);not null"` // Tambahan Dual Property
 	Description *string   `gorm:"type:text"`
 	SpkID       int64     `gorm:"index"`
 	SopID       *int64    `gorm:"index"`
@@ -415,6 +422,8 @@ type SpkJobPG struct {
 }
 
 func (SpkJobPG) TableName() string { return "spk_jobs" }
+
+// ================= FUNGSI SEEDER DUAL-WRITE =================
 
 func seedFlowcharts(db *gorm.DB, driver neo4j.DriverWithContext) {
 	ctx := context.Background()
@@ -467,15 +476,17 @@ func seedDivisions(db *gorm.DB, driver neo4j.DriverWithContext, count int) []int
 			code := generateCode("DIV", id)
 
 			divisions = append(divisions, DivisionPG{
-				ID:   id,
-				Name: name,
-				Code: code,
+				ID:         id,
+				Name:       name,
+				SearchName: strings.ToLower(name), // Inject dual property
+				Code:       code,
 			})
 
 			neo4jRows = append(neo4jRows, map[string]interface{}{
-				"id":   id,
-				"name": name,
-				"code": code,
+				"id":          id,
+				"name":        name,
+				"search_name": strings.ToLower(name), // Inject dual property
+				"code":        code,
 			})
 			neo4jIDs = append(neo4jIDs, id)
 		}
@@ -484,7 +495,8 @@ func seedDivisions(db *gorm.DB, driver neo4j.DriverWithContext, count int) []int
 			log.Fatalf("Failed to insert divisions to PostgreSQL: %v", err)
 		}
 
-		cypher := "UNWIND $batch AS row CREATE (d:Division {id: row.id, name: row.name, code: row.code})"
+		// Tambahkan field search_name ke query Cypher
+		cypher := "UNWIND $batch AS row CREATE (d:Division {id: row.id, name: row.name, search_name: row.search_name, code: row.code})"
 		if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": neo4jRows}); err != nil {
 			log.Fatalf("Failed to insert divisions to Neo4j: %v", err)
 		}
@@ -555,35 +567,6 @@ func seedTitles(db *gorm.DB, driver neo4j.DriverWithContext, count int, division
 	return neo4jIDs
 }
 
-// func createTitleDivisionRelations(driver neo4j.DriverWithContext, titleCount int) {
-// 	ctx := context.Background()
-// 	dbName := config.AppConfig.Neo4jDB
-// 	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite, DatabaseName: dbName})
-// 	defer session.Close(ctx)
-
-// 	batchSize := 500
-// 	startID := int64(1)
-
-// 	for batchStart := 0; batchStart < titleCount; batchStart += batchSize {
-// 		batchEnd := batchStart + batchSize
-// 		if batchEnd > titleCount {
-// 			batchEnd = titleCount
-// 		}
-
-// 		rows := make([]map[string]interface{}, 0, batchEnd-batchStart)
-// 		for i := int64(batchStart); i < int64(batchEnd); i++ {
-// 			rows = append(rows, map[string]interface{}{
-// 				"titleId": startID + i,
-// 			})
-// 		}
-
-// 		cypher := "UNWIND $batch AS row MATCH (t:Title {id: row.titleId}) MATCH (d:Division) WITH t, d RETURN t.id AS titleId, d.id AS divisionId LIMIT 1"
-// 		_, err := session.Run(ctx, cypher, map[string]interface{}{"batch": rows})
-// 		if err != nil {
-// 		}
-// 	}
-// }
-
 func seedSOPs(db *gorm.DB, driver neo4j.DriverWithContext, count int, divisionIDs []int64) []int64 {
 	ctx := context.Background()
 	dbName := config.AppConfig.Neo4jDB
@@ -616,6 +599,7 @@ func seedSOPs(db *gorm.DB, driver neo4j.DriverWithContext, count int, divisionID
 			sops = append(sops, SopPG{
 				ID:          id,
 				Name:        name,
+				SearchName:  strings.ToLower(name), // Inject dual property
 				Code:        code,
 				Description: &desc,
 			})
@@ -628,6 +612,7 @@ func seedSOPs(db *gorm.DB, driver neo4j.DriverWithContext, count int, divisionID
 			neo4jRows = append(neo4jRows, map[string]interface{}{
 				"id":          id,
 				"name":        name,
+				"search_name": strings.ToLower(name), // Inject dual property
 				"code":        code,
 				"description": desc,
 				"division_id": divisionID,
@@ -645,7 +630,7 @@ func seedSOPs(db *gorm.DB, driver neo4j.DriverWithContext, count int, divisionID
 
 		cypher := "UNWIND $batch AS row " +
 			"MATCH (d:Division {id: row.division_id}) " +
-			"CREATE (s:SOP {id: row.id, name: row.name, code: row.code, description: row.description}) " +
+			"CREATE (s:SOP {id: row.id, name: row.name, search_name: row.search_name, code: row.code, description: row.description}) " +
 			"CREATE (d)-[:HAS_SOP]->(s)"
 		if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": neo4jRows}); err != nil {
 			log.Fatalf("Failed to insert SOPs to Neo4j: %v", err)
@@ -687,6 +672,7 @@ func seedSPKs(db *gorm.DB, driver neo4j.DriverWithContext, count int, titleIDs [
 			spks = append(spks, SpkPG{
 				ID:          id,
 				Name:        name,
+				SearchName:  strings.ToLower(name), // Inject dual property
 				Code:        code,
 				Description: &desc,
 			})
@@ -699,6 +685,7 @@ func seedSPKs(db *gorm.DB, driver neo4j.DriverWithContext, count int, titleIDs [
 			neo4jRows = append(neo4jRows, map[string]interface{}{
 				"id":          id,
 				"name":        name,
+				"search_name": strings.ToLower(name), // Inject dual property
 				"code":        code,
 				"description": desc,
 				"title_id":    titleID,
@@ -716,7 +703,7 @@ func seedSPKs(db *gorm.DB, driver neo4j.DriverWithContext, count int, titleIDs [
 
 		cypher := "UNWIND $batch AS row " +
 			"MATCH (t:Title {id: row.title_id}) " +
-			"CREATE (s:SPK {id: row.id, name: row.name, code: row.code, description: row.description}) " +
+			"CREATE (s:SPK {id: row.id, name: row.name, search_name: row.search_name, code: row.code, description: row.description}) " +
 			"CREATE (t)-[:HAS_SPK]->(s)"
 		if _, err := session.Run(ctx, cypher, map[string]interface{}{"batch": neo4jRows}); err != nil {
 			log.Fatalf("Failed to insert SPKs to Neo4j: %v", err)
@@ -768,6 +755,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			spkJobs = append(spkJobs, SpkJobPG{
 				ID:          pgID,
 				Name:        jobName,
+				SearchName:  strings.ToLower(jobName), // Inject dual property
 				Description: &desc,
 				SpkID:       spkID,
 				SopID:       &sopID,
@@ -781,6 +769,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			neo4jRows = append(neo4jRows, map[string]interface{}{
 				"id":           id,
 				"name":         jobName,
+				"search_name":  strings.ToLower(jobName), // Inject dual property
 				"description":  desc,
 				"spk_id":       spkID,
 				"title_id":     titleID,
@@ -798,7 +787,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 		for _, row := range neo4jRows {
 			cypher := "UNWIND $batch AS row " +
 				"MATCH (s:SPK {id: row.spk_id}), (f:Flowchart {id: row.flowchart_id}), (t:Title {id: row.title_id}) " +
-				"CREATE (j:Job {id: row.id, name: row.name, description: row.description, index: row.index}) " +
+				"CREATE (j:Job {id: row.id, name: row.name, search_name: row.search_name, description: row.description, index: row.index}) " +
 				"CREATE (s)-[:HAS_JOB]->(j) " +
 				"CREATE (j)-[:HAS_FLOWCHART]->(f) " +
 				"CREATE (j)-[:ASSIGNED_TO]->(t)"
@@ -848,6 +837,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			sopJobs = append(sopJobs, SopJobPG{
 				ID:          pgID,
 				Name:        jobName,
+				SearchName:  strings.ToLower(jobName), // Inject dual property
 				Alias:       jobAlias,
 				Type:        &jobType,
 				Code:        fmt.Sprintf("P%04d", pgID),
@@ -866,6 +856,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 			neo4jRow := map[string]interface{}{
 				"id":           id,
 				"name":         jobName,
+				"search_name":  strings.ToLower(jobName), // Inject dual property
 				"alias":        jobAlias,
 				"type":         jobType,
 				"code":         fmt.Sprintf("P%04d", id),
@@ -892,7 +883,7 @@ func seedJobs(db *gorm.DB, driver neo4j.DriverWithContext, spkJobCount int, sopJ
 
 			cypher := "UNWIND $batch AS row " +
 				"MATCH (s:SOP {id: row.sop_id}), (f:Flowchart {id: row.flowchart_id}), (t:Title {id: row.title_id}) " +
-				"CREATE (j:Job {id: row.id, name: row.name, alias: row.alias, type: row.type, code: row.code, description: row.description, index: row.index}) " +
+				"CREATE (j:Job {id: row.id, name: row.name, search_name: row.search_name, alias: row.alias, type: row.type, code: row.code, description: row.description, index: row.index}) " +
 				"CREATE (s)-[:HAS_JOB]->(j) " +
 				"CREATE (j)-[:HAS_FLOWCHART]->(f) " +
 				"CREATE (j)-[:ASSIGNED_TO]->(t)"

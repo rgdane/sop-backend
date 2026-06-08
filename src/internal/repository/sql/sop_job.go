@@ -19,6 +19,7 @@ type SopJobRepository interface {
 	WithWhere(query any, args ...any) SopJobRepository
 	WithOrder(order string) SopJobRepository
 	WithLimit(limit int) SopJobRepository
+	WithOffset(offset int) SopJobRepository
 	WithCursor(cursor int) SopJobRepository
 	WithUnscoped() SopJobRepository
 
@@ -47,6 +48,7 @@ type sopJobRepository struct {
 	whereClauses []func(*gorm.DB) *gorm.DB
 	order        string
 	limit        *int
+	offset       *int
 	cursor       *int
 	unscoped     bool
 }
@@ -116,6 +118,12 @@ func (repo *sopJobRepository) WithLimit(limit int) SopJobRepository {
 	return clone
 }
 
+func (repo *sopJobRepository) WithOffset(offset int) SopJobRepository {
+	clone := repo.clone()
+	clone.offset = &offset
+	return clone
+}
+
 func (repo *sopJobRepository) WithCursor(cursor int) SopJobRepository {
 	clone := repo.clone()
 	clone.cursor = &cursor
@@ -147,6 +155,9 @@ func (repo *sopJobRepository) getQueryBuilder() *builder.QueryBuilder[models.Sop
 	}
 	if repo.limit != nil {
 		qb = qb.WithLimit(*repo.limit)
+	}
+	if repo.offset != nil {
+		qb = qb.WithOffset(*repo.offset)
 	}
 	if repo.cursor != nil {
 		qb = qb.WithCursor(*repo.cursor)
@@ -267,6 +278,9 @@ func (repo *sopJobRepository) FindSopJobWithJoins() ([]models.SopJob, error) {
 	}
 	if repo.limit != nil {
 		db = db.Limit(*repo.limit)
+	}
+	if repo.offset != nil {
+		db = db.Offset(*repo.offset)
 	}
 	if repo.cursor != nil {
 		db = db.Where("id > ?", *repo.cursor)

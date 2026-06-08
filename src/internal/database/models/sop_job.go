@@ -10,6 +10,7 @@ import (
 type SopJob struct {
 	ID          int64   `gorm:"primaryKey;autoIncrement:false;type:bigint;default:nextval('sop_jobs_seq'::regclass)" json:"id"`
 	Name        string  `gorm:"size:255;not null;index:idx_sop_jobs_name" json:"name"`
+	SearchName  string  `gorm:"type:varchar(255);not null;index"`
 	Alias       string  `gorm:"size:255;index:idx_sop_jobs_alias" json:"alias"`
 	Type        *string `gorm:"type:text;check:type IN ('sop','spk','instruction');index:idx_sop_jobs_type" json:"type"`
 	Code        string  `gorm:"size:255" json:"code"`
@@ -25,10 +26,9 @@ type SopJob struct {
 	NextIndex   *int   `gorm:"default:null" json:"next_index"`
 	PrevIndex   *int   `gorm:"default:null" json:"prev_index"`
 
-	CreatedAt time.Time `gorm:"autoCreateTime;index:idx_sop_jobs_created_at" json:"created_at"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index:idx_sop_jobs_deleted_at" json:"deleted_at"`
-
+	CreatedAt time.Time      `gorm:"autoCreateTime;index:idx_sop_jobs_created_at" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index:idx_sop_jobs_deleted_at" json:"deleted_at"`
 
 	HasSop       *Sop       `gorm:"foreignKey:SopID;references:ID;constraint:OnDelete:SET NULL;" json:"has_sop"`
 	HasTitle     *Title     `gorm:"foreignKey:TitleID;references:ID;constraint:OnDelete:SET NULL;" json:"has_title"`

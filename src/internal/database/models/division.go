@@ -9,6 +9,7 @@ import (
 type Division struct {
 	ID           int64          `gorm:"primaryKey;autoIncrement:false;type:bigint;default:nextval('divisions_seq'::regclass)" json:"id"`
 	Name         string         `gorm:"column:name;size:255;not null;" json:"name"`
+	SearchName string `gorm:"type:varchar(255);not null;index"`
 	Code         string        `gorm:"column:code;size:50;unique:uni_divisions_code;index:idx_divisions_code" json:"code"`
 	CreatedAt   time.Time      `gorm:"column:created_at;autoCreateTime;index:idx_divisions_created_at" json:"created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`

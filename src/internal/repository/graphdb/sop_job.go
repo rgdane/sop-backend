@@ -92,21 +92,21 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 	// Array penyimpan kondisi WHERE
 	var conditions []string
 
-	// 1. Filter Nama SOP (Menggunakan Regex Case-Insensitive bawaan Neo4j)
+	// 1. Filter Nama SOP (Menggunakan search_name dan CONTAINS murni)
 	if filter.SopName != "" {
-		conditions = append(conditions, "s.name =~ $sopNameRegex")
-		// (?i) membuat pencarian menjadi Case-Insensitive, .* di awal & akhir bertindak sebagai CONTAINS
-		params["sopNameRegex"] = "(?i).*" + filter.SopName + ".*"
+		conditions = append(conditions, "s.search_name CONTAINS $sopName")
+		params["sopName"] = strings.ToLower(filter.SopName)
 	}
 
-	// 2. Filter Nama Divisi (Aman menggunakan toLower karena jumlah node divisi sangat sedikit)
+	// 2. Filter Nama Divisi (Karena Seeder kita juga menyuntikkan d.search_name, gunakan itu)
 	if len(filter.DivisionNames) > 0 {
 		var lowerDivs []string
 		for _, div := range filter.DivisionNames {
 			lowerDivs = append(lowerDivs, strings.ToLower(div))
 		}
 		params["divNames"] = lowerDivs
-		conditions = append(conditions, "toLower(d.name) IN $divNames")
+		// Index Seek murni tanpa toLower()
+		conditions = append(conditions, "d.search_name IN $divNames")
 	}
 
 	// 3. Filter Atribut Standar Lainnya
@@ -121,10 +121,10 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		conditions = append(conditions, "j.deleted_at IS NULL")
 	}
 
+	// 4. Filter Nama Job (Menggunakan search_name dan CONTAINS murni)
 	if filter.Name != "" {
-		// Menggunakan Regex Case-Insensitive agar indeks Job tetap optimal dan data campuran tetap ketemu
-		conditions = append(conditions, "j.name =~ $jobNameRegex")
-		params["jobNameRegex"] = "(?i).*" + filter.Name + ".*"
+		conditions = append(conditions, "j.search_name CONTAINS $jobName")
+		params["jobName"] = strings.ToLower(filter.Name)
 	}
 
 	if filter.MinIndex > 0 {
@@ -142,7 +142,7 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		params["referenceType"] = filter.ReferenceType
 	}
 
-	// JALUR UTAMA: Jalur traversal graf yang lurus, linear, dan bersih
+	// JALUR UTAMA: Jalur traversal graf
 	repo = repo.WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)")
 
 	// Gabungkan semua kondisi jika ada
@@ -150,10 +150,38 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		repo = repo.WithWhere(strings.Join(conditions, " AND "), params)
 	}
 
-	// Amankan variabel data sebelum masuk ke penelusuran opsional
-	repo = repo.WithWith("j, s, d")
+	// =========================================================================
+	// OPTIMASI KUNCI: EARLY PAGINATION & SORTING (DILAKUKAN DI TENGAH KUERI)
+	// =========================================================================
+	
+	// Pengurutan data (Sorting)
+	orderByClause := "ORDER BY j.index ASC"
+	if filter.Sort != "" && filter.Order != "" {
+		orderByClause = fmt.Sprintf("ORDER BY j.%s %s", filter.Sort, strings.ToUpper(filter.Order))
+	}
 
-	// OPTIMALISASI KUNCI: Menghindari Row Multiplication / Cartesian Product
+	// Pagination (LIMIT & SKIP) wajib untuk menahan beban data jutaan
+	paginationClause := ""
+	if filter.Limit > 0 {
+		var offset int64 = 0
+		if filter.Page > 1 {
+			offset = (filter.Page - 1) * filter.Limit
+		}
+		// Di Neo4j, SKIP adalah pengganti OFFSET
+		paginationClause = fmt.Sprintf(" SKIP %d LIMIT %d", offset, filter.Limit)
+	} else {
+		// Safety default limit untuk mencegah full graph scan
+		paginationClause = " LIMIT 100"
+	}
+
+	// Terapkan Limit dan Sorting SEBELUM masuk ke OPTIONAL MATCH!
+	// Ini akan mencegah RAM jebol karena "Cartesian Product" atau row multiplication
+	withClause := fmt.Sprintf("j, s, d %s%s", orderByClause, paginationClause)
+	repo = repo.WithWith(withClause)
+
+	// =========================================================================
+
+	// OPTIONAL MATCH ini sekarang sangat ringan karena datanya sudah di-limit misal hanya 10 atau 20 baris
 	repo = repo.
 		WithOptionalMatch("(j)-[:ASSIGNED_TO]->(t:Title)").
 		WithWhere("(d)<-[:HAS_TITLE]-(t)", nil).
@@ -161,7 +189,8 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		WithOptionalMatch("(j)-[:HAS_REFERENCE]->(ref)").
 		WithWith("j, s, t, ref")
 
-	// Proyeksi data keluaran dalam bentuk JSON-like Map objek Cypher
+	// Proyeksi JSON
+	// CATATAN: Kita tetap me-return `.name` agar UI Front-End tetap melihat huruf kapital yang cantik
 	returnClause := `j {
 		.id,
 		.name,
@@ -181,14 +210,7 @@ func (r *sopJobRepository) GetAllGraphSopJobs(filter dto.SopJobFilterDto) ([]*So
 		has_reference: ref { .id, .name, .code, .description }
 	} AS data`
 
-	// Pengurutan data (Sorting)
-	if filter.Sort != "" && filter.Order != "" {
-		orderDir := strings.ToUpper(filter.Order)
-		returnClause += fmt.Sprintf(" ORDER BY j.%s %s", filter.Sort, orderDir)
-	} else {
-		returnClause += " ORDER BY j.index ASC"
-	}
-
+	// Bagian akhir ini tidak butuh ORDER BY lagi, karena sudah diurutkan di atas
 	repo = repo.WithReturn(returnClause).WithParams(params)
 
 	// Eksekusi kueri ke database Neo4j

@@ -249,6 +249,24 @@ func (s *sopJobService) GetAllSopJobs(filter dto.SopJobFilterDto) ([]models.SopJ
 		repo = repo.WithWhere("sop_jobs.deleted_at IS NULL")
 	}
 
+	repo = repo.WithOrder("sop_jobs.index ASC") // Pastikan order menggunakan field index
+	
+	if filter.Limit > 0 {
+		repo = repo.WithLimit(int(filter.Limit))
+
+		offset := 0
+		if filter.Page > 1 {
+			offset = int((filter.Page - 1) * filter.Limit)
+		}
+		// Asumsi Anda memiliki fungsi WithOffset di repository builder Anda
+		// Jika belum ada, Anda perlu menambahkannya ke builder Anda
+		repo = repo.WithOffset(offset)
+	} else {
+		// Safety default limit untuk mencegah full table scan
+		// saat client tidak mengirimkan parameter limit
+		repo = repo.WithLimit(100)
+	}
+
 	data, err := repo.FindSopJobWithJoins()
 	if err != nil {
 		return nil, gorm_err.TranslateGormError(err)

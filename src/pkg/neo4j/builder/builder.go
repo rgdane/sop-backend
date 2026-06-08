@@ -33,6 +33,7 @@ type GraphRepository interface {
 	WithRelate(from, relation, to string, props map[string]interface{}) GraphRepository
 	WithParams(params map[string]interface{}) GraphRepository
 	WithLimit(limit int) GraphRepository
+	WithSkip(skip int) GraphRepository
 	WithOptionalMatch(query string) GraphRepository
 
 	// --- APOC / Advanced Cypher ---
@@ -198,6 +199,12 @@ func (r *graphRepository) WithParams(params map[string]interface{}) GraphReposit
 func (r *graphRepository) WithLimit(limit int) GraphRepository {
 	clone := r.clone()
 	clone.statements = append(clone.statements, fmt.Sprintf("LIMIT %d", limit))
+	return clone
+}
+
+func (r *graphRepository) WithSkip(skip int) GraphRepository {
+	clone := r.clone()
+	clone.statements = append(clone.statements, fmt.Sprintf("SKIP %d", skip))
 	return clone
 }
 

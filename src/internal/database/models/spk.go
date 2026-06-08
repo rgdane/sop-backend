@@ -9,6 +9,7 @@ import (
 type Spk struct {
 	ID          int64   `gorm:"primaryKey;autoIncrement:false;type:bigint;default:nextval('spks_seq'::regclass)" json:"id"`
 	Name        string  `gorm:"column:name;size:255;index:idx_spks_name" json:"name"`
+	SearchName  string  `gorm:"type:varchar(255);not null;index"`
 	Code        string  `gorm:"column:code;size:255;unique:idx_spks_code" json:"code"`
 	Description *string `gorm:"column:description;type:text" json:"description"`
 

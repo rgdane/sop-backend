@@ -9,6 +9,7 @@ import (
 type SpkJob struct {
 	ID          int64   `gorm:"primaryKey;autoIncrement:false;type:bigint;default:nextval('spk_jobs_seq'::regclass)" json:"id"`
 	Name        string  `gorm:"size:255;not null" json:"name" validate:"required"`
+	SearchName  string  `gorm:"type:varchar(255);not null;index"`
 	Description *string `gorm:"type:text" json:"description"`
 
 	SpkID   int64  `gorm:"not null;index:idx_spk_jobs_spk_id" json:"spk_id"`
@@ -21,10 +22,9 @@ type SpkJob struct {
 	NextIndex   *int   `gorm:"default:null" json:"next_index"`
 	PrevIndex   *int   `gorm:"default:null" json:"prev_index"`
 
-	CreatedAt time.Time `gorm:"autoCreateTime;index:idx_spk_jobs_created_at" json:"created_at"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index:idx_spk_jobs_deleted_at" json:"deleted_at"`
-
+	CreatedAt time.Time      `gorm:"autoCreateTime;index:idx_spk_jobs_created_at" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index:idx_spk_jobs_deleted_at" json:"deleted_at"`
 
 	// Relasi
 	HasSop       *Sop       `gorm:"foreignKey:SopID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"has_sop"`

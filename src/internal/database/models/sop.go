@@ -12,6 +12,7 @@ import (
 type Sop struct {
 	ID          int64          `gorm:"primaryKey;autoIncrement:false;type:bigint;default:nextval('sops_seq'::regclass)" json:"id"`
 	Name        string         `gorm:"size:255;not null;" json:"name"`
+	SearchName  string         `gorm:"type:varchar(255);not null;index"`
 	Code        string         `gorm:"size:255;index:idx_sops_code" json:"code"`
 	Description *string        `gorm:"type:text;default:null" json:"description"`
 	CreatedAt   time.Time      `gorm:"autoCreateTime;index:idx_sops_created_at" json:"created_at"`

@@ -15,6 +15,7 @@ type QueryBuilder[T any] struct {
 	whereClauses []func(*gorm.DB) *gorm.DB
 	orderBy      string
 	limit        *int
+	offset       *int
 	cursor       *int
 	associations []string
 	replacements map[string]interface{}
@@ -50,6 +51,11 @@ func (qb *QueryBuilder[T]) WithOrder(order string) *QueryBuilder[T] {
 
 func (qb *QueryBuilder[T]) WithLimit(l int) *QueryBuilder[T] {
 	qb.limit = &l
+	return qb
+}
+
+func (qb *QueryBuilder[T]) WithOffset(offset int) *QueryBuilder[T] {
+	qb.offset = &offset
 	return qb
 }
 
