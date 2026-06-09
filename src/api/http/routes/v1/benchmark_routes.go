@@ -8,7 +8,6 @@ import (
 )
 
 func BenchmarkRoutes(router fiber.Router, c *container.AppContainer) {
-	// Buat group /benchmark di bawah /api/v1 (atau sesuai prefix utama-mu)
 	benchmark := router.Group("/benchmark")
 
 	// ==========================================
@@ -28,4 +27,34 @@ func BenchmarkRoutes(router fiber.Router, c *container.AppContainer) {
 	// ==========================================
 	benchmark.Get("/sop-jobs/sql", controllers.RunBenchmarkSopJobSQL(c))
 	benchmark.Get("/sop-jobs/graph", controllers.RunBenchmarkSopJobGraph(c))
+
+	// ==========================================
+	// 4. SKENARIO FILTER: SOP JOBS BY TITLE
+	// ==========================================
+	benchmark.Get("/first/sql", controllers.RunBenchmarkSopJobTitleSQL(c))
+	benchmark.Get("/first/graph", controllers.RunBenchmarkSopJobTitleGraph(c))
+
+	// ==========================================
+	// 5. SKENARIO FILTER: SOP JOBS BY DIVISION
+	// ==========================================
+	benchmark.Get("/second/sql", controllers.RunBenchmarkSopJobDivisionSQL(c))
+	benchmark.Get("/second/graph", controllers.RunBenchmarkSopJobDivisionGraph(c))
+
+	// ==========================================
+	// 6. SKENARIO FILTER: SOP JOBS BY DIVISION & TITLE
+	// ==========================================
+	benchmark.Get("/third/sql", controllers.RunBenchmarkSopJobDivisionTitleSQL(c))
+	benchmark.Get("/third/graph", controllers.RunBenchmarkSopJobDivisionTitleGraph(c))
+
+	// ==========================================
+	// 7. SKENARIO FILTER: SOP JOBS BY REFERENCE DIVISION
+	// ==========================================
+	benchmark.Get("/fourth/sql", controllers.RunBenchmarkSopJobReferenceDivisionSQL(c))
+	benchmark.Get("/fourth/graph", controllers.RunBenchmarkSopJobReferenceDivisionGraph(c))
+
+	// ==========================================
+	// 8. SKENARIO FILTER: SOP JOBS BY DIVISION, TITLE COLOR & PUBLISHED
+	// ==========================================
+	benchmark.Get("/fifth/sql", controllers.RunBenchmarkSopJobDivisionTitlePublishedSQL(c))
+	benchmark.Get("/fifth/graph", controllers.RunBenchmarkSopJobDivisionTitlePublishedGraph(c))
 }
