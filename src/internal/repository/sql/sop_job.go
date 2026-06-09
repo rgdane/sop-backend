@@ -40,6 +40,7 @@ type SopJobRepository interface {
 	FindSopJobsByDivisionName(divisionName string) ([]models.SopJob, error)
 	FindSopJobsByDivisionAndTitle(divisionName, titleName string) ([]models.SopJob, error)
 	FindSopJobsByReferenceDivisionName(divisionName string) ([]models.SopJob, error)
+	FindSopJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]models.SopJob, error)
 }
 
 type sopJobRepository struct {
@@ -489,6 +490,29 @@ func (repo *sopJobRepository) FindSopJobsByReferenceDivisionName(divisionName st
 		Joins("JOIN sop_divisions sd ON sd.sop_id = ref_sops.id").
 		Joins("JOIN divisions d ON d.id = sd.division_id").
 		Where("d.name = ?", divisionName).
+		Limit(100).
+		Order("j.index ASC")
+
+	var results []models.SopJob
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *sopJobRepository) FindSopJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]models.SopJob, error) {
+	db := repo.db.Table("sop_jobs j").
+		Select("j.id, j.name, j.type, j.code, j.index").
+		Joins("JOIN sops s ON s.id = j.sop_id").
+		Joins("JOIN sop_divisions sd ON sd.sop_id = s.id").
+		Joins("JOIN divisions d ON d.id = sd.division_id").
+		Joins("JOIN titles t ON t.id = j.title_id").
+		Where("d.name = ?", divisionName).
+		Where("j.name LIKE ?", "%"+jobNamePattern+"%").
+		Where("j.is_published = ?", true).
+		Where("t.color = ?", titleColor).
+		Where("j.reference_id IS NOT NULL").
 		Limit(100).
 		Order("j.index ASC")
 

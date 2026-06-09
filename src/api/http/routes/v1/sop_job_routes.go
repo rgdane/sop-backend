@@ -34,6 +34,9 @@ func SopJobRoutes(router fiber.Router, c *container.AppContainer) {
 	app.Get("/reference-division-sql/", controllers.GetReferenceDivisionSqlSopJobs(c))
 	app.Get("/reference-division-graph/", controllers.GetReferenceDivisionGraphSopJobs(c))
 
+	app.Get("/division-title-published-sql/", controllers.GetDivisionTitlePublishedSqlSopJobs(c))
+	app.Get("/division-title-published-graph/", controllers.GetDivisionTitlePublishedGraphSopJobs(c))
+
 	app.Get("/sql/", controllers.GetSqlSopJobs(c))
 	app.Get("/sql/:id", controllers.GetSqlSopJobByID(c))
 	app.Post("/sql/", controllers.CreateSqlSopJobs(c))

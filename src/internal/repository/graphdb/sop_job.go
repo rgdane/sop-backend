@@ -63,6 +63,7 @@ type SopJobRepository interface {
 	GetJobsByDivisionName(divisionName string) ([]*SopJobNode, error)
 	GetJobsByDivisionAndTitle(divisionName, titleName string) ([]*SopJobNode, error)
 	GetJobsByReferenceDivisionName(divisionName string) ([]*SopJobNode, error)
+	GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]*SopJobNode, error)
 }
 
 type sopJobRepository struct{}
@@ -257,7 +258,7 @@ func (r *sopJobRepository) GetJobsByReferenceDivisionName(divisionName string) (
 				node.Index = int(index)
 			}
 		}
-	sopJobs = append(sopJobs, node)
+		sopJobs = append(sopJobs, node)
 	}
 
 	return sopJobs, nil
@@ -734,6 +735,61 @@ func (r *sopJobRepository) GetJobsByDivisionAndTitle(divisionName, titleName str
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Jobs by division and title name: %w", err)
+	}
+
+	sopJobs := make([]*SopJobNode, 0, len(records))
+	for _, record := range records {
+		node := &SopJobNode{}
+		if idVal, ok := record.Get("id"); ok {
+			if id, ok := idVal.(int64); ok {
+				node.ID = id
+			}
+		}
+		if nameVal, ok := record.Get("name"); ok {
+			if name, ok := nameVal.(string); ok {
+				node.Name = name
+			}
+		}
+		if typeVal, ok := record.Get("type"); ok {
+			if typ, ok := typeVal.(string); ok {
+				node.Type = typ
+			}
+		}
+		if codeVal, ok := record.Get("code"); ok {
+			if code, ok := codeVal.(string); ok {
+				node.Code = code
+			}
+		}
+		if indexVal, ok := record.Get("index"); ok {
+			if index, ok := indexVal.(int64); ok {
+				node.Index = int(index)
+			}
+		}
+		sopJobs = append(sopJobs, node)
+	}
+
+	return sopJobs, nil
+}
+
+func (r *sopJobRepository) GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]*SopJobNode, error) {
+	repo := builder.NewGraphRepository()
+	params := map[string]any{
+		"divisionName":    divisionName,
+		"jobNamePattern": jobNamePattern,
+		"titleColor":      titleColor,
+	}
+
+	records, err := repo.
+		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)").
+		WithMatch("(j)-[:ASSIGNED_TO]->(t:Title)").
+		WithMatch("(j)-[:HAS_REFERENCE]->(ref)").
+		WithWhere("d.name = $divisionName AND j.name CONTAINS $jobNamePattern AND j.is_published = true AND t.color = $titleColor", params).
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index ORDER BY j.index ASC LIMIT 100").
+		WithParams(params).
+		RunRead()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Jobs by division, title color and published status: %w", err)
 	}
 
 	sopJobs := make([]*SopJobNode, 0, len(records))

@@ -135,7 +135,7 @@ func GetSqlSopJobs(cn *container.AppContainer) fiber.Handler {
 			Name:          name,
 			SopName:       sopName,
 			MinIndex:      minIndex,
-			ReferenceID:   &referenceID,
+			ReferenceID:&referenceID,
 			ReferenceType: referenceType,
 			DivisionNames: divisionNames,
 			ShowDeleted:   c.Query("show_deleted", "false") == "true",
@@ -200,7 +200,7 @@ func GetGraphSopJobs(cn *container.AppContainer) fiber.Handler {
 			Name:          name,
 			SopName:       sopName,
 			MinIndex:      minIndex,
-			ReferenceID:   &referenceID,
+			ReferenceID:&referenceID,
 			ReferenceType: referenceType,
 			DivisionNames: divisionNames,
 			ShowDeleted:   c.Query("show_deleted", "false") == "true",
@@ -440,6 +440,82 @@ func GetReferenceDivisionGraphSopJobs(cn *container.AppContainer) fiber.Handler 
 	}
 }
 
+// GetDivisionTitlePublishedSqlSopJobs godoc
+// @Summary Get SOP Jobs by Division, Title Color and Published Status (SQL)
+// @Description Get SOP Jobs filtered by division name, job name pattern, title color and published status from SQL database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param division_name query string true "Division Name"
+// @Param job_name_pattern query string true "Job Name Pattern (LIKE)"
+// @Param title_color query string true "Title Color"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/division-title-published-sql [get]
+func GetDivisionTitlePublishedSqlSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("division_name", "")
+		jobNamePattern := c.Query("job_name_pattern", "")
+		titleColor := c.Query("title_color", "")
+
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
+		}
+		if jobNamePattern == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "job_name_pattern is required")
+		}
+		if titleColor == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_color is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, titleColor)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
+// GetDivisionTitlePublishedGraphSopJobs godoc
+// @Summary Get SOP Jobs by Division, Title Color and Published Status (Graph)
+// @Description Get SOP Jobs filtered by division name, job name pattern, title color and published status from Graph database
+// @Tags SOP-Job
+// @Accept json
+// @Produce json
+// @Param division_name query string true "Division Name"
+// @Param job_name_pattern query string true "Job Name Pattern (CONTAINS)"
+// @Param title_color query string true "Title Color"
+// @Security BearerAuth
+// @Success 200 {object} presenters.SuccessResponse
+// @Failure 400 {object} presenters.ErrorResponse
+// @Failure 500 {object} presenters.ErrorResponse
+// @Router /sop-jobs/division-title-published-graph [get]
+func GetDivisionTitlePublishedGraphSopJobs(cn *container.AppContainer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		divisionName := c.Query("division_name", "")
+		jobNamePattern := c.Query("job_name_pattern", "")
+		titleColor := c.Query("title_color", "")
+
+		if divisionName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
+		}
+		if jobNamePattern == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "job_name_pattern is required")
+		}
+		if titleColor == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_color is required")
+		}
+
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, titleColor)
+		if err != nil {
+			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
+		}
+		return presenters.SendSuccessResponse(c, data, total)
+	}
+}
+
 // GetSopJobByID godoc
 // @Summary Get SOP Job by ID (Hybrid)
 // @Description Get a single SOP Job by ID from both SQL and Graph database
@@ -637,7 +713,7 @@ func UpdateSopJobs(cn *container.AppContainer) fiber.Handler {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "Invalid input")
 		}
 
-		updated, err := cn.SopJobHandler.UpdateSopJobHandler(id, &input)
+		updated, err := cn.SopJobHandler.UpdateSopJobHandler(id,&input)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}

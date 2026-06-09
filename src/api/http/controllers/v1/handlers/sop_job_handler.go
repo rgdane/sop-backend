@@ -159,7 +159,7 @@ func (h *SopJobHandler) CreateSopJobGraphHandler(input *dto.CreateSopJobDto) (*d
 	newID := time.Now().UnixMilli()
 	now := time.Now().Format(time.RFC3339Nano)
 
-	graphNode := &graphdb.SopJobNode{
+	graphNode :=&graphdb.SopJobNode{
 		ID:          newID,
 		Name:        input.Name,
 		Alias:       input.Alias,
@@ -704,6 +704,33 @@ func (h *SopJobHandler) GetJobsByReferenceDivisionNameGraphHandler(divisionName 
 
 func (h *SopJobHandler) GetJobsByReferenceDivisionNameSqlHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
 	data, err := h.Service.GetJobsByReferenceDivisionNameSQL(divisionName)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
+	for _, job := range data {
+		dto, err := mapper.SopJobModelToResponseDto(&job)
+		if err != nil {
+			continue
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, titleColor string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	dtos := mapper.SopJobNodesToResponseDto(data)
+	return dtos, int64(len(dtos)), nil
+}
+
+func (h *SopJobHandler) GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, titleColor string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, titleColor)
 	if err != nil {
 		return nil, 0, err
 	}
