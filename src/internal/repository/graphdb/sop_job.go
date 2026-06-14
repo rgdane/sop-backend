@@ -222,7 +222,7 @@ func (r *sopJobRepository) GetJobsByReferenceDivisionName(divisionName string) (
 	records, err := repo.
 		WithMatch("(j:Job)-[:HAS_REFERENCE]->(ref:SOP)<-[:HAS_SOP]-(d:Division)").
 		WithWhere("d.name = $divisionName AND j.deleted_at IS NULL", params).
-		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
 		WithParams(params).
 		RunRead()
 
@@ -626,7 +626,7 @@ func (r *sopJobRepository) GetJobsByTitleName(titleName string) ([]*SopJobNode, 
 	records, err := repo.
 		WithMatch("(j:Job)-[:ASSIGNED_TO]->(t:Title)").
 		WithWhere("t.name = $titleName AND j.deleted_at IS NULL", params).
-		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
 		WithParams(params).
 		RunRead()
 
@@ -677,7 +677,7 @@ func (r *sopJobRepository) GetJobsByDivisionName(divisionName string) ([]*SopJob
 	records, err := repo.
 		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)").
 		WithWhere("d.name = $divisionName AND j.deleted_at IS NULL", params).
-		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
 		WithParams(params).
 		RunRead()
 
@@ -729,7 +729,7 @@ func (r *sopJobRepository) GetJobsByDivisionAndTitle(divisionName, titleName str
 	records, err := repo.
 		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job), (j)-[:ASSIGNED_TO]->(t:Title)").
 		WithWhere("d.name = $divisionName AND t.name = $titleName AND j.deleted_at IS NULL", params).
-		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index").
+		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
 		WithParams(params).
 		RunRead()
 

@@ -134,9 +134,9 @@ func RunBenchmarkSopJobGraph(cn *container.AppContainer) fiber.Handler {
 
 func RunBenchmarkSopJobTitleSQL(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		targetURL := "http://localhost:5000/api/v1/sop-jobs/title-sql/?title_name=Product"
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/title-sql/?title_name=Engineer"
 
-		titleName := "Product"
+		titleName := "Engineer"
 
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
@@ -150,9 +150,9 @@ func RunBenchmarkSopJobTitleSQL(cn *container.AppContainer) fiber.Handler {
 
 func RunBenchmarkSopJobTitleGraph(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		targetURL := "http://localhost:5000/api/v1/sop-jobs/title-graph/?title_name=Product"
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/title-graph/?title_name=Engineer"
 
-		titleName := "Product"
+		titleName := "Engineer"
 
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
@@ -206,10 +206,10 @@ func RunBenchmarkSopJobDivisionGraph(cn *container.AppContainer) fiber.Handler {
 
 func RunBenchmarkSopJobDivisionTitleSQL(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-sql/?division_name=Product&title_name=Product"
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-sql/?division_name=Product&title_name=Engineer"
 
 		divisionName := "Product"
-		titleName := "Product"
+		titleName := "Engineer"
 
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
@@ -223,10 +223,10 @@ func RunBenchmarkSopJobDivisionTitleSQL(cn *container.AppContainer) fiber.Handle
 
 func RunBenchmarkSopJobDivisionTitleGraph(cn *container.AppContainer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-graph/?division_name=Product&title_name=Product"
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-graph/?division_name=Product&title_name=Engineer"
 
 		divisionName := "Product"
-		titleName := "Product"
+		titleName := "Engineer"
 
 		dbQueryFunc := func() time.Duration {
 			start := time.Now()
