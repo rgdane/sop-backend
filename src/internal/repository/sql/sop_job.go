@@ -3,6 +3,7 @@ package sql
 import (
 	"jk-api/internal/config"
 	"jk-api/internal/database/models"
+	"jk-api/internal/shared/helper"
 	"jk-api/pkg/gorm/builder"
 	"time"
 
@@ -438,10 +439,12 @@ func (repo *sopJobRepository) FindSopJobsByTitleName(titleName string) ([]models
 		Limit(100).
 		Order("j.index ASC")
 
+	start := time.Now()
 	var results []models.SopJob
 	if err := db.Find(&results).Error; err != nil {
 		return nil, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	return results, nil
 }
@@ -456,10 +459,12 @@ func (repo *sopJobRepository) FindSopJobsByDivisionName(divisionName string) ([]
 		Limit(100).
 		Order("j.index ASC")
 
+	start := time.Now()
 	var results []models.SopJob
 	if err := db.Find(&results).Error; err != nil {
 		return nil, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	return results, nil
 }
@@ -475,10 +480,12 @@ func (repo *sopJobRepository) FindSopJobsByDivisionAndTitle(divisionName, titleN
 		Limit(100).
 		Order("j.index ASC")
 
+	start := time.Now()
 	var results []models.SopJob
 	if err := db.Find(&results).Error; err != nil {
 		return nil, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	return results, nil
 }
@@ -493,10 +500,12 @@ func (repo *sopJobRepository) FindSopJobsByReferenceDivisionName(divisionName st
 		Limit(100).
 		Order("j.index ASC")
 
+	start := time.Now()
 	var results []models.SopJob
 	if err := db.Find(&results).Error; err != nil {
 		return nil, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	return results, nil
 }
@@ -516,10 +525,12 @@ func (repo *sopJobRepository) FindSopJobsByDivisionTitlePublished(divisionName, 
 		Limit(100).
 		Order("j.index ASC")
 
+	start := time.Now()
 	var results []models.SopJob
 	if err := db.Find(&results).Error; err != nil {
 		return nil, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	return results, nil
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"jk-api/api/http/controllers/v1/dto"
+	"jk-api/internal/shared/helper"
 	"jk-api/pkg/neo4j/builder"
 )
 
@@ -219,12 +220,15 @@ func (r *sopJobRepository) GetJobsByReferenceDivisionName(divisionName string) (
 		"divisionName": divisionName,
 	}
 
-	records, err := repo.
+	queryBuilder := repo.
 		WithMatch("(j:Job)-[:HAS_REFERENCE]->(ref:SOP)<-[:HAS_SOP]-(d:Division)").
 		WithWhere("d.name = $divisionName AND j.deleted_at IS NULL", params).
 		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
-		WithParams(params).
-		RunRead()
+		WithParams(params)
+
+	start := time.Now()
+	records, err := queryBuilder.RunRead()
+	helper.RecordDBLatency(time.Since(start))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Jobs by reference division name: %w", err)
@@ -623,12 +627,15 @@ func (r *sopJobRepository) GetJobsByTitleName(titleName string) ([]*SopJobNode, 
 		"titleName": titleName,
 	}
 
-	records, err := repo.
+	queryBuilder := repo.
 		WithMatch("(j:Job)-[:ASSIGNED_TO]->(t:Title)").
 		WithWhere("t.name = $titleName AND j.deleted_at IS NULL", params).
 		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
-		WithParams(params).
-		RunRead()
+		WithParams(params)
+
+	start := time.Now()
+	records, err := queryBuilder.RunRead()
+	helper.RecordDBLatency(time.Since(start))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Jobs by title name: %w", err)
@@ -674,12 +681,15 @@ func (r *sopJobRepository) GetJobsByDivisionName(divisionName string) ([]*SopJob
 		"divisionName": divisionName,
 	}
 
-	records, err := repo.
+	queryBuilder := repo.
 		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)").
 		WithWhere("d.name = $divisionName AND j.deleted_at IS NULL", params).
 		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
-		WithParams(params).
-		RunRead()
+		WithParams(params)
+
+	start := time.Now()
+	records, err := queryBuilder.RunRead()
+	helper.RecordDBLatency(time.Since(start))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Jobs by division name: %w", err)
@@ -726,12 +736,15 @@ func (r *sopJobRepository) GetJobsByDivisionAndTitle(divisionName, titleName str
 		"titleName":    titleName,
 	}
 
-	records, err := repo.
+	queryBuilder := repo.
 		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job), (j)-[:ASSIGNED_TO]->(t:Title)").
 		WithWhere("d.name = $divisionName AND t.name = $titleName AND j.deleted_at IS NULL", params).
 		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index LIMIT 100").
-		WithParams(params).
-		RunRead()
+		WithParams(params)
+
+	start := time.Now()
+	records, err := queryBuilder.RunRead()
+	helper.RecordDBLatency(time.Since(start))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Jobs by division and title name: %w", err)
@@ -779,14 +792,17 @@ func (r *sopJobRepository) GetJobsByDivisionTitlePublished(divisionName, jobName
 		"titleColor":      titleColor,
 	}
 
-	records, err := repo.
+	queryBuilder := repo.
 		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)").
 		WithMatch("(j)-[:ASSIGNED_TO]->(t:Title)").
 		WithMatch("(j)-[:HAS_REFERENCE]->(ref)").
 		WithWhere("d.name = $divisionName AND j.name CONTAINS $jobNamePattern AND j.is_published = true AND t.color = $titleColor", params).
 		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index ORDER BY j.index ASC LIMIT 100").
-		WithParams(params).
-		RunRead()
+		WithParams(params)
+
+	start := time.Now()
+	records, err := queryBuilder.RunRead()
+	helper.RecordDBLatency(time.Since(start))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Jobs by division, title color and published status: %w", err)
