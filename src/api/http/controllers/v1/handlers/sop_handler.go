@@ -7,6 +7,7 @@ import (
 	"jk-api/internal/database/models"
 	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/service"
+	"jk-api/internal/shared/helper"
 	"time"
 )
 
@@ -292,10 +293,12 @@ func (h *SopHandler) GetSopByIdGraphHandler(id int64) (*graphdb.SopNode, error) 
 }
 
 func (h *SopHandler) GetAllSopsHandler(filter dto.SopFilterDto) ([]models.Sop, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetAllSops(filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	var total int64
 	db := h.Service.GetDB()
@@ -322,10 +325,12 @@ func (h *SopHandler) GetAllSopsHandler(filter dto.SopFilterDto) ([]models.Sop, i
 }
 
 func (h *SopHandler) GetAllSopsGraphHandler(filter dto.SopFilterDto) ([]*graphdb.SopNode, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetAllGraphSops(filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	total, err := h.Service.CountGraphSops(filter)
 	if err != nil {

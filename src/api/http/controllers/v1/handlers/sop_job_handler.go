@@ -7,6 +7,7 @@ import (
 	"jk-api/internal/database/models"
 	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/service"
+	"jk-api/internal/shared/helper"
 	"strings"
 	"time"
 )
@@ -450,19 +451,23 @@ func (h *SopJobHandler) GetSopJobByIdGraphHandler(id int64) (*dto.SopJobResponse
 }
 
 func (h *SopJobHandler) GetAllSopJobsHandler(filter dto.SopJobFilterDto) ([]models.SopJob, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetAllSopJobs(filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	return data, int64(len(data)), nil
 }
 
 func (h *SopJobHandler) GetAllSopJobsGraphHandler(filter dto.SopJobFilterDto) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetAllGraphSopJobs(filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := mapper.SopJobNodesToResponseDto(data)
 	return dtos, int64(len(dtos)), nil
@@ -612,20 +617,24 @@ func (h *SopJobHandler) CountSopJobsHandler(filter dto.SopJobFilterDto) (int64, 
 }
 
 func (h *SopJobHandler) GetJobsByTitleNameGraphHandler(titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByTitleName(titleName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := mapper.SopJobNodesToResponseDto(data)
 	return dtos, int64(len(dtos)), nil
 }
 
 func (h *SopJobHandler) GetJobsByTitleNameSqlHandler(titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByTitleNameSQL(titleName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
 	for _, job := range data {
@@ -639,20 +648,24 @@ func (h *SopJobHandler) GetJobsByTitleNameSqlHandler(titleName string) ([]*dto.S
 }
 
 func (h *SopJobHandler) GetJobsByDivisionNameGraphHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByDivisionName(divisionName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := mapper.SopJobNodesToResponseDto(data)
 	return dtos, int64(len(dtos)), nil
 }
 
 func (h *SopJobHandler) GetJobsByDivisionNameSqlHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByDivisionNameSQL(divisionName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
 	for _, job := range data {
@@ -666,20 +679,24 @@ func (h *SopJobHandler) GetJobsByDivisionNameSqlHandler(divisionName string) ([]
 }
 
 func (h *SopJobHandler) GetJobsByDivisionAndTitleGraphHandler(divisionName, titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByDivisionAndTitle(divisionName, titleName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := mapper.SopJobNodesToResponseDto(data)
 	return dtos, int64(len(dtos)), nil
 }
 
 func (h *SopJobHandler) GetJobsByDivisionAndTitleSqlHandler(divisionName, titleName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByDivisionAndTitleSQL(divisionName, titleName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
 	for _, job := range data {
@@ -693,20 +710,24 @@ func (h *SopJobHandler) GetJobsByDivisionAndTitleSqlHandler(divisionName, titleN
 }
 
 func (h *SopJobHandler) GetJobsByReferenceDivisionNameGraphHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByReferenceDivisionName(divisionName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := mapper.SopJobNodesToResponseDto(data)
 	return dtos, int64(len(dtos)), nil
 }
 
 func (h *SopJobHandler) GetJobsByReferenceDivisionNameSqlHandler(divisionName string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByReferenceDivisionNameSQL(divisionName)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
 	for _, job := range data {
@@ -720,20 +741,24 @@ func (h *SopJobHandler) GetJobsByReferenceDivisionNameSqlHandler(divisionName st
 }
 
 func (h *SopJobHandler) GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, titleColor string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := mapper.SopJobNodesToResponseDto(data)
 	return dtos, int64(len(dtos)), nil
 }
 
 func (h *SopJobHandler) GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, titleColor string) ([]*dto.SopJobResponseDto, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, titleColor)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
 	dtos := make([]*dto.SopJobResponseDto, 0, len(data))
 	for _, job := range data {

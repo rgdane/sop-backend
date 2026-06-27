@@ -9,6 +9,7 @@ import (
 	"jk-api/internal/database/models"
 	"jk-api/internal/repository/graphdb"
 	"jk-api/internal/service"
+	"jk-api/internal/shared/helper"
 	"time"
 )
 
@@ -313,10 +314,13 @@ func (h *DivisionHandler) GetDivisionByIdGraphHandler(id int64) (*graphdb.Divisi
 }
 
 func (h *DivisionHandler) GetAllDivisionsHandler(filter dto.DivisionFilterDto) ([]models.Division, int64, error) {
+	start := time.Now()
 	data, err := h.Service.GetAllDivisions(filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
+
 	var total int64
 	db := h.Service.GetDB()
 	if filter.Name != "" {
@@ -333,13 +337,13 @@ func (h *DivisionHandler) GetAllDivisionsHandler(filter dto.DivisionFilterDto) (
 }
 
 func (h *DivisionHandler) GetAllDivisionsGraphHandler(filter dto.DivisionFilterDto) ([]*graphdb.DivisionNode, int64, error) {
-// 1. Ambil data Graph
+	start := time.Now()
 	data, err := h.Service.GetAllGraphDivisions(filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	helper.RecordDBLatency(time.Since(start))
 
-	// 2. Hitung total data Graph berdasarkan filter
 	total, err := h.Service.CountGraphDivisions(filter)
 	if err != nil {
 		return nil, 0, err

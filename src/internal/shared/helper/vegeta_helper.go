@@ -1,28 +1,45 @@
 package helper
 
 import (
+	"sync"
 	"time"
 
 	vegeta "github.com/tsenart/vegeta/v12/lib"
 )
 
-// Tambahkan field untuk metrik Database murni
 type BenchmarkResult struct {
 	TestName          string  `json:"test_name"`
 	Target            string  `json:"target"`
 	Requests          uint64  `json:"requests"`
 	SuccessRate       float64 `json:"success_rate"`
-	VegetaMeanLatency string  `json:"vegeta_mean_latency"` // Total API Latency
-	VegetaP99Latency  string  `json:"vegeta_p99_latency"`  // Total API P99
-	DBMeanLatencyMs   float64 `json:"db_mean_latency_ms"`  // Waktu Murni DB (dalam Milidetik)
+	VegetaMeanLatency string  `json:"vegeta_mean_latency"`
+	VegetaP99Latency  string  `json:"vegeta_p99_latency"`
+	DBMeanLatencyMs   float64 `json:"db_mean_latency_ms"`
 }
 
-// Tambahkan parameter `dbQueryFunc` berupa fungsi callback
-func RunVegetaLoadTest(method, targetURL, testName string, durationSec, ratePerSec int, dbQueryFunc func() time.Duration) BenchmarkResult {
-	
-	// ==========================================
-	// 1. PENGUJIAN API LATENCY (DENGAN VEGETA)
-	// ==========================================
+var (
+	IsBenchmarkingActive bool
+	TotalDBDuration      time.Duration
+	DBRequestCount       int64
+	DBMutex              sync.Mutex
+)
+
+func RecordDBLatency(duration time.Duration) {
+	DBMutex.Lock()
+	defer DBMutex.Unlock()
+	if IsBenchmarkingActive {
+		TotalDBDuration += duration
+		DBRequestCount++
+	}
+}
+
+func RunVegetaLoadTest(method, targetURL, testName string, durationSec, ratePerSec int) BenchmarkResult {
+	DBMutex.Lock()
+	IsBenchmarkingActive = true
+	TotalDBDuration = 0
+	DBRequestCount = 0
+	DBMutex.Unlock()
+
 	targeter := vegeta.NewStaticTargeter(vegeta.Target{
 		Method: method,
 		URL:    targetURL,
@@ -39,21 +56,13 @@ func RunVegetaLoadTest(method, targetURL, testName string, durationSec, ratePerS
 	}
 	metrics.Close()
 
-	// ==========================================
-	// 2. PENGUJIAN MURNI DATABASE LATENCY
-	// ==========================================
+	DBMutex.Lock()
+	IsBenchmarkingActive = false
 	var dbMeanMs float64 = 0
-	if dbQueryFunc != nil {
-		var totalDBTime time.Duration
-		dbIterations := 100 // Kita test query DB 100x beruntun untuk akurasi rata-rata
-		
-		for i := 0; i < dbIterations; i++ {
-			totalDBTime += dbQueryFunc() // Eksekusi fungsi DB dari Handler
-		}
-		
-		// Konversi hasil akumulasi ke milidetik (ms)
-		dbMeanMs = float64(totalDBTime.Microseconds()) / float64(dbIterations) / 1000.0
+	if DBRequestCount > 0 {
+		dbMeanMs = float64(TotalDBDuration.Milliseconds()) / float64(DBRequestCount)
 	}
+	DBMutex.Unlock()
 
 	return BenchmarkResult{
 		TestName:          testName,
