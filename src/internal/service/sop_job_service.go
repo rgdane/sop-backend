@@ -52,8 +52,8 @@ type SopJobService interface {
 	GetJobsByDivisionAndTitleSQL(divisionName, titleName string) ([]models.SopJob, error)
 	GetJobsByReferenceDivisionName(divisionName string) ([]*graphdb.SopJobNode, error)
 	GetJobsByReferenceDivisionNameSQL(divisionName string) ([]models.SopJob, error)
-	GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]*graphdb.SopJobNode, error)
-	GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, titleColor string) ([]models.SopJob, error)
+	GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName string) ([]*graphdb.SopJobNode, error)
+	GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, spkName string) ([]models.SopJob, error)
 }
 
 type sopJobService struct {
@@ -521,12 +521,12 @@ func (s *sopJobService) GetJobsByReferenceDivisionNameSQL(divisionName string) (
 	return s.repo.FindSopJobsByReferenceDivisionName(divisionName)
 }
 
-func (s *sopJobService) GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]*graphdb.SopJobNode, error) {
-	return s.graphRepo.GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor)
+func (s *sopJobService) GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName string) ([]*graphdb.SopJobNode, error) {
+	return s.graphRepo.GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName)
 }
 
-func (s *sopJobService) GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, titleColor string) ([]models.SopJob, error) {
-	return s.repo.FindSopJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor)
+func (s *sopJobService) GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, spkName string) ([]models.SopJob, error) {
+	return s.repo.FindSopJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName)
 }
 
 func toSopJobNode(m *models.SopJob) *graphdb.SopJobNode {

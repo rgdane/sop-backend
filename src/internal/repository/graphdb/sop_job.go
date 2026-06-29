@@ -64,7 +64,7 @@ type SopJobRepository interface {
 	GetJobsByDivisionName(divisionName string) ([]*SopJobNode, error)
 	GetJobsByDivisionAndTitle(divisionName, titleName string) ([]*SopJobNode, error)
 	GetJobsByReferenceDivisionName(divisionName string) ([]*SopJobNode, error)
-	GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]*SopJobNode, error)
+	GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName string) ([]*SopJobNode, error)
 }
 
 type sopJobRepository struct{}
@@ -784,19 +784,17 @@ func (r *sopJobRepository) GetJobsByDivisionAndTitle(divisionName, titleName str
 	return sopJobs, nil
 }
 
-func (r *sopJobRepository) GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor string) ([]*SopJobNode, error) {
+func (r *sopJobRepository) GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName string) ([]*SopJobNode, error) {
 	repo := builder.NewGraphRepository()
 	params := map[string]any{
 		"divisionName":    divisionName,
 		"jobNamePattern": jobNamePattern,
-		"titleColor":      titleColor,
+		"spkName":      spkName,
 	}
 
 	queryBuilder := repo.
-		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)").
-		WithMatch("(j)-[:ASSIGNED_TO]->(t:Title)").
-		WithMatch("(j)-[:HAS_REFERENCE]->(ref)").
-		WithWhere("d.name = $divisionName AND j.name CONTAINS $jobNamePattern AND j.is_published = true AND t.color = $titleColor", params).
+		WithMatch("(d:Division)-[:HAS_SOP]->(s:SOP)-[:HAS_JOB]->(j:Job)-[:HAS_REFERENCE]->(ref:SPK)").
+		WithWhere("d.name = $divisionName AND j.name CONTAINS $jobNamePattern AND j.is_published = true AND ref.name CONTAINS $spkName", params).
 		WithReturn("j.id AS id, j.name AS name, j.type AS type, j.code AS code, j.index AS index ORDER BY j.index ASC LIMIT 100").
 		WithParams(params)
 

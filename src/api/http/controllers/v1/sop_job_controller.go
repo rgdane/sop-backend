@@ -448,7 +448,7 @@ func GetReferenceDivisionGraphSopJobs(cn *container.AppContainer) fiber.Handler 
 // @Produce json
 // @Param division_name query string true "Division Name"
 // @Param job_name_pattern query string true "Job Name Pattern (LIKE)"
-// @Param title_color query string true "Title Color"
+// @Param spk_name query string true "Title Color"
 // @Security BearerAuth
 // @Success 200 {object} presenters.SuccessResponse
 // @Failure 400 {object} presenters.ErrorResponse
@@ -458,7 +458,7 @@ func GetDivisionTitlePublishedSqlSopJobs(cn *container.AppContainer) fiber.Handl
 	return func(c *fiber.Ctx) error {
 		divisionName := c.Query("division_name", "")
 		jobNamePattern := c.Query("job_name_pattern", "")
-		titleColor := c.Query("title_color", "")
+		spkName := c.Query("spk_name", "")
 
 		if divisionName == "" {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
@@ -466,11 +466,11 @@ func GetDivisionTitlePublishedSqlSopJobs(cn *container.AppContainer) fiber.Handl
 		if jobNamePattern == "" {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "job_name_pattern is required")
 		}
-		if titleColor == "" {
-			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_color is required")
+		if spkName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "spk_name is required")
 		}
 
-		data, total, err := cn.SopJobHandler.GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, titleColor)
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, spkName)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}
@@ -486,7 +486,7 @@ func GetDivisionTitlePublishedSqlSopJobs(cn *container.AppContainer) fiber.Handl
 // @Produce json
 // @Param division_name query string true "Division Name"
 // @Param job_name_pattern query string true "Job Name Pattern (CONTAINS)"
-// @Param title_color query string true "Title Color"
+// @Param spk_name query string true "Title Color"
 // @Security BearerAuth
 // @Success 200 {object} presenters.SuccessResponse
 // @Failure 400 {object} presenters.ErrorResponse
@@ -496,7 +496,7 @@ func GetDivisionTitlePublishedGraphSopJobs(cn *container.AppContainer) fiber.Han
 	return func(c *fiber.Ctx) error {
 		divisionName := c.Query("division_name", "")
 		jobNamePattern := c.Query("job_name_pattern", "")
-		titleColor := c.Query("title_color", "")
+		spkName := c.Query("spk_name", "")
 
 		if divisionName == "" {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "division_name is required")
@@ -504,11 +504,11 @@ func GetDivisionTitlePublishedGraphSopJobs(cn *container.AppContainer) fiber.Han
 		if jobNamePattern == "" {
 			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "job_name_pattern is required")
 		}
-		if titleColor == "" {
-			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "title_color is required")
+		if spkName == "" {
+			return presenters.SendErrorResponseWithMessage(c, fiber.StatusBadRequest, "spk_name is required")
 		}
 
-		data, total, err := cn.SopJobHandler.GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, titleColor)
+		data, total, err := cn.SopJobHandler.GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, spkName)
 		if err != nil {
 			return presenters.SendErrorResponse(c, fiber.StatusInternalServerError, err)
 		}

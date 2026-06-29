@@ -724,8 +724,8 @@ func (h *SopJobHandler) GetJobsByReferenceDivisionNameSqlHandler(divisionName st
 	return dtos, int64(len(dtos)), nil
 }
 
-func (h *SopJobHandler) GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, titleColor string) ([]*dto.SopJobResponseDto, int64, error) {
-	data, err := h.Service.GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, titleColor)
+func (h *SopJobHandler) GetJobsByDivisionTitlePublishedGraphHandler(divisionName, jobNamePattern, spkName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionTitlePublished(divisionName, jobNamePattern, spkName)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -734,8 +734,8 @@ func (h *SopJobHandler) GetJobsByDivisionTitlePublishedGraphHandler(divisionName
 	return dtos, int64(len(dtos)), nil
 }
 
-func (h *SopJobHandler) GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, titleColor string) ([]*dto.SopJobResponseDto, int64, error) {
-	data, err := h.Service.GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, titleColor)
+func (h *SopJobHandler) GetJobsByDivisionTitlePublishedSqlHandler(divisionName, jobNamePattern, spkName string) ([]*dto.SopJobResponseDto, int64, error) {
+	data, err := h.Service.GetJobsByDivisionTitlePublishedSQL(divisionName, jobNamePattern, spkName)
 	if err != nil {
 		return nil, 0, err
 	}

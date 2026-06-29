@@ -109,7 +109,7 @@ func RunBenchmarkSopJobDivisionTitlePublishedSQL(cn *container.AppContainer) fib
 		rate := c.QueryInt("rate", 100)
 		duration := c.QueryInt("duration", 5)
 
-		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-published-sql/?division_name=Product&job_name_pattern=mengoptimalkan&title_color=%2333FF57"
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-published-sql/?division_name=Product&job_name_pattern=mengoptimalkan&spk_name=tim"
 		result := helper.RunVegetaLoadTest("GET", targetURL, "SQL - SOP Jobs by Division/Title/Published", duration, rate)
 		return c.JSON(fiber.Map{"message": "Benchmark SQL SOP Jobs by Division/Title/Published selesai", "data": result})
 	}
@@ -120,7 +120,7 @@ func RunBenchmarkSopJobDivisionTitlePublishedGraph(cn *container.AppContainer) f
 		rate := c.QueryInt("rate", 100)
 		duration := c.QueryInt("duration", 5)
 
-		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-published-graph/?division_name=Product&job_name_pattern=mengoptimalkan&title_color=%2333FF57"
+		targetURL := "http://localhost:5000/api/v1/sop-jobs/division-title-published-graph/?division_name=Product&job_name_pattern=mengoptimalkan&spk_name=tim"
 		result := helper.RunVegetaLoadTest("GET", targetURL, "Graph - SOP Jobs by Division/Title/Published", duration, rate)
 		return c.JSON(fiber.Map{"message": "Benchmark Graph SOP Jobs by Division/Title/Published selesai", "data": result})
 	}
